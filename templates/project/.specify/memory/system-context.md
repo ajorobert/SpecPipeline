@@ -27,8 +27,8 @@ Frontend Surfaces:
 <!-- One line per frontend application or surface.
      Format: - {surface-name}: {type} — {one-sentence description}
      Example:
-     - web-app: React SPA — operator dashboard for managing menus, inventory, and orders
-     - mobile-app: React Native — kitchen display and order fulfilment for staff -->
+     - web-app: single-page web app — operator dashboard for managing menus, inventory, and orders
+     - mobile-app: cross-platform native app — kitchen display and order fulfilment for staff -->
 
 External Dependencies:
 <!-- Third-party services, APIs, and infrastructure this system relies on.

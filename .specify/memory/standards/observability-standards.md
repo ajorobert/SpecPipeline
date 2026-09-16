@@ -2,7 +2,7 @@ Observability Standards
 Loaded by: sk.implement, sk.review, sk.architecture
 
 Enforcement model: [REQUIRED] items must be present when a service first ships.
-sk.tasks generates observability setup tasks for the first story of any new service.
+sk.planproject generates observability setup tasks in 03-plan/{Project}/tasks.md for the first unit of any new service.
 Subsequent stories: sk.review verifies nothing is removed or broken.
 
 ## Structured Logging
@@ -47,7 +47,7 @@ Levels:
 
 ## Command Handler Idempotency Observability
 
-Applies when: CQRS is ON and command handlers perform state mutations.
+Applies when: the constitution requires command handler idempotency and command handlers perform state mutations.
 
 [REQUIRED] commands_duplicate_total{handler, reason}
   Increment on every duplicate commandId detection before handler executes.

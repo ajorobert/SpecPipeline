@@ -12,7 +12,9 @@ Declare mode at start of execution.
 ## Input Artifacts
 .specify/memory/system-context.md
 .specify/memory/projects/index.md (project router)
+.specify/memory/skill-routing.md (`## By signal` — the tag vocabulary; optional)
 session.yaml (active_intent_id, active_unit_id)
+templates/artifacts/story-template.md
 
 ## Steps
 
@@ -25,6 +27,8 @@ Create specs/intents/{NNN}-{name}/intent.md if new.
 Read active_unit_id from session.yaml.
 NULL → ask user for unit title and code (e.g. PAY)
 Create specs/intents/{intent}/units/{unit}/unit-brief.md if new.
+If the unit already has `01-story/story.md`: this is [REFINE MODE] for that story — update it in place.
+A genuinely separate story belongs in a new unit; ask the PO to name one.
 
 ### Step 3 — [FEATURE MODE only] Pre-validation (optional)
 If creating a new intent (active_intent_id was NULL before step 1):
@@ -38,7 +42,7 @@ If creating a new intent (active_intent_id was NULL before step 1):
 
 ### Step 3b — Context-Aware Probing (optional)
 Before asking questions, load:
-- Existing story folders in the same unit (`specs/intents/{intent}/units/{unit}/{NN}-story/`) to avoid duplication.
+- Existing stories in the same intent (`specs/intents/{intent}/units/*/01-story/story.md`) to avoid duplication.
 - `.specify/memory/domain-model.md` to probe for entity relationships.
 - `.specify/memory/system-context.md` to check if the story touches integration points.
 Use this to generate 1-2 proactive questions (e.g. "This story involves the Order entity. Does it need to handle state transitions?").
@@ -65,7 +69,7 @@ Use the following structured interview matrix. Ask questions progressively, usin
 | **Trigger** | What initiates this action? (user click, schedule, event) | If event-driven → ask: what produces the event? |
 | **Input** | What data does the user provide or the system receive? | If "form data" → ask for specific fields |
 | **Output** | What is the observable result? | If no UI change → ask: how does the user know it worked? |
-| **Happy Path**| Walk through the ideal scenario step by step | If > 5 steps → suggest splitting into multiple stories |
+| **Happy Path**| Walk through the ideal scenario step by step | If > 5 steps → suggest splitting into multiple units |
 | **Error Cases**| What can go wrong? How should errors surface? | If "show error message" → ask for specific error states |
 
 **Acceptance Criteria Quality Gate (Inline Check)**
@@ -88,13 +92,12 @@ Ask explicitly: what is explicitly out of scope.
 - Note: out of scope defaults to "no new features introduced by this fix"
 
 ### Step 5 — Write Story
-Create a single numbered story folder (the story is NOT split per project):
-  specs/intents/{intent}/units/{unit}/{NN}-story/
-where `{NN}` is the next zero-padded sequence within the unit (`01-story`, `02-story`, …).
+Write the story into the unit's fixed phase folder (the story is NOT split per project):
+  specs/intents/{intent}/units/{unit}/01-story/
 Story ID format stays `{INTENT}-{UNIT}-{NNN}` and is recorded in `story.md` frontmatter.
 
 Write these files into that folder:
-  - `story.md` — frontmatter (`id`, `intent`, `unit`, `status`, `story_type`, `tags`, `checkpoint_mode`; plus `jira_id` when Jira-seeded) + the As-a/I-want/So-that user story + in/out-of-scope.
+  - `story.md` — from `templates/artifacts/story-template.md`: frontmatter (`id`, `intent`, `unit`, nested `status.current` / `status.entered_at`, `story_type`, `tags`, `checkpoint_mode`; plus `jira_id` when Jira-seeded) + the As-a/I-want/So-that user story + in/out-of-scope.
   - `requirement.md` — the functional + non-functional business requirements derived from the interview.
   - `acceptance-criteria.md` — the testable acceptance criteria (GWT or condition-based).
 
@@ -106,37 +109,28 @@ In [BUG MODE]: set `story_type: bug` in `story.md` frontmatter and populate (in 
 
 When Jira-seeded: also write `jira.md` in the folder recording the source `{Jira_Id}`, issue summary, and a link back. In manual mode `jira.md` is not created.
 
+Update session.yaml: `active_unit_id`, `active_story_id`, `active_intent_id`.
+
 ### Step 5b — Tag Story with Domain Keywords
-After writing the story, scan the story title and acceptance criteria for tech domain signals.
-Set the `tags` array in `story.md` frontmatter using keywords from this list:
-
-| Keyword to add | When present in story |
-|---|---|
-| `auth` | login, logout, session, token, keycloak, firebase, permission, role, authorization |
-| `messaging` | event, queue, rabbitmq, masstransit, mediatr, publish, subscribe, hangfire, background job |
-| `workflow` | elsa, workflow, sla, timer, breach, escalation, state machine |
-| `db` | schema, migration, entity, table, postgres, postgis, seed |
-| `cache` | redis, cache, ttl, rate-limit, distributed lock, session store |
-| `search` | elasticsearch, search, geo, location, index, facet |
-| `file` | upload, download, image, virus, scan, storage, r2, cdn |
-| `bff` | api gateway, bff, backend-for-frontend, aggregation, forwarding |
-| `state` | zustand, global state, shared state, store |
-
-Add matched tags to `story.md` frontmatter as: `tags: [tag1, tag2]`
-Empty array if none match: `tags: []`
+Tags let `.claude/skills/governance/pack-resolution.md` load the right capability packs later.
+1. Read `.specify/memory/skill-routing.md` → `## By signal`. The tag vocabulary is the union of all Signals.
+2. Scan the story title, requirement and acceptance criteria for those keywords (whole word, case-insensitive).
+3. Set `tags` in `story.md` frontmatter to the matched keywords, e.g. `tags: [cache, auth]`.
+   Empty array if none match or no manifest exists: `tags: []`.
+Never invent tags outside the manifest vocabulary; note unmatched but important concepts in requirement.md instead.
 
 ### Step 6 — Classify Checkpoint
-Read governance skill → set checkpoint_mode in `story.md` frontmatter.
-Bug stories default to checkpoint_mode: standard unless the fix touches
-a service boundary or data model (→ confirm).
+Read `.claude/skills/governance/checkpoint-rules.md` → set `checkpoint_mode` in `story.md` frontmatter
+(`autopilot | confirm | validate`). This frontmatter field is the single source of truth for every later gate.
+Bug stories default to `autopilot` unless the fix touches a service boundary or data model (→ `confirm`).
 
 ## Output Artifacts
 specs/intents/{intent}/intent.md (if new)
 specs/intents/{intent}/units/{unit}/unit-brief.md (if new)
-specs/intents/{intent}/units/{unit}/{NN}-story/story.md
-specs/intents/{intent}/units/{unit}/{NN}-story/requirement.md
-specs/intents/{intent}/units/{unit}/{NN}-story/acceptance-criteria.md
-specs/intents/{intent}/units/{unit}/{NN}-story/jira.md (only when Jira-seeded)
+specs/intents/{intent}/units/{unit}/01-story/story.md
+specs/intents/{intent}/units/{unit}/01-story/requirement.md
+specs/intents/{intent}/units/{unit}/01-story/acceptance-criteria.md
+specs/intents/{intent}/units/{unit}/01-story/jira.md (only when Jira-seeded)
 
 ## Quality Bar
 
@@ -151,4 +145,4 @@ specs/intents/{intent}/units/{unit}/{NN}-story/jira.md (only when Jira-seeded)
 - Reproduction steps are numbered and specific
 - Minimum 2 acceptance criteria (definition of fixed)
 - story_type: bug in frontmatter
-- checkpoint_mode set (default: standard)
+- checkpoint_mode set (default: autopilot)

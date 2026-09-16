@@ -11,12 +11,8 @@ and spec drift before implementation.
 CRITICAL, HIGH, or MEDIUM findings must be resolved before implementation may proceed.
 
 ## Pre-flight
-1. Read session.yaml active_unit_id
-   NULL → STOP: run sk.session focus --unit {unit-id} first
-2. Resolve directories:
-   UNIT_DIR = specs/intents/{intent}/units/{unit}/
-   DESIGN_DIR = UNIT_DIR/02-design/
-   PLAN_DIR = UNIT_DIR/03-plan/
+Run the unit pre-flight in `.claude/skills/governance/preflight.md` (session focus, UNIT_DIR / DESIGN_DIR /
+PLAN_DIR, Impacted Projects). This skill is READ-ONLY; it never writes status or gates.
 
 ## Context loading
 Load these artifacts (report MISSING if required artifact absent):
@@ -87,7 +83,7 @@ Severity scale: CRITICAL | HIGH | MEDIUM | LOW
 
 Followed by:
 - **Summary**: total findings by severity
-- **Story coverage map**: story-{ID} → in architecture.md (yes/no)
+- **Story coverage map**: {story-id} → in architecture.md (yes/no)
 - **Project plan coverage map**: {Project} → plan folder present (yes/no), all five artifacts (yes/no)
 - **Next actions**: if any MEDIUM, HIGH, or CRITICAL findings exist, list all findings. The user must resolve them and re-run sk.plan --analyze-only before proceeding to implementation. LOW findings are reported but do not block.
 

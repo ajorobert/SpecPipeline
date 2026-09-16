@@ -6,11 +6,11 @@ write_scope:
   deny:
     - "src/**"
     - ".specify/memory/**"
-    - "specs/intents/**/architecture.md"
-    - "specs/intents/**/data-model.md"
-    - "specs/intents/**/contracts/**"
-    - "specs/intents/**/stories/*/plan.md"
-    - "specs/intents/**/stories/*/tasks.yaml"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
+    - "specs/intents/**/05-test/**"
+    - "specs/intents/**/07-security-audit/**"
 tool_scope:
   allow: [Read, Edit, Write, Grep, Glob, Bash]
 ---
@@ -37,7 +37,7 @@ sk.story, sk.session (start/end/focus/status/list)
 ## Files You Write
 specs/intents/{intent}/intent.md
 specs/intents/{intent}/units/{unit}/unit-brief.md
-specs/intents/{intent}/units/{unit}/stories/story-{ID}.md
+specs/intents/{intent}/units/{unit}/01-story/   (story.md, requirement.md, acceptance-criteria.md, jira.md)
 
 ## Files You Read (never write)
 .specify/memory/system-context.md
@@ -45,10 +45,10 @@ specs/intents/{intent}/units/{unit}/stories/story-{ID}.md
 specs/intents/                       ← existing intents for context
 
 ## Constraints
-- Never set checkpoint_mode — that is set by sk.story automatically
+- Never set checkpoint_mode by hand — sk.specify classifies it
 - Never modify story status beyond: draft → ready
 - Never write to .specify/memory/ files
-- Never write to src/ or any implementation directory
+- Never write to any implementation directory
 - If a technical question arises: note it as an open question in the story,
   do not answer it yourself
 

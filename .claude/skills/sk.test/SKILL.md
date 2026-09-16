@@ -9,10 +9,10 @@ rubric:
   name: test-coverage
   checks:
     - every acceptance criterion maps to at least one E2E or integration test
-    - no skipped or pending tests (no .skip, xit, it.only, fdescribe)
+    - no skipped or focused tests (Forbidden Skip Idioms per the project's tech-stack.md) without a documented reason
     - contract tests exist for every endpoint in api-spec.json
     - idempotency replay test present for non-idempotent operations
-    - coverage threshold met per tech-stack.md
+    - coverage threshold met per coding-standards.md
     - all tests pass
 ---
 
@@ -27,6 +27,6 @@ Per project type the worker produces:
 - **Frontend / Mobile** → `component-test.md`, `contract-test.md` (consumer contracts)
 
 Each folder documents test cases, expected results, provider/consumer contracts, and regression
-checks; the runnable tests themselves are written within each project's test tree under its `{CodeRoot}`.
+checks; the runnable tests themselves are written at each project's Test Layout under its `{CodeRoot}`.
 
 Read and execute the full workflow in `prompt.md` in this directory.

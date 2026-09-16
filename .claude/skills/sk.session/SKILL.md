@@ -1,6 +1,7 @@
 ---
 name: sk.session
 description: "Invoke when: starting, ending, switching role, focusing, restoring, or checking status of a development session. Role: any. Reads/writes: session.yaml. Subcommands: start, end, switch, focus, restore, status, list."
+disable-model-invocation: true
 inject_files:
   - .claude/session.yaml
 ---

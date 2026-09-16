@@ -2,7 +2,7 @@ Observability Standards
 Loaded by: sk.implement, sk.review, sk.architecture
 
 Enforcement model: [REQUIRED] items must be present when a service first ships.
-sk.tasks generates observability setup tasks for the first story of any new service.
+sk.planproject generates observability setup tasks in 03-plan/{Project}/tasks.md for the first unit of any new service.
 Subsequent stories: sk.review verifies nothing is removed or broken.
 
 ## Structured Logging

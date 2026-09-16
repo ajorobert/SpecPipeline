@@ -13,7 +13,7 @@ session_count: 1
 ## Investigation INV-001 — {date}
 **Investigated by**: {role}
 **Acceptance criteria in scope**:
-<!-- Snapshot of relevant AC from story-{ID}.md at time of this investigation -->
+<!-- Snapshot of relevant AC from 01-story/acceptance-criteria.md at time of this investigation -->
 
 ### Findings
 
@@ -22,7 +22,7 @@ session_count: 1
 **Expected** (per spec): <!-- quote the relevant AC or api-spec.json endpoint -->
 **Actual** (observed): <!-- what the system actually does -->
 **Root cause**: <!-- specific code-level cause for impl bug; or why spec doesn't match required behavior for mismatch -->
-**Affected artifact**: <!-- src/file:line for impl bug; story AC# or api-spec.json /{endpoint} for mismatch -->
+**Affected artifact**: <!-- {CodeRoot}/file:line for impl bug; story AC# or api-spec.json /{endpoint} for mismatch -->
 
 <!-- Repeat Finding-002, Finding-003 etc. for each additional bug found in this session -->
 
@@ -32,8 +32,8 @@ session_count: 1
 | Finding-001 | Implementation Bug \| Spec/Contract Mismatch | {artifact} |
 
 **Verdict for this session**:
-- [ ] All Implementation Bugs → run /sk.phr, fix in src/, run /sk.test
-- [ ] Spec/Contract Mismatch present → update AC in story-{ID}.md, run /sk.contracts if contract shape changed
+- [ ] All Implementation Bugs → run /sk.phr, fix in the project's code root, run /sk.test
+- [ ] Spec/Contract Mismatch present → update AC in 01-story/acceptance-criteria.md, run /sk.design --contracts if contract shape changed
 
 ### Candidate Invariants (this session)
 <!-- Unreviewed staging entries. Architect promotes to Business Invariants via sk.knowledge-base --tier unit -->

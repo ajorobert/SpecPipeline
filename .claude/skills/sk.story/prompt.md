@@ -25,16 +25,17 @@ Evaluate in this order:
 3. Load `.specify/memory/projects/index.md` as the **project router** (available projects + their types). It is used by `sk.architect-probe` to record the **impacted projects** into `unit-brief.md`. The story itself is NOT split per project.
 
 ## Story Layout
-A story is a single numbered folder under the unit — it is NOT split per project:
+A unit has exactly one story, in the fixed phase folder `01-story/` (`.claude/skills/governance/phase-layout.md`).
+It is NOT split per project:
 ```
-specs/intents/{intent}/units/{unit}/{NN}-story/
+specs/intents/{intent}/units/{unit}/01-story/
     story.md                # user story (frontmatter + As-a/I-want/So-that + scope)
     requirement.md          # business + non-functional requirements, clarifications, architecture constraints
     acceptance-criteria.md  # testable acceptance criteria (GWT)
     jira.md                 # optional — Jira source mapping (only in [JIRA MODE])
 ```
-- `{NN}` is a zero-padded sequence within the unit (`01-story`, `02-story`, …).
 - Story ID stays `{INTENT}-{UNIT}-{NNN}` in `story.md` frontmatter.
+- Work that needs a second story belongs in a new unit.
 - Whenever a phase below says "the story", it means this folder; assessments read across `story.md` + `requirement.md` + `acceptance-criteria.md`.
 
 ## Phase 0 — Jira Ingestion (only in [JIRA MODE])
@@ -55,7 +56,7 @@ Invoke sub-skill: `sk.story/sk.specify` (or `--bug` if in bug mode)
 - In [JIRA MODE]: pass the Phase 0 seed data to `sk.specify`. It pre-fills intent/unit/story fields from Jira and only asks for fields Jira left genuinely empty — it does not re-run the full interview.
 - In [MANUAL MODE]: `sk.specify` runs the interactive interview as normal.
 - Wait for specify phase to complete and write the story folder (`story.md`, `requirement.md`, `acceptance-criteria.md`)
-- Read back `active_story_id` from `session.yaml`
+- Read back `active_unit_id` / `active_story_id` from `session.yaml`
 
 ### Phase 2 — Business Completeness Assessment
 Run a structural coverage check on the generated story folder (`story.md` + `acceptance-criteria.md`).
@@ -123,18 +124,18 @@ Loop `sk.story/sk.architect-probe` up to 2 times to resolve gaps from Phase 4.
 Before marking the story as ready:
 1. Show a combined summary of the final Business & Technical Assessments.
 2. If all items are ✅ across both:
-   - Auto-set `status: ready` in the `story.md` frontmatter.
+   - Auto-set `status.current: ready` (and `status.entered_at`) in the `story.md` frontmatter.
    - Display success summary.
 3. If any ❌ remain:
    - Display the missing items.
    - Ask PO: "Type 'proceed' to accept and proceed (items will be flagged as risk), or 'clarify' to do one more manual round."
-   - If 'proceed': set `status: ready` in `story.md`.
+   - If 'proceed': set `status.current: ready` in `story.md`.
 
 ### Phase 7 — Finalize Story Folder
 Once the story is `ready`, finalize the **single** story folder. Do NOT split per project.
 
-**Confirm the folder is complete** at `specs/intents/{intent}/units/{unit}/{NN}-story/`:
-- `story.md` — frontmatter (`id`, `intent`, `unit`, `status`, `story_type`, `tags`, `checkpoint_mode`, and `jira_id` in [JIRA MODE]) + the As-a/I-want/So-that statement + in/out-of-scope.
+**Confirm the folder is complete** at `specs/intents/{intent}/units/{unit}/01-story/`:
+- `story.md` — frontmatter (`id`, `intent`, `unit`, `status.current`, `story_type`, `tags`, `checkpoint_mode`, and `jira_id` in [JIRA MODE]) + the As-a/I-want/So-that statement + in/out-of-scope.
 - `requirement.md` — business + non-functional requirements, the clarifications log, and architecture constraints (NFRs, security, observability, integration).
 - `acceptance-criteria.md` — the testable acceptance criteria.
 - `jira.md` — **optional**, written only in [JIRA MODE]: records the source Jira ID `{Jira_Id}`, the issue summary, and a link back to it for traceability. In [MANUAL MODE] this file is not created.
@@ -149,13 +150,14 @@ Once the story is `ready`, finalize the **single** story folder. Do NOT split pe
 sk.story complete.
 Story: {story-id} — {story title}
 Status: ready
+Checkpoint: {checkpoint_mode}
 
 Checklist Summary:
 - Business Passed: {X}/{Total}
 - Technical Passed: {Y}/{Total}
 - Missing: {Z} (listed if any)
 
-Story folder: {NN}-story/ (story.md, requirement.md, acceptance-criteria.md{, jira.md if --jira})
+Story folder: 01-story/ (story.md, requirement.md, acceptance-criteria.md{, jira.md if --jira})
 Impacted projects (in unit-brief.md): {Backend/Frontend/Mobile list}
 
 Next step: /sk.design (or /sk.ff if continuing the pipeline)
@@ -168,5 +170,6 @@ Next step: /sk.design (or /sk.ff if continuing the pipeline)
 - ✔ Clarifications completed
 - ✔ Architecture impact checked (impacted projects recorded in unit-brief.md)
 - ✔ Project router loaded
-- ✔ Single story folder (NOT split per project)
+- ✔ Single story folder `01-story/` (NOT split per project)
+- ✔ checkpoint_mode set in story.md frontmatter (autopilot | confirm | validate)
 - ✔ jira.md present only when sourced from Jira

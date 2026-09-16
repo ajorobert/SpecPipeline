@@ -8,44 +8,12 @@ Internal sub-skill — invoked by sk.implementproject (one project of a unit). D
 The caller passes the target `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`, and the
 project slice: `03-plan/{Project}/plan.md`, `03-plan/{Project}/tasks.md`, the `02-design/` artifacts, and
 in REFINE mode `04-implementation/{Project}/review-{story-id}.md`. You operate ONLY on files within
-`{CodeRoot}` (and `tests/`) scaffolded by sk.scaffolding.
+`{CodeRoot}` scaffolded by sk.scaffolding.
 
-## Step 0: Capability Pack Selection
-1. Use the `role` (backend | frontend | mobile) and `{Project}` passed by sk.implementproject
-   (fall back to session.yaml `role` if not passed).
-2. Read `03-plan/{Project}/plan.md` and the unit's story frontmatter → identify domain keywords.
-3. Use `{ProjectType}` + the project's Role (from unit-brief Impacted Projects) as the active surface.
-4. Read applicable packs. **Load ≤6 packs total** — prioritise specialist packs when the limit is reached.
-
-**Role = backend**
-- Always (canonical SSOT): `.claude/skills/backend-architecture/SKILL.md`
-- Always: `.claude/skills/backend-feature-patterns/SKILL.md`
-- `bff`, `aggregation`, `endpoint`, `http entry` → `.claude/skills/api-endpoint-patterns/SKILL.md`
-- `messaging`, `events`, `queue`, `rabbitmq`, `hangfire`, `command`, `query`, `handler`, `publish`, `subscribe`, `outbox`, `saga`, `integration event`, `scheduled message`, `message bus`, `workflow`, `elsa`, `activity`, `signal`, `bookmark`, `human in the loop`, `job`, `scheduled`, `recurring`, `cron`, `background`, `batch`, `dashboard`, `sla`, `timer`, `breach` → `.claude/skills/orchestration-patterns/SKILL.md`
-- `authorization`, `role`, `policy`, `rbac`, `abac`, `permission`, `user context`, `resource ownership`, `audit identity` → `.claude/skills/authorization-patterns/SKILL.md`
-- `authentication`, `jwt`, `bearer`, `keycloak`, `oidc`, `claim`, `mfa`, `otp`, `m2m`, `claim mapping`, `composition root`, `wiring`, `outbox impl`, `transport`, `dlq` → `.claude/skills/infrastructure-wiring/SKILL.md`
-- `persist`, `persistence`, `database`, `db`, `postgres`, `postgresql`, `ef core`, `dapper`, `migration`, `schema`, `jsonb`, `postgis`, `geo`, `transaction`, `repository`, `read model`, `projection`, `rls`, `tenant isolation`, `concurrency`, `xmin` → `.claude/skills/data-access-patterns/SKILL.md`
-- `cache`, `caching`, `redis`, `hybrid cache`, `l1`, `l2`, `tag invalidation`, `distributed lock`, `rate limit`, `redlock`, `redis stream` → `.claude/skills/caching-patterns/SKILL.md`
-- `search`, `elasticsearch`, `geo` → `.claude/skills/search-patterns/SKILL.md`
-- `file`, `upload`, `attachment`, `image`, `blob`, `storage`, `seaweedfs`, `s3`, `presigned`, `virus`, `scan`, `clamav`, `imagesharp`, `resize`, `thumbnail`, `quarantine`, `exif`, `signed url`, `bucket` → `.claude/skills/file-pipeline-patterns/SKILL.md`
-- `adapter`, `integration adapter`, `external service adapter`, `vendor api`, `external integration`, `DelegatingHandler`, `chain order`, `M2M handler`, `typed httpclient`, `polly`, `resilience pipeline`, `resilience handler`, `port adapter split` → `.claude/skills/integration-adapter-patterns/SKILL.md`
-- `feature flag`, `feature toggle`, `feature gate`, `rollout`, `gradual release`, `percentage rollout`, `a/b test`, `variant`, `gating`, `IFeatureManager`, `IFeatureManagerSnapshot`, `IVariantFeatureManager`, `sunset`, `flag cleanup` → `.claude/skills/feature-management-patterns/SKILL.md`
-
-**Role = frontend — Customer Portal (Next.js)**
-- Always: `.claude/skills/nextjs-patterns/SKILL.md`, `.claude/skills/frontend-design-system/SKILL.md`, `.claude/skills/react-component-patterns/SKILL.md`, `.claude/skills/accessibility-standards/SKILL.md`
-- `auth` → `.claude/skills/auth-patterns/SKILL.md`
-- `state`, `zustand` → `.claude/skills/zustand-state-management/SKILL.md`
-- `file`, `upload` → `.claude/skills/file-pipeline-patterns/SKILL.md`
-
-**Role = frontend — Admin SPA**
-- Always: `.claude/skills/react-admin-patterns/SKILL.md`, `.claude/skills/frontend-design-system/SKILL.md`, `.claude/skills/react-component-patterns/SKILL.md`, `.claude/skills/accessibility-standards/SKILL.md`
-- `state`, `zustand` → `.claude/skills/zustand-state-management/SKILL.md`
-
-**Role = frontend — Mobile**
-- Always: `.claude/skills/react-native-patterns/SKILL.md`
-- `auth` → `.claude/skills/auth-patterns/SKILL.md`
-- `file`, `upload` → `.claude/skills/file-pipeline-patterns/SKILL.md`
-List the packs loaded before continuing.
+## Step 0: Capability Packs
+Resolve capability packs per `.claude/skills/governance/pack-resolution.md`; phase = `implement`,
+in-scope project = `{Project}` (`{ProjectType}`), signals = story tags + `03-plan/{Project}/plan.md`
+(+ the review report in REFINE mode). If no project was passed, fall back to session.yaml `role`.
 
 ## Context Loading — cacheable (load first, in order)
 1. specs/domains/{relevant-domain}/knowledge-base.md (if exists)
@@ -53,7 +21,7 @@ List the packs loaded before continuing.
 3. specs/intents/{intent}/units/{unit}/02-design/contracts/api-spec.json (if exists)
 4. specs/intents/{intent}/units/{unit}/02-design/architecture.md (if exists)
 5. specs/intents/{intent}/units/{unit}/02-design/projects/{Project}.md (if exists)
-6. .specify/memory/standards/coding-standards.md
+6. The project's coding-standards.md and tech-stack.md (`.claude/skills/governance/project-resolution.md`)
 7. .specify/memory/standards/observability-standards.md
 
 ## Project context (tail — load LAST)
@@ -62,7 +30,7 @@ Emit at end of user-input block, after all cacheable context:
 <project name="{Project}" code-root="{CodeRoot}" type="{ProjectType}">
   <plan-md>…03-plan/{Project}/plan.md…</plan-md>
   <tasks-md>…03-plan/{Project}/tasks.md…</tasks-md>
-  <stories>…UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md…</stories>
+  <story>…UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md…</story>
   <prior-review>…04-implementation/{Project}/review-{story-id}.md (if REFINE mode)…</prior-review>
 </project>
 ```
@@ -85,14 +53,13 @@ You are operating on the files generated by `sk.scaffolding`, within `{CodeRoot}
 Parse `03-plan/{Project}/tasks.md` and execute its tasks in the documented build order (the plan's
 Implementation Sequence / phases). Tasks are `- [ ] T{NN} — {title}` with `depends:` lines. Cross-check
 `04-implementation/{Project}/progress.md`: work tasks with status `scaffolded` (handed off by scaffolding)
-or `pending`; skip any with status `done`.
+or `pending`; skip any with status `done`. Never edit `03-plan/` — progress lives only in progress.md.
 
 For each task:
 - A task marked `[P]` may execute concurrently with its parallelizable siblings (or as multi-file
   generation within a single output).
 - Respect `depends:` — execute only after all listed task ids are `done`.
-- After completing each task: set its status to `done` in `04-implementation/{Project}/progress.md`
-  immediately (and optionally tick its `- [ ]` → `- [x]` in the plan's tasks.md).
+- After completing each task: set its status to `done` in `04-implementation/{Project}/progress.md` immediately.
 - Report task completion inline. If a non-parallel task fails: mark it `blocked` with a reason, halt, and report with context.
 - Ensure coding standards are strictly followed.
 

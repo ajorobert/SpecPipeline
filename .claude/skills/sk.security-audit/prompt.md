@@ -13,14 +13,12 @@ one folder per project), splitting the audit into four artifacts.
 `--projects` narrows the source scope only; the OWASP/STRIDE reasoning and verdict remain unit-level.
 
 ## Pre-flight
-1. Read session.yaml — verify `active_unit_id` and `active_intent_id` are set.
-   Missing: STOP — run `sk.session focus --unit {unit-id}` first.
-2. Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/`, `DESIGN_DIR = UNIT_DIR/02-design/`,
-   `AUDIT_DIR = UNIT_DIR/07-security-audit/`.
-3. Read `UNIT_DIR/unit-brief.md` → Impacted Projects table — collect each project's `{CodeRoot}`.
-   These code roots (plus their tests) are the in-scope source for the audit.
-   Missing/empty: STOP — run sk.specify / sk.design first.
-4. Read `checkpoint_mode` from session.yaml. If missing: default to `validate`.
+1. Run the unit pre-flight in `.claude/skills/governance/preflight.md` (session focus, UNIT_DIR/DESIGN_DIR,
+   Impacted Projects, `checkpoint_mode` from `01-story/story.md`, knowledge bases).
+2. Resolve `AUDIT_DIR = UNIT_DIR/07-security-audit/`.
+3. From the Impacted Projects table collect each project's `{CodeRoot}` — these code roots (plus their
+   tests) are the in-scope source for the audit. `--projects {key}` resolves per
+   `.claude/skills/governance/project-resolution.md`.
 
 ## Input Artifacts
 - UNIT_DIR/unit-brief.md                              (Impacted Projects → the {CodeRoot} set to scan)
@@ -140,16 +138,16 @@ Tracking references for accepted HIGH findings; required fixes before ship for a
 ```
 
 ## Status Roll-up
-Set the unit's story frontmatter `security-status` (in `01-story/story.md` or `story-{ID}.md`):
+Set `security-status` in the unit's `01-story/story.md` frontmatter:
 - `blocked` if any CRITICAL finding is open (OWASP or STRIDE).
 - `conditional` if HIGH findings exist but are acknowledged/tracked and no CRITICAL is open.
 - `clear` if no CRITICAL or HIGH findings.
 `security-status` is the field sk.ship reads (BLOCKED stops ship).
 
 ## Sign-off Gate
-If `checkpoint_mode` is `confirm` or `validate`, display the verdict + CRITICAL/HIGH findings and
-request acknowledgement before writing the `security-status` roll-up. If `autopilot`: roll up
-automatically per the rules above and log it. A BLOCKED verdict is never auto-cleared.
+Protocol: `.claude/skills/governance/review-gate.md`. Active for `confirm` and `validate`: display the
+verdict + CRITICAL/HIGH findings and request acknowledgement before writing the `security-status` roll-up.
+If `autopilot`: roll up automatically per the rules above and log it. A BLOCKED verdict is never auto-cleared.
 
 ## Quality Bar
 - All OWASP Top 10 items documented as PASS/FAIL/NA across the unit's impacted code roots.

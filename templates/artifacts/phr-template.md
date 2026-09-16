@@ -1,8 +1,8 @@
 PHR-{NNN}: {Feature or Command Name}
 Date: {date}
 Related Command: {sk.* command that triggered this}
-Intent: {active intent from state.yaml}
-Unit: {active unit from state.yaml}
+Intent: {active_intent_id from .claude/session.yaml}
+Unit: {active_unit_id from .claude/session.yaml}
 
 Prompt or Decision Recorded
 {The prompt or decision being logged}

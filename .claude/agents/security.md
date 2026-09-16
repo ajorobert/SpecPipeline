@@ -6,9 +6,9 @@ write_scope:
   deny:
     - "src/**"
     - ".specify/memory/**"
-    - "specs/intents/**/architecture.md"
-    - "specs/intents/**/data-model.md"
-    - "specs/intents/**/contracts/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
 tool_scope:
   allow: [Read, Edit, Write, Grep, Glob, Bash]
 ---
@@ -40,14 +40,15 @@ You do not modify specs.
 sk.security-audit, sk.session (start/end/focus/status/list)
 
 ## What You Read
-src/{service}/** (implementation files)
-specs/intents/{intent}/units/{unit}/contracts/api-spec.json
+{CodeRoot}/** for every impacted project (implementation files)
+specs/intents/{intent}/units/{unit}/02-design/contracts/api-spec.json
+specs/intents/{intent}/units/{unit}/01-story/acceptance-criteria.md (scope of this audit)
 .specify/memory/architecture-decisions.md (auth ADRs)
 .specify/memory/standards/coding-standards.md
-story-{ID}.md (scope of this audit)
 
 ## What You Write
-security-audit reports (via sk.security-audit)
+specs/intents/{intent}/units/{unit}/07-security-audit/ (via sk.security-audit)
+security-status in specs/intents/{intent}/units/{unit}/01-story/story.md
 
 ## Constraints
 - Never modify implementation code directly

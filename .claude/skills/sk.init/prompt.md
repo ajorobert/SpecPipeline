@@ -47,40 +47,14 @@ Ask the following questions in a natural conversation (not a form). Gather enoug
 - Backend: language, framework, version?
 - **Frontend surfaces** — NEW PROJECT only. Do NOT run this block in UPDATE mode. In UPDATE mode, show the current tech-stack.md value and ask only "What would you like to change?"
   For each frontend surface identified in step 2:
-  1. Ask: "What is the primary use case for this surface?" (e.g. marketing site, customer portal, admin dashboard, mobile app, prototype/personal tool)
-  2. Based on their answer, recommend a framework using this decision guide:
-
-  | Use Case | Recommended Framework | Key Reason |
-  |---|---|---|
-  | SEO-critical marketing site or content portal (React preference) | **Next.js (App Router)** | SSR + SSG + ISR, built-in SEO metadata API |
-  | SEO-critical marketing site or content portal (Vue preference) | **Nuxt 3** | SSR + SSG with Vue syntax, file-based routing |
-  | Customer portal with auth, forms, dynamic pages (React) | **Next.js (App Router) + NextAuth v5** | SSR + server actions + auth integration |
-  | Customer portal with auth, forms, dynamic pages (Vue) | **Nuxt 3 + nuxt-auth-utils** | SSR + Vue composition API + auth module |
-  | Admin dashboard / internal tool / data tables (React) | **React + Vite + TanStack Router** | SPA simplicity, no SSR overhead, fast dev |
-  | Admin dashboard / internal tool / data tables (Vue) | **Vue 3 + Vite + Vue Router** | Lightweight SPA, easy learning curve |
-  | Enterprise app — large team, strict conventions, strong typing | **Angular 17+ (standalone components)** | Opinionated full framework: DI, routing, forms, state built-in |
-  | Simple personal tool or prototype | **Next.js (minimal)** or **Vanilla JS** | Low ceremony; Next.js if you want structure |
-  | iOS + Android mobile app | **React Native + Expo** | Managed workflow, cross-platform |
-  | Embedded widget or micro-frontend | **Vanilla JS + Web Components** | Minimal footprint, framework-agnostic |
-
-  3. Say: "Based on your use case, I recommend **[X]** because [one-sentence reason]. Would you like to go with that, or do you have a different preference?"
-  4. Once the framework is confirmed, immediately ask: **"Do you want to write the code in TypeScript or plain JavaScript?"**
-     Use this to guide the answer:
-
-     | Framework chosen | Recommendation | Reason |
-     |---|---|---|
-     | Angular 17+ | **TypeScript (strict)** — effectively mandatory | Angular's DI, decorators, and tooling are built for TS; plain JS is unsupported in practice |
-     | Next.js (App Router) | **TypeScript (strict)** — strongly recommended | App Router types (PageProps, generateMetadata, Server Actions) require TS for correctness |
-     | Nuxt 3 | **TypeScript (strict)** — strongly recommended | auto-imports and composables are fully typed; JS loses most of Nuxt's DX benefits |
-     | React + Vite | **TypeScript** — recommended, JS acceptable | TS catches prop mismatches early; plain JS is fine for small/prototype projects |
-     | Vue 3 + Vite | **TypeScript** — recommended, JS acceptable | Composition API with `<script setup lang="ts">` is the modern default |
-     | Vanilla JS | **Plain JS** — default; JSDoc optional | No build step required; JSDoc + VS Code gives lightweight type hints if desired |
-
-     If TypeScript is chosen: ask "Strict mode or standard?"
-     — Default recommendation: **strict** for all frameworks above.
-     — Record as `TypeScript (strict)` or `TypeScript (standard)` or `JavaScript` in tech-stack.md.
-
-  5. Record the chosen framework **and version**, and the language choice in tech-stack.md — never leave either as "TBD".
+  1. Ask: "What framework (and version) does this surface use, and in which language?"
+  2. If the user already knows: record exactly what they name. Do not suggest alternatives.
+  3. If the user has not decided: ask for the primary use case (e.g. marketing site, customer portal, admin
+     dashboard, mobile app, prototype), then read the framework guide on demand —
+     `templates/reference/frontend-framework-guide.md` (under the framework dir from `.claude/.speckit-manifest`,
+     e.g. `.speckit/templates/reference/`) — and offer its recommendation plus the language guidance there.
+  4. Record the chosen framework **and version**, the language, the surface's platform (`browser | native`) and
+     its E2E tooling in tech-stack.md — never leave any of them as "TBD".
 
 - Mobile (if any): platform, framework?
 - Databases: which DB for what purpose?
@@ -89,7 +63,7 @@ Ask the following questions in a natural conversation (not a form). Gather enoug
 
 **3b. UI & Design Direction** (NEW PROJECT only. Only ask when a frontend surface was identified in step 2. Skip entirely for backend-only projects.)
 
-Capture only project-wide **invariants** here — the high-level direction every surface inherits. The detailed, per-surface decisions (component library, full design-aesthetic catalogue, type-specific style combinations) are made at design time by `/sk.design`, which reads the catalogue in `.claude/skills/frontend-design-system/design-styles.md`. Keep this section short.
+Capture only project-wide **invariants** here — the high-level direction every surface inherits. The detailed, per-surface decisions (component library, design aesthetic, style combinations) are made at design time by `/sk.design`, using whatever design-system capability pack the project registers in `skill-routing.md`. Keep this section short.
 
 - **Figma / Design file:**
   Ask: "Do you have a Figma file, design mockup, or style guide?"
@@ -115,24 +89,27 @@ Capture only project-wide **invariants** here — the high-level direction every
 - Any external APIs, payment providers, notification services?
 
 **5. Architecture and Design Principles**
-The following are ON by default. Only ask if the user gives a conflicting signal:
-- **Clean Architecture** — strict layering (domain → application → infrastructure). No infrastructure dependencies in domain layer.
-- **DDD** — bounded contexts, aggregates, domain events. No cross-context direct DB access.
-- **Structured JSON logging** — all log entries include trace_id, span_id, service, level, timestamp.
+The following are the framework's DEFAULTS. Present them, ask for confirmation, and apply them unless the
+team deviates — record whatever the team actually confirms:
+- **Layered / Clean Architecture** — strict layering (domain → application → infrastructure). No infrastructure dependencies in the domain layer.
+- **Bounded contexts** — each context owns its aggregates; cross-context access via contracts only, never direct DB access.
+- **Structured JSON logging** — every log entry carries trace_id, span_id, service, level, timestamp.
 - **Distributed tracing** — W3C traceparent propagated on all inbound/outbound HTTP calls and async messages.
 - **RED metrics** — rate, errors, duration instrumented on every service endpoint.
 
-Ask only:
-- Do any of these conflict with your constraints or existing stack? (If no answer: all defaults apply.)
-- **CQRS pattern** — XxxCommand/XxxQuery + dedicated handler per use case. Default ON.
-  Exception: pure infrastructure stories (no application use case — e.g. DBX plumbing) — pattern does not apply there.
-  Ask only: do you want command bus / dispatcher infrastructure (e.g. MediatR, custom mediator)?
-  (Default: no. Handlers are called directly from controllers/endpoints.)
-- **Command Handler Idempotency** — when CQRS is ON, every command handler must be safe to replay with the same input without re-executing side effects. Default ON. Record in constitution.
+Ask:
+- Do any of these conflict with your constraints or existing stack? (No answer → all defaults apply, recorded as confirmed.)
+- **Command/Query separation** — a command or query object plus a dedicated handler per use case. Default ON.
+  Ask only: is there a dispatcher / bus layer, and what is it called? (Default: no bus — handlers are called
+  directly from the HTTP entry point. Record the library or seam name the user gives; never assume one.)
+- **Command Handler Idempotency** — when command/query separation is ON, every command handler must be safe to
+  replay with the same input without re-executing side effects. Default ON. Record in the constitution.
   Ask only: Is command dispatch async (message queue, event bus, background worker)?
   - Yes → messaging_context = true. Handler idempotency REQUIRED; outbox pattern REQUIRED for any event published inside a command handler.
   - No (direct call) → messaging_context = false. commandId-based deduplication is the default pattern.
 - Microservices or modular monolith? (Default: derive from step 2 service count.)
+- Do you want the design phase to apply a design principles pack (for example DDD / data-intensive design
+  rules)? If yes, note it — it is registered in `skill-routing.md` → `## Always` with scope `design`.
 
 **6. Error Handling**
 Default: structured error responses (Problem Details RFC 7807 shape), logged at WARN for client errors and ERROR for unexpected failures. Never swallow silently.
@@ -143,10 +120,11 @@ Ask only:
 
 **7. Observability Tooling**
 The *format and behaviour* (structured JSON, W3C traceparent, RED metrics) are non-negotiable defaults.
-Ask only which *sinks* to use — and "not decided yet" is a valid answer:
-- Logging sink: (e.g. Serilog, Zap, Winston — or "framework default")
-- Tracing backend: (e.g. OpenTelemetry → Jaeger/Datadog/X-Ray — or "not decided yet")
-- Metrics sink: (e.g. Prometheus, Datadog, CloudWatch — or "not decided yet")
+Ask only which *sinks* to use — record exactly what the user names; "framework default" and
+"not decided yet" are valid answers:
+- Logging library / sink
+- Tracing backend
+- Metrics sink
   "Not decided yet" is recorded explicitly and flagged by sk.verify until resolved.
 
 **8. Principles and Constraints**
@@ -169,10 +147,11 @@ Ask only which *sinks* to use — and "not decided yet" is a valid answer:
 Using the interview answers, write the following files with complete, specific content.
 Do not leave any placeholders — if something wasn't mentioned, make a reasonable inference and note it.
 
-**`.specify/project-config.md`**
+**`.specify/project-config.md`** (from `templates/project/.specify/project-config.md`)
 - Identity: name, description (1–2 sentences), stack summary
-- Custom Rules: all rules mentioned in step 5
-- Overrides: all overrides mentioned in step 6
+- Custom Rules: all rules mentioned in step 9
+- Overrides: all overrides mentioned in step 10
+- Paths: `adr_dir` (ask "Where do ADRs live?" — default `history/adr`; keep an existing ADR folder if the repo has one)
 
 **`.specify/memory/system-context.md`**
 - System Type: derived from services
@@ -191,6 +170,9 @@ Do not leave any placeholders — if something wasn't mentioned, make a reasonab
 - Frontend Surfaces: each surface with its framework
 - Infrastructure: cloud, containers, CI/CD
 - Observability Tooling: logging library, tracing backend, metrics sink (from step 7)
+- Test Layout: where runnable unit / integration / contract / component / e2e tests live, per service or surface
+  (ask; if the repo already has tests, read the existing tree and record it)
+- Forbidden Skip Idioms: the syntax in the chosen test frameworks that marks a test skipped or focused
 - Constraints: any noted constraints
 
 **`.specify/memory/standards/coding-standards.md`**
@@ -222,17 +204,17 @@ Version: 1.0.0 | Ratification: {today} | Last Amended: {today}
 {actors from step 1}
 
 ## Architecture Principles
-DEFAULT (active unless explicitly overridden in step 5):
- - Clean Architecture: domain layer MUST have zero infrastructure dependencies
- - DDD: each bounded context owns its aggregate; cross-context access via contracts only
- - No business logic in controllers; no direct DB queries outside repositories
+DEFAULT (active unless the team deviated in step 5):
+ - Layered / Clean Architecture: domain layer MUST have zero infrastructure dependencies
+ - Bounded contexts: each context owns its aggregates; cross-context access via contracts only
+ - No business logic in HTTP entry points; no direct DB queries outside repositories
  - One aggregate modified per command; cross-aggregate changes via domain events
-{If messaging_context = true:}
+{Replace or append any principle the team overrode or added in step 5; each rule declarative and testable}
+{If command idempotency was required and messaging_context = true:}
  - Command Handler Idempotency: REQUIRED — every command carries commandId (UUID v4); handler checks commandId against dedup store before executing; duplicate → return cached result; log WARN + increment commands_duplicate_total
  - Transactional Outbox: REQUIRED — events published inside command handlers must be written to outbox table in same transaction as state change; relay process publishes from outbox; no dual-write
-{If messaging_context = false:}
+{If command idempotency was required and messaging_context = false:}
  - Command Handler Idempotency: REQUIRED — every command carries commandId (UUID v4); same commandId must produce same result without re-executing side effects
-{If user overrode any default in step 5: replace or append the override here}
 
 ## Error Handling Contract
 DEFAULT shape (override pattern from step 6 if given):
@@ -265,6 +247,18 @@ Compliance review: sk.verify checks constitution constraints at each quality gat
 All sections must be declarative and testable. Replace vague adjectives with measurable criteria.
 "Not decided" is acceptable only in Observability Contract — flag it; all others must have a decision.
 
+**`.specify/memory/skill-routing.md`** (from `templates/project/.specify/memory/skill-routing.md`)
+The bridge between the framework's sk.* skills and the project's own capability packs. The framework ships no
+packs — generate the manifest skeleton from the interview, never invent pack paths:
+- `## Surfaces`: one row per frontend/mobile surface from step 3 — Surface, Project, Framework (+ version),
+  Platform (`browser | native`), E2E tooling.
+- `## Migrations`: one row per service that owns a database from step 3 — Project, Tool, Migration layout,
+  Migration test layout (ask for the layouts; "not decided yet" is allowed and flagged).
+- `## Always`: register only packs that already exist under `.claude/skills/` and that the user confirms
+  (including a design principles pack for scope `design` if chosen in step 5). Otherwise leave the table empty.
+- `## By signal`: leave empty and keep the template comment telling the team to register their packs
+  (copy starting points from `skills_archive/` in the framework dir, or write their own).
+
 ### Step 3 — Scaffold (if not exists)
 
 Create these only if they don't already exist:
@@ -285,10 +279,12 @@ Report what was created:
 ✓ .specify/memory/standards/coding-standards.md
 ✓ .specify/memory/standards/api-standards.md
 ✓ .specify/memory/standards/data-standards.md
+✓ .specify/memory/skill-routing.md   (surfaces + migrations; packs to register)
 ✓ specs/guide.yaml
 ✓ specs/knowledge-base.md
 
-Next: run /sk.session start to set your role, then /sk.specify to begin your first intent.
+Next: register capability packs in .specify/memory/skill-routing.md (optional),
+then run /sk.session start to set your role and /sk.story to capture your first story.
 ```
 
 ---
@@ -319,7 +315,8 @@ What would you like to update?
   [6] data-standards     — naming, required fields, migration rules
   [7] service-registry   — service list and boundaries
   [8] constitution       — architecture principles, error handling contract, observability contract, constraints
-  [9] all memory files   — re-run full interview for everything
+  [9] skill-routing      — capability packs, surfaces, migration layouts (.specify/memory/skill-routing.md)
+  [10] all memory files  — re-run full interview for everything
 
 Enter numbers (comma-separated) or press Enter to cancel:
 ```
@@ -330,6 +327,11 @@ For each selected item:
 - Show the current value
 - Ask what should change
 - Regenerate only that file with the updated content
+
+For [9] skill-routing: if the file is missing, create it from the template first. Then list every
+`.claude/skills/*/SKILL.md` that is NOT framework-owned (not `sk.*`, `governance`, or the memory pointer stubs)
+and is not yet registered; for each, ask for its Scope (Always) or Signals + Phases + Applies to (By signal).
+Never register a path that does not exist. Update Surfaces / Migrations rows on request.
 
 ---
 
@@ -433,11 +435,21 @@ stack. If the user gave a description, use it verbatim.}
 | Technology Stack | {technology stack} |
 | Framework Version | {framework version} |
 | Architecture Pattern | {architecture pattern} |
+| Test Framework | {test framework(s)} |
+| Platform | {browser \| native — Frontend/Mobile only} |
+| E2E Tooling | {tool — Frontend/Mobile only} |
 
 ## Stack Detail
 {expand the stack into specifics: language, framework, key libraries,
 data layer, and — for backend — API style; for frontend/mobile — UI layer.
 Make reasonable inferences; never leave "TBD".}
+
+## Test Layout
+{where runnable tests live under the code root, per kind: unit, integration, contract
+(provider/consumer), component, e2e — read the existing test tree if there is one}
+
+## Forbidden Skip Idioms
+{the syntax in this project's test framework(s) that skips or focuses a test; sk.test rejects these}
 ```
 
 **`projects/{name}/coding-standards.md`**
@@ -535,11 +547,24 @@ Non-negotiable behaviour across every project, regardless of tooling.
 - Metrics sink: {answer or "not decided yet — flagged for resolution"}
 ```
 
+### Step W3.6 — Generate the Skill Routing Manifest
+
+Create `.specify/memory/skill-routing.md` from `templates/project/.specify/memory/skill-routing.md` if it does
+not exist (never overwrite an existing one — it is project-owned). Fill it from the workspace interview:
+- `## Surfaces`: one row per Frontend/Mobile project — Surface (project slug), Project (exact name), Framework
+  + version, Platform (`browser` for Frontend, `native` for Mobile unless told otherwise), E2E tooling (ask).
+- `## Migrations`: one row per Backend project that owns a schema — Tool, Migration layout, Migration test
+  layout (ask; "not decided yet" allowed and flagged).
+- `## Always` / `## By signal`: register only packs that already exist under `.claude/skills/` and that the user
+  confirms; otherwise leave the tables empty with the template comment pointing at the framework's
+  `skills_archive/`.
+
 ### Step W4 — Confirm
 
 Report what was created, e.g.:
 ```
 ✓ .specify/memory/projects/index.md   (router — {totalProjects} projects)
+✓ .specify/memory/skill-routing.md     (surfaces + migrations; packs to register)
 
 For each project:
 ✓ .specify/memory/projects/{name}/project.md
@@ -577,6 +602,7 @@ What would you like to do?
   [2] Update an existing project — pick one, regenerate its memory files
   [3] Update the router only     — fix names / types / code roots in index.md
   [4] Update shared standards    — api / data / observability standards
+  [5] Update skill routing       — capability packs, surfaces, migration layouts
 
 Enter a number or press Enter to cancel:
 ```
@@ -595,6 +621,9 @@ Enter a number or press Enter to cancel:
   `standards/{api,data,observability}-standards.md`, ask what changes,
   regenerate only the affected file(s). If the `standards/` folder is
   absent (workspace predates this step), generate it via Step W3.5.
+- **[5] Update skill routing** — as UPDATE mode item [9]: create the manifest via Step W3.6 if absent,
+  offer to register unregistered project packs, and update Surfaces / Migrations rows. When a project is
+  added via [1], also add its Surfaces or Migrations row.
 
 Never touch other projects' folders during an update — each project's
 memory is isolated.
@@ -614,6 +643,7 @@ memory is isolated.
 - `.specify/memory/standards/coding-standards.md`
 - `.specify/memory/standards/api-standards.md`
 - `.specify/memory/standards/data-standards.md`
+- `.specify/memory/skill-routing.md` (created if absent; project-owned afterwards)
 - `specs/guide.yaml` (NEW PROJECT only, if absent)
 - `specs/knowledge-base.md` (NEW PROJECT only, if absent)
 
@@ -625,6 +655,7 @@ memory is isolated.
 - `.specify/memory/standards/api-standards.md` (shared)
 - `.specify/memory/standards/data-standards.md` (shared)
 - `.specify/memory/standards/observability-standards.md` (shared)
+- `.specify/memory/skill-routing.md` (created if absent)
 
 ## Quality Bar
 - No `<!-- TODO -->` or placeholder lines remain in generated files
@@ -635,6 +666,8 @@ memory is isolated.
 - `project-config.md`: Custom Rules section has at least one entry, or explicitly states "None"
 - `constitution.md`: Architecture Principles, Error Handling Contract, and Observability Contract all populated — no [PLACEHOLDER] tokens; "Not decided" only allowed in Observability Contract
 - `coding-standards.md`: Formatter/Linter and Error Handling Pattern `[Fill in]` placeholders replaced with actual project values
+- `tech-stack.md`: Test Layout and Forbidden Skip Idioms filled in
+- `skill-routing.md`: exists; every registered path exists on disk; one Surfaces row per frontend/mobile surface; no pack path invented
 
 ### Workspace quality bar (WORKSPACE INIT / WORKSPACE UPDATE only)
 - `projects/index.md`: count equation holds — `backendCount + frontendCount + mobileCount == totalProjects`; one router row per project; every Code Root populated

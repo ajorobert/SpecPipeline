@@ -8,8 +8,8 @@ Role: architect | Level: story
 ## Pre-flight
 1. Read session.yaml active_story_id
    NULL → STOP: run sk.session focus --story {id} first
-2. Load the active story folder from:
-   specs/intents/{intent}/units/{unit}/{NN}-story/
+2. Load the active story folder (`.claude/skills/governance/phase-layout.md`):
+   specs/intents/{intent}/units/{unit}/01-story/
    Read `story.md`, `requirement.md`, and `acceptance-criteria.md`.
 3. Load `.specify/memory/architecture-decisions.md`
 4. Load the project router `.specify/memory/projects/index.md`. For each project that the story plausibly touches, load that project's memory:
@@ -44,13 +44,13 @@ For the set of impacted projects, analyze and note:
 - **Breaking changes** — contract or behavior changes that affect existing consumers.
 - **Dependencies** — ordering constraints between projects (e.g. Backend endpoint must land before Frontend consumes it).
 
-Record the impacted-projects list under the **Impacted projects** section of the unit's `unit-brief.md` (Path: `specs/intents/{intent}/units/{unit}/unit-brief.md`) — one sub-list per impacted project with its reason. This is a unit-level fact; the story is NOT split per project. Keep it concrete; empty types stay as `[]`.
+Record the impacted projects in the **Impacted Projects** table of the unit's `unit-brief.md` (Path: `specs/intents/{intent}/units/{unit}/unit-brief.md`) — one row per project: `| Project | Type | Code Root | Role in this unit |`, using the exact name and Code Root from the project router. Every downstream phase (`02-design/projects/`, `03-plan/{Project}/`, `04-implementation/{Project}/`, `05-test/{Project}/`) reads this table. The story is NOT split per project.
 
 Capture the six analysis points (API changes, Database impact, Integration impact, Security impact, Breaking changes, Dependencies) under a `## Architecture Constraints` section in the story's `requirement.md` where they affect this story's scope.
 
 ## Question loop (max 3-5 questions)
 Generate an internal prioritized queue of up to 5 questions from Partial/Missing categories.
-**CRITICAL:** You must translate technical requirements into business-friendly questions that a PO can answer. (e.g., instead of "What is the desired TTL for Redis cache?", ask "How quickly must updates to this data be visible to other users?").
+**CRITICAL:** You must translate technical requirements into business-friendly questions that a PO can answer. (e.g., instead of "What is the desired TTL for the cache?", ask "How quickly must updates to this data be visible to other users?").
 
 For each question:
 1. Present EXACTLY ONE question at a time — never reveal the queue.
@@ -68,11 +68,11 @@ For each question:
 - If constraints significantly conflict with `architecture-decisions.md`: flag to the user to consider updating system ADRs or rejecting the story scale.
 
 ## Output Artifacts
-{NN}-story/requirement.md (updated with technical constraints + a `## Architecture Constraints` section)
-unit-brief.md (updated with the **Impacted projects** list)
+01-story/requirement.md (updated with technical constraints + a `## Architecture Constraints` section)
+unit-brief.md (Impacted Projects table)
 
 ## Quality Bar
 - All technical boundaries (Scale, Security, Observability, Integration, UX) are locked down.
 - No vague engineering terms remain (e.g., "fast", "secure" are quantified).
-- Impacted projects are recorded in `unit-brief.md`, each classified as Backend / Frontend / Mobile with a concrete reason.
+- Every impacted project is a row in `unit-brief.md` → Impacted Projects with Type, Code Root and a concrete role.
 - Total questions asked ≤ 5.

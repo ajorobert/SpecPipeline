@@ -6,10 +6,10 @@ Internal sub-skill — invoked by the sk.plan orchestrator, once per impacted pr
 Do not invoke directly.
 
 ## What "one project" means
-A unit may impact several projects (MarketPlace.API, MarketPlace.Customer.Web, MarketPlace.Admin.Web,
-MarketPlace.Mobile …). This sub-skill plans exactly ONE of them, named `{Project}` with code
-root `{CodeRoot}`. It aggregates the work from ALL of the unit's stories that touches
-`{Project}` into a single project execution plan. It does NOT re-plan the other projects.
+A unit may impact several projects (for example one Backend API, a customer web surface, an admin web
+surface and a mobile app). This sub-skill plans exactly ONE of them, named `{Project}` with code
+root `{CodeRoot}`. It aggregates the work from the unit's story that touches `{Project}` into a single
+project execution plan. It does NOT re-plan the other projects.
 
 The orchestrator passes the target project as `{Project}` / `{CodeRoot}` / `{ProjectType}`,
 resolved from `02-design/impact-analysis.md` (or `unit-brief.md` → Impacted Projects).
@@ -28,10 +28,9 @@ Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/` and
 - DESIGN_DIR/contracts/api-spec.json                 (if exists — canonical machine API contract)
 - DESIGN_DIR/contracts/test-plan.md                  (if exists — provider/consumer test plan)
 - DESIGN_DIR/ui-model.md                             (if exists — REQUIRED for Frontend/Mobile projects)
-- UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md  (the unit's stories)
+- UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md  (the unit's story)
 - UNIT_DIR/01-story/jira.md                          (if exists — Jira source for subtask linkage)
-- .specify/memory/standards/tech-stack.md
-- .specify/memory/standards/coding-standards.md
+- The project's tech-stack.md and coding-standards.md (`.claude/skills/governance/project-resolution.md`)
 
 ## Pre-flight
 1. Verify DESIGN_DIR/architecture.md exists.
@@ -39,7 +38,7 @@ Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/` and
 2. Verify the target `{Project}` appears in impact-analysis.md (or unit-brief.md Impacted Projects).
    Missing: STOP — report "Project {Project} is not an impacted project of this unit."
 3. For a Frontend or Mobile project, verify DESIGN_DIR/ui-model.md exists.
-   Missing: WARN — proceed, but flag that the UI plan is unanchored (sk.design --datamodel/ui not run).
+   Missing: WARN — proceed, but flag that the UI plan is unanchored (sk.design Phase 6 not run).
 4. Mode: [REFINE] if `03-plan/{Project}/plan.md` already exists, else [CREATE].
    In REFINE mode, update the existing files in place; do not discard sections still valid.
 
@@ -53,8 +52,7 @@ UNIT_DIR/03-plan/{Project}/
 ├── jira-subtask.md   # Jira sub-task breakdown
 └── estimation.md     # per-task + rolled-up estimates
 ```
-`{Project}` is the exact project name from the Impacted Projects table (e.g. `MarketPlace.API`,
-`MarketPlace.Customer.Web`). Do NOT invent or abbreviate it.
+`{Project}` is the exact project name from the Impacted Projects table. Do NOT invent or abbreviate it.
 
 ## Steps
 
@@ -89,18 +87,17 @@ projects/{Project}.md → Role in this Unit + Scope of Change. Name the stories 
 
 ## Technical Approach & Key Decisions
 The implementation strategy and the decisions that shape it. Every decision references
-architecture.md / projects/{Project}.md / the relevant pattern skill. No new architecture —
+architecture.md / projects/{Project}.md / the relevant capability pack. No new architecture —
 this realizes the design, it does not redesign it.
 
 ## Implementation Sequence
 Ordered build steps for this project, honoring impact-analysis.md → Sequencing & Dependencies
 and planning-brief.md. Number them; note which steps can run in parallel and which are blocked
-by a precondition (e.g. "blocked on Keycloak realm + OIDC client config").
+by a precondition (e.g. "blocked on identity-provider client configuration").
 
 ## Code Areas
-The modules / layers / folders inside {CodeRoot} this work touches (e.g. Program.cs pipeline,
-middleware, a feature slice, a route group, a screen, a store). Map each to the design element
-it realizes.
+The modules / layers / folders inside {CodeRoot} this work touches (e.g. the request pipeline,
+a feature slice, a route group, a screen, a store). Map each to the design element it realizes.
 
 ## Files Affected
 Concrete file list with action (new | modified) and one-line purpose. Stay within {CodeRoot}.
@@ -117,7 +114,7 @@ contract — never invent one. If none, state "None — {reason}".
 
 ## Dependencies
 - On other projects in this unit (and the direction).
-- On other units / external services / infra config (e.g. Keycloak realm).
+- On other units / external services / infra config (e.g. identity-provider configuration).
 - On shared infrastructure called out in impact-analysis.md / planning-brief.md.
 
 ## Test Plan
@@ -130,7 +127,7 @@ Carry forward open questions from projects/{Project}.md / architecture.md that a
 project, plus any planning-level risk (sequencing, config-coupling, breaking change).
 ```
 
-For Frontend/Mobile projects, the Code Areas, Implementation Sequence, server/client boundary,
+For Frontend/Mobile projects, the Code Areas, Implementation Sequence, render boundaries,
 and state placement MUST follow ui-model.md and projects/{Project}.md — reference them explicitly
 and do not contradict them.
 
@@ -144,7 +141,7 @@ every row of Files Affected and every story this project covers — no orphan fi
 ### 4. checklist.md — readiness / definition-of-done
 A reviewable DoD checklist for the project before it can ship:
 - Pre-conditions met (design approved, dependencies/infra config available).
-- Standards compliance (coding-standards.md, the relevant pattern skills, api/data standards).
+- Standards compliance (coding-standards.md, the relevant capability packs, api/data standards).
 - Security items from projects/{Project}.md → Security (auth/RBAC/ABAC, PII handling).
 - Tests written and green per Test Plan; acceptance criteria mapped.
 - Observability / error-contract items if applicable.
@@ -173,5 +170,5 @@ blocked/uncertain pending an open question.
 - Files Affected, tasks.md, and estimation.md are mutually consistent — every affected file has a
   task and an estimate; every task maps to files and an acceptance signal.
 - Frontend/Mobile plans follow ui-model.md; consumed endpoints/claims all exist in the API contract.
-- Tech-stack choices justified against tech-stack.md; file layout follows coding-standards.md.
+- Tech-stack choices justified against the project's tech-stack.md; file layout follows coding-standards.md.
 - All five artifacts written (plan.md, tasks.md, checklist.md, jira-subtask.md, estimation.md).

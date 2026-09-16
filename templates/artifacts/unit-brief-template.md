@@ -28,9 +28,20 @@ Example:
 - INTENT-OTHER-01 (API contract reliance)
 -->
 
-## Stories
-<!-- List the discrete User Stories (-NNN) required to implement this unit.
+## Impacted Projects
+<!-- Written by sk.architect-probe. One row per project this unit changes; names and code roots come from
+     .specify/memory/projects/index.md. Every per-project phase (02-design/projects/, 03-plan/, 04-implementation/,
+     05-test/) reads this table. Type: Backend | Frontend | Mobile.
 Example:
-- INTENT-UNIT-001: Implement JWT generation
-- INTENT-UNIT-002: Create login endpoint
+| Project | Type | Code Root | Role in this unit |
+|---|---|---|---|
+| {BackendProject} | Backend | {backend-code-root} | session endpoints + token validation |
+| {WebProject} | Frontend | {web-code-root} | login page + session handling |
+-->
+| Project | Type | Code Root | Role in this unit |
+|---|---|---|---|
+
+## Story
+<!-- The unit's story lives in 01-story/ (one story per unit).
+- {INTENT}-{UNIT}-{NNN}: {story title}
 -->

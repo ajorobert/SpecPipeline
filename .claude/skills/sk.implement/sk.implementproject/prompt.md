@@ -6,13 +6,13 @@ Internal sub-skill — invoked by the sk.implement orchestrator, once per impact
 Do not invoke directly.
 
 ## What "one project" means
-A unit may impact several projects (MarketPlace.API, MarketPlace.Customer.Web, MarketPlace.Admin.Web, MarketPlace.Mobile …).
-This sub-skill implements exactly ONE of them, named `{Project}` with code root `{CodeRoot}`. It
-realizes that project's approved `03-plan/{Project}/` plan into working code inside `{CodeRoot}`. It
-does NOT implement the other projects, and it does NOT re-plan or redesign.
+A unit may impact several projects (for example one Backend API, a customer web surface, an admin web
+surface and a mobile app). This sub-skill implements exactly ONE of them, named `{Project}` with code root
+`{CodeRoot}`. It realizes that project's approved `03-plan/{Project}/` plan into working code inside
+`{CodeRoot}`. It does NOT implement the other projects, and it does NOT re-plan or redesign.
 
-The orchestrator passes the target project as `{Project}` / `{CodeRoot}` / `{ProjectType}` and the
-effective `--role`, resolved from `unit-brief.md` → Impacted Projects (and `02-design/impact-analysis.md`).
+The orchestrator passes the target project as `{Project}` / `{CodeRoot}` / `{ProjectType}`, the effective
+`--role` and `checkpoint_mode`, resolved from `unit-brief.md` → Impacted Projects (and `02-design/impact-analysis.md`).
 
 ## Input Artifacts
 Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/`, `PLAN_DIR = UNIT_DIR/03-plan/{Project}/`,
@@ -27,10 +27,10 @@ Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/`, `PLAN_DIR = UNIT_DIR/
 - DESIGN_DIR/contracts/api-spec.json                 (if exists — canonical machine API contract)
 - DESIGN_DIR/database-design.md                      (if exists — DB/data model)
 - DESIGN_DIR/ui-model.md                             (if exists — REQUIRED for Frontend/Mobile projects)
-- UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md  (the unit's stories)
+- UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md  (the unit's story)
 - UNIT_DIR/knowledge-base.md                         (if exists — non-derivable unit context)
 - IMPL_DIR/review-{story-id}.md                      (if exists — drives REFINE mode)
-- .specify/memory/standards/coding-standards.md
+- The project's coding-standards.md and tech-stack.md (`.claude/skills/governance/project-resolution.md`)
 
 ## Pre-flight
 1. Verify PLAN_DIR/plan.md and PLAN_DIR/tasks.md exist.
@@ -47,7 +47,7 @@ Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/`, `PLAN_DIR = UNIT_DIR/
 
 ## Output Layout
 Two destinations — keep them distinct:
-- **Source code** is written inside the project's code root `{CodeRoot}` (e.g. `src/backend/Lucent.API/`),
+- **Source code** is written inside the project's code root `{CodeRoot}` (from the Impacted Projects row),
   exactly as enumerated in `03-plan/{Project}/plan.md` → Files Affected. Never write source under
   `04-implementation/`.
 - **Delivery-tracking docs** are written under:
@@ -57,8 +57,7 @@ UNIT_DIR/04-implementation/{Project}/
 ├── progress.md         # live task tracker mirroring 03-plan/{Project}/tasks.md, with status per task
 └── validation.md       # validation status: build, tests, acceptance-criteria coverage, issues, blockers
 ```
-`{Project}` is the exact project name from the Impacted Projects table (e.g. `MarketPlace.API`). Do NOT invent
-or abbreviate it.
+`{Project}` is the exact project name from the Impacted Projects table. Do NOT invent or abbreviate it.
 
 ## Execution
 
@@ -94,25 +93,17 @@ Status values: `pending` → `scaffolded` → `done` (or `blocked` with a reason
 Invoke skill: `sk.scaffolding` with this project's context.
 - Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`, and the project slice
   (`03-plan/{Project}/plan.md`, `03-plan/{Project}/tasks.md`, plus the design/contract artifacts).
-- It creates files, classes, interfaces, DTOs, stubs, and test fixtures inside `{CodeRoot}` per the plan's
-  Files Affected — NO business logic. It marks each scaffolded task `scaffolded` in `progress.md`.
+- It creates files, types, interfaces, request/response types, stubs, and test fixtures inside `{CodeRoot}`
+  per the plan's Files Affected — NO business logic. It marks each scaffolded task `scaffolded` in `progress.md`.
 - Skip this step entirely in REFINE mode.
 
-REVIEW GATE — only when the orchestrator's `checkpoint_mode` is `confirm` or `validate` (skip for autopilot).
-If active, display:
-```
-sk.implementproject | {Project} | Gate — Scaffolding Review  [checkpoint_mode: {mode}]
-
-Review the scaffolding generated under {CodeRoot} before code generation:
+GATE — Scaffolding Review (confirm, validate; protocol `.claude/skills/governance/review-gate.md`)
+Review: the scaffolding generated under {CodeRoot} for {Project}.
+Check for:
   - File locations match 03-plan/{Project}/plan.md → Files Affected and coding-standards.md.
   - No business logic was prematurely implemented.
   - Existing files were inspected; existing functionality was not altered.
-
-Type 'approved' to proceed to code generation for {Project}.
-Type 'cancel' to stop — scaffolding for {Project} is preserved.
-```
-- 'cancel': STOP. Report scaffolding written; code generation skipped for this project.
-- 'approved': continue.
+On cancel: scaffolding for {Project} is preserved; code generation is skipped for this project.
 
 ### 3. Code Generation
 Invoke skill: `sk.codegen` with this project's context.
@@ -148,13 +139,12 @@ Reference the tasks from 03-plan/{Project}/tasks.md that were completed this run
 left open or blocked, with reason.
 
 ## Changed Files
-Table: | File | Action (new | modified) | Purpose |. List only files actually written within {CodeRoot}
-(and tests/). Must reconcile with plan.md → Files Affected; flag any addition not in the plan and why it
-was required.
+Table: | File | Action (new | modified) | Purpose |. List only files actually written within {CodeRoot}.
+Must reconcile with plan.md → Files Affected; flag any addition not in the plan and why it was required.
 
 ## Decisions
 Implementation-level decisions made while realizing the plan (library choice, local structure), each
-traced to plan.md / architecture.md / a pattern skill. No new architecture — if a decision implies a
+traced to plan.md / architecture.md / a capability pack. No new architecture — if a decision implies a
 design change, record it as an Issue instead and stop short of redesigning.
 
 ## Deviations from Plan
@@ -183,8 +173,8 @@ updated: {today}
 
 ## Acceptance Criteria Coverage
 Table mapping each in-scope AC (from 01-story/acceptance-criteria.md and plan.md → Test Plan) to the
-task/test that covers it and its status. Out-of-scope AC (owned by another project / Keycloak / infra)
-are listed as such, not marked failed.
+task/test that covers it and its status. Out-of-scope AC (owned by another project, the identity provider,
+or infrastructure) are listed as such, not marked failed.
 
 ## Checklist (Definition of Done)
 Walk 03-plan/{Project}/checklist.md; mark each item met / not met / N-A with a note.

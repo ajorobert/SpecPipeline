@@ -8,8 +8,8 @@ Role: po | Level: story
 ## Pre-flight
 1. Read session.yaml active_story_id
    NULL → STOP: run sk.session focus --story {id} first
-2. Load the active story folder from:
-   specs/intents/{intent}/units/{unit}/{NN}-story/
+2. Load the active story folder (`.claude/skills/governance/phase-layout.md`):
+   specs/intents/{intent}/units/{unit}/01-story/
    Read `story.md`, `requirement.md`, and `acceptance-criteria.md`.
 
 ## Ambiguity scan
@@ -39,10 +39,10 @@ For each question:
 
 ## After loop completes
 - Final pass: confirm no business [NEEDS CLARIFICATION] markers remain in the story folder
-- If scope changed: flag to user and suggest updating `status` in `story.md`
+- If scope changed: flag to user and suggest updating `status.current` in `story.md`
 
 ## Output Artifacts
-{NN}-story/ — `requirement.md`, `acceptance-criteria.md`, and/or `story.md` updated with clarifications inline
+01-story/ — `requirement.md`, `acceptance-criteria.md`, and/or `story.md` updated with clarifications inline
 
 ## Quality Bar
 - All business ambiguities resolved or explicitly deferred before moving to technical stages

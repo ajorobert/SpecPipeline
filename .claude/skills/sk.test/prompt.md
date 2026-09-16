@@ -5,34 +5,19 @@ Role: lead (orchestrator) | Level: unit
 This skill orchestrates the per-project test worker. It resolves the impacted projects from the
 unit's Impacted Projects table, invokes `sk.testproject` once per project (each consuming that
 project's design slice plus the unit's `02-design/contracts/`), and gates the result before
-reporting. Each sub-skill runs in its own isolated context.
+reporting. Each sub-skill runs in its own isolated context. Orchestrators do not resolve capability
+packs — each worker resolves its own (phase = test).
 
 ## Test Output Layout
 All test-design / test-tracking artifacts for the unit live under
-`specs/intents/{intent}/units/{unit}/05-test/` — the sibling of `04-implementation/`.
-One folder per impacted project; folder names come from `unit-brief.md` → Impacted Projects table
-(the same names `sk.design` used for `02-design/projects/`, `sk.plan` used for `03-plan/`, and
-`sk.implement` used for `04-implementation/`).
+`specs/intents/{intent}/units/{unit}/05-test/{Project}/` (tree: `.claude/skills/governance/phase-layout.md`),
+one folder per impacted project:
+- Backend projects: `unit-test.md`, `integration-test.md`, `contract-test.md` (PROVIDER contracts)
+- Frontend / Mobile projects: `component-test.md`, `contract-test.md` (CONSUMER contracts)
 
-```
-specs/intents/{intent}/units/{unit}/05-test/
-├── {BackendProject}/        # e.g. MarketPlace.API           (--role backend)
-│   ├── unit-test.md         # unit test cases + expected results (handlers, mappers, validators)
-│   ├── integration-test.md  # service + database/pipeline integration cases + expected results
-│   └── contract-test.md     # PROVIDER contracts: every endpoint in api-spec.json + regression checks
-├── {CustomerWebProject}/    # e.g. MarketPlace.Customer.Web   (--role frontend)
-│   ├── component-test.md     # component/UI test cases + expected results
-│   └── contract-test.md      # CONSUMER contracts: endpoints/claims this surface depends on
-├── {AdminWebProject}/       # e.g. MarketPlace.Admin.Web      (--role frontend)
-│   └── (component-test.md, contract-test.md)
-└── {MobileProject}/         # e.g. MarketPlace.Mobile         (--role mobile)
-    └── (component-test.md, contract-test.md)
-```
-
-Per-project folder names are dynamic — read from `unit-brief.md`. The actual runnable tests are
-written within each project's test tree under its `{CodeRoot}` (e.g. `tests/contract/{unit}/provider/`),
-NOT under `05-test/`. The `05-test/{Project}/` folder holds only the test-design / tracking docs
-(test cases, expected results, provider/consumer contracts, regression checks).
+Folder names are the project names from `unit-brief.md` (the same names used for `02-design/projects/`,
+`03-plan/` and `04-implementation/`). The runnable tests are written at each project's **Test Layout**
+(declared in its tech-stack.md) under its `{CodeRoot}`, NOT under `05-test/`.
 
 ## Invocation Forms
 - `sk.test`                                   — test ALL impacted projects that have an implementation
@@ -40,48 +25,26 @@ NOT under `05-test/`. The `05-test/{Project}/` folder holds only the test-design
 - `sk.test --projects {key}`                  — test one project; infer `--role` from project type
 - `sk.test --refine`                          — re-run test generation only, for projects whose tests failed
 
-`--role` is one of `backend | frontend | mobile`. `--projects` is a selector resolved against the
-Impacted Projects table (see Project Resolution). Examples mirroring the unit layout:
-- `sk.test --role backend  --projects api`     → `05-test/{BackendProject}/`
-- `sk.test --role frontend --projects web`     → `05-test/{CustomerWebProject}/`
-- `sk.test --role frontend --projects admin`   → `05-test/{AdminWebProject}/`
-- `sk.test --role mobile   --projects mobile`  → `05-test/{MobileProject}/`
-
-## Project Resolution
-Resolve a `--projects {key}` selector to a row in `unit-brief.md` → Impacted Projects:
-1. Exact match on the project Name (e.g. `--projects MarketPlace.API`).
-2. Well-known aliases against the row's Type / Role:
-   - `api` | `backend`  → the row with Type = Backend
-   - `web` | `customer` → the Frontend row whose Role mentions customer/portal
-   - `admin`            → the Frontend row whose Role mentions admin
-   - `mobile`           → the row with Type = Mobile
-3. If `--role` is also given, it must agree with the resolved row's Type (backend↔Backend,
-   frontend↔Frontend, mobile↔Mobile). On conflict: STOP and report the mismatch.
-4. If a selector matches zero or more than one row: STOP and list the candidate projects.
-Log the resolution: `Resolved --projects {key} → {Project} ({Type}, {CodeRoot})`.
+`--role` is one of `backend | frontend | mobile`. `--projects` is resolved per
+`.claude/skills/governance/project-resolution.md` (exact name or the `api | web | admin | mobile` aliases).
 
 When no `--projects` is given, the target set is EVERY row in the Impacted Projects table that has an
 implementation under `04-implementation/{Project}/` (or, if implementation tracking is absent, an
 approved plan under `03-plan/{Project}/`).
 
 ## Pre-flight
-1. Read session.yaml — verify `active_unit_id` and `active_intent_id` are set.
-   Missing: STOP — run `sk.session focus --unit {unit-id}` first.
-2. Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/`, `DESIGN_DIR = UNIT_DIR/02-design/`,
-   `IMPL_DIR = UNIT_DIR/04-implementation/`, `TEST_DIR = UNIT_DIR/05-test/`.
-3. Read `UNIT_DIR/unit-brief.md` → Impacted Projects table (the project list + Code Root per project).
-   Missing/empty: STOP — run sk.specify / sk.design first.
-4. Verify `DESIGN_DIR/contracts/test-plan.md` and `DESIGN_DIR/contracts/api-spec.json` exist.
+1. Run the unit pre-flight in `.claude/skills/governance/preflight.md` (session focus, UNIT_DIR/DESIGN_DIR/
+   IMPL_DIR/TEST_DIR, Impacted Projects, `checkpoint_mode` from `01-story/story.md`, knowledge bases —
+   tier 3 invariants inform test design).
+2. Verify `DESIGN_DIR/contracts/test-plan.md` and `DESIGN_DIR/contracts/api-spec.json` exist.
    Missing: WARN — proceed, but flag that contract tests are unanchored (sk.design --contracts not run).
-5. Read `checkpoint_mode` from session.yaml. If missing: default to `validate`.
-6. Read the unit's stories under `01-story/` to know the acceptance criteria the tests must cover, and
-   `UNIT_DIR/knowledge-base.md` (tier 3 invariants inform test design) if it exists.
+3. Read the unit's story under `01-story/` to know the acceptance criteria the tests must cover.
 
 ## Mode Detection and Resume Logic
 Determine mode based on arguments and existing files. First match wins.
 
 **TARGETED** (`--projects {key}`, with or without `--role`)
-- Resolve the project (Project Resolution).
+- Resolve the project (project-resolution.md).
 - Run Phase 1 for that one project only (resume/overwrite its `05-test/{Project}/` folder).
 - Run Phase 2 (Review Gate) and report.
 
@@ -114,46 +77,30 @@ Invoke skill: `sk.testproject`
   `02-design/projects/{Project}.md` (if exists), `02-design/architecture.md`,
   `02-design/database-design.md` (if exists), `02-design/ui-model.md` (if exists — Frontend/Mobile),
   `03-plan/{Project}/plan.md` → Test Plan (if exists), `04-implementation/{Project}/` (if exists —
-  what was actually built), the unit's stories under `01-story/`, `UNIT_DIR/knowledge-base.md`,
-  `tech-stack.md`.
+  what was actually built), the unit's story under `01-story/`, `UNIT_DIR/knowledge-base.md`,
+  and the project's tech-stack.md.
 - Waits for: `05-test/{Project}/` containing the per-type test docs (Backend: unit-test.md,
   integration-test.md, contract-test.md; Frontend/Mobile: component-test.md, contract-test.md), and
-  the actual runnable tests written within `{CodeRoot}`'s test tree.
+  the actual runnable tests written at the project's Test Layout under `{CodeRoot}`.
 - Subagents are isolated from each other. Backend provider contracts are the source of truth for
   Frontend/Mobile consumer contracts — if both run, honor that direction; independent projects may
   run in parallel.
 
 ### Phase 2 — Review Gate
-If `checkpoint_mode` is `confirm` or `validate`, and any project was tested this run:
-Display:
-```
-sk.test | Review Gate  [checkpoint_mode: {mode}]
-
-Projects tested:
-  {list every 05-test/{Project}/ folder just generated/updated}
-
-Per-project test results:
-  {for each project: cases written, suite PASS/FAIL/n green, AC covered/total, endpoints covered — from its test docs}
-
+Protocol: `.claude/skills/governance/review-gate.md`. Active for `confirm` and `validate` when any project
+was tested this run; per-project approval (`approved {Project} …`) is allowed.
+Review: every `05-test/{Project}/` folder just generated/updated, with each project's cases written,
+suite PASS/FAIL/n green, AC covered/total and endpoints covered.
 Check for:
   - Every endpoint in api-spec.json has a provider contract test (backend projects)
   - Every consumed endpoint/claim has a consumer contract test (frontend/mobile projects)
   - Every acceptance criterion maps to at least one integration/component/E2E test
-  - Regression checks present and passing; no skipped/pending tests
+  - Regression checks present and passing; no Forbidden Skip Idioms without a documented reason
   - No test contradicts the api-spec.json contract or the implementation actually built
   - test-coverage rubric (this skill's SKILL.md) is satisfied
-
-Type 'approved' to roll the unit test-status up to pass for ALL tested projects.
-Type 'approved {Project} {Project}' to approve specific projects.
-Type 'cancel' to stop without updating statuses.
-```
-- Wait for user input.
-- On approval: set the unit's story frontmatter `test-status` (in `01-story/story.md` or
-  `story-{ID}.md`) — `pass` only if EVERY in-scope project's suite is green; otherwise leave `fail`
-  with the failing projects noted.
-- On `cancel`: leave statuses unchanged; preserve all test docs and tests written so far.
-- If `checkpoint_mode` is `autopilot`: automatically roll up `test-status` from the per-project
-  results (pass iff all green) and log it.
+Approval effect: set `test-status` in `01-story/story.md` frontmatter — `pass` only if EVERY in-scope
+project's suite is green; otherwise `fail` with the failing projects noted.
+Autopilot: roll up `test-status` automatically from the per-project results (pass iff all green) and log it.
 
 ## Completion Report
 After the pipeline completes, display:
@@ -170,7 +117,7 @@ Test folders written:
   {list 05-test/{Project}/ folders, each with its per-type test docs}
 
 Test roots touched:
-  {list each project's {CodeRoot} test tree}
+  {list each project's Test Layout under {CodeRoot}}
 
 Projects skipped:
   {list impacted projects not tested this run, with reason: no implementation | already tested | not targeted}
@@ -179,7 +126,7 @@ Results: {per project — suite PASS/FAIL/n green, AC covered/total, endpoints c
 
 Roll-up: test-status = {pass | fail}
 
-Next step: /sk.uat (frontend surfaces) or /sk.security-audit
+Next step: /sk.uat (user-facing surfaces) or /sk.security-audit
 ```
 
 ## Quality Bar

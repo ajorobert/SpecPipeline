@@ -6,33 +6,35 @@ Role: lead | Level: story
 Declare at start: `[HOTFIX MODE] P0 fast path active — spec artifacts bypassed.`
 
 ## Pre-flight
-1. Read session.yaml active_story_id
-   NULL → STOP: create a hotfix story first (sk.specify --bug, set story_type: hotfix)
-2. Verify story frontmatter has story_type: hotfix OR user explicitly confirmed P0 override
+1. Run the story pre-flight in `.claude/skills/governance/preflight.md`.
+   No active story → STOP: create a hotfix story first (sk.story --bug, set story_type: hotfix)
+2. Verify `01-story/story.md` frontmatter has story_type: hotfix OR user explicitly confirmed P0 override
    MISSING → STOP: this skill is for P0 incidents only; use sk.plan + sk.implement for normal stories
-3. Create hotfix branch: hotfix/{story-id} from main (not dev)
+3. Identify the affected project(s) from the Impacted Projects table (or ask); record `{Project}` / `{CodeRoot}`.
+4. Create hotfix branch: hotfix/{story-id} from main (not dev)
    Report branch name before proceeding
 
 ## Context loading
-1. story-{ID}.md — expected behavior, actual behavior, reproduction steps, acceptance criteria
-2. specs/intents/{intent}/units/{unit}/architecture.md (if exists — read for blast radius)
+1. UNIT_DIR/01-story/ — expected behavior, actual behavior, reproduction steps, acceptance criteria
+2. UNIT_DIR/02-design/architecture.md (if exists — read for blast radius)
 3. .specify/memory/architecture-decisions.md
-4. .specify/memory/standards/coding-standards.md
+4. The project's coding-standards.md
 
 ## Gate 1 — Plan (abbreviated)
 Write a minimal plan covering:
 - Root cause hypothesis (1–3 sentences)
-- Exact files/components to change (list paths)
+- Exact files/components to change (list paths within {CodeRoot})
 - Blast radius: services affected, dependent consumers at risk
 - Rollback method: what to revert if the fix makes things worse
 - Acceptance criteria mapping: each criterion → how it will be verified
 
-Write to: specs/intents/{intent}/units/{unit}/stories/{story-id}/plan.md
+Write to: UNIT_DIR/03-plan/{Project}/hotfix-plan.md
 Pause and display plan. Ask: "Confirm plan and proceed to implement? (y/n)"
 On n → revise until confirmed.
 
 ## Gate 2 — Implement
-Load tech stack packs relevant to the fix area (≤3 packs, hotfix scope is narrow).
+Resolve capability packs per `.claude/skills/governance/pack-resolution.md`; phase = `implement`,
+in-scope project = `{Project}` (hotfix scope is narrow: at most 3 packs).
 Execute the fix:
 - Change only files listed in the plan's blast radius
 - Write or update tests covering the broken acceptance criterion
@@ -44,7 +46,7 @@ Verify locally:
 - If tests pass: proceed
 - If tests fail: diagnose and fix before gate 3
 
-Mark story status → in-progress in frontmatter.
+Set `status.current` → in-progress (and `status.entered_at` → now) in `01-story/story.md` frontmatter.
 
 ## Gate 3 — Ship
 Hard blocks (same as sk.ship, but scoped to hotfix):
@@ -74,12 +76,12 @@ Else: `git push -u origin hotfix/{story-id}` then `gh pr create` as above.
 
 ## Post-ship
 After merge:
-1. Remind user to run sk.rollback artifact: "Create rollback-plan.md now or after the incident window closes?"
+1. Ask the user: "Create rollback-plan.md (sk.rollback --plan) now or after the incident window closes?"
 2. Recommend scheduling post-incident sk.verify to close the deferred gate
 
 ## Output Artifacts
-specs/intents/{intent}/units/{unit}/stories/{story-id}/plan.md
-src/** (fix files)
+UNIT_DIR/03-plan/{Project}/hotfix-plan.md
+{CodeRoot}/** (fix files)
 PR (base: main)
 
 ## Quality Bar
