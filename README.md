@@ -137,7 +137,7 @@ You use `/sk.session focus` to lock your agent onto a specific level. SpecKit sa
 
 ```bash
 /sk.session focus --intent user-auth               # Focus high-level for /sk.impact
-/sk.session focus --unit auth-api                  # Shift focus downward for /sk.architecture
+/sk.session focus --unit auth-api                  # Shift focus downward for /sk.design_sub_architecture
 /sk.session focus --story story-AUTH-API-001       # Shift focus to the exact ticket for /sk.plan and /sk.implement
 ```
 
@@ -469,7 +469,7 @@ the packs they adopt and register them in `.specify/memory/skill-routing.md`. Se
 Stories are classified by `sk.story` to govern execution speed. The value lives in `01-story/story.md` frontmatter (`checkpoint_mode`) — the single source every gate and hook reads:
 - `autopilot`: No contract changes. `/sk.ff` runs end-to-end.
 - `confirm`: New feature. Pause pending approval after `/sk.plan`.
-- `validate`: Breaking changes/new service. Pauses after `/sk.architecture` **and** `/sk.plan`.
+- `validate`: Breaking changes/new service. Pauses after `/sk.design_sub_architecture` **and** `/sk.plan`.
 
 ### The 6 Quality Gates (`/sk.verify`)
 1. **Spec** - Acceptance criteria written, no missing dependencies.
@@ -562,7 +562,7 @@ The complete directory layout a SpecKit workspace produces — the `/sk.init` me
 │
 └── specs/
     │
-    └── intents/             # Automatically resolve sk.intent and sk.unit by invoking the sk.specify subcommands within sk.story.
+    └── intents/             # Automatically resolve sk.intent and sk.unit by invoking the sk.story_sub_specify subcommands within sk.story.
         │
         └── 001-authentication/
             │

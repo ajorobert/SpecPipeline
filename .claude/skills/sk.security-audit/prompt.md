@@ -161,3 +161,8 @@ If `autopilot`: roll up automatically per the rules above and log it. A BLOCKED 
   dependency-scan.md, security-signoff.md).
 - Overall verdict CLEAR | CONDITIONAL | BLOCKED, and `security-status` rolled up to match.
 - The audit reports findings only — it does not modify implementation code to resolve them.
+
+## Completion Signal
+Last line of output must be exactly one of (see `.claude/skills/governance/status-model.md`):
+`SK_RESULT: PASS` — the audit ran to completion with no open CRITICAL finding
+`SK_RESULT: FAIL` — the audit could not complete, or a CRITICAL finding is open

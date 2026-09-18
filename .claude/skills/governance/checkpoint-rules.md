@@ -1,10 +1,10 @@
 Checkpoint Rules
-Read by: sk.specify (to classify), sk.impact (to recommend), and every gated skill via
+Read by: sk.story_sub_specify (to classify), sk.impact (to recommend), and every gated skill via
 `.claude/skills/governance/review-gate.md`.
 
 Source of truth
 `checkpoint_mode` lives in the active story's frontmatter, `specs/intents/{intent}/units/{unit}/01-story/story.md`.
-It is written once by sk.specify and changed only by an explicit escalation. session.yaml never
+It is written once by sk.story_sub_specify and changed only by an explicit escalation. session.yaml never
 holds it. Valid values: autopilot | confirm | validate. Any other value is invalid; treat it as
 validate and flag it.
 

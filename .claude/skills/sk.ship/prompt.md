@@ -45,3 +45,8 @@ On successful ship:
 - sk.verify must be PASS
 - security-status must not be blocked
 - test-status must be pass
+
+## Completion Signal
+Last line of output must be exactly one of (see `.claude/skills/governance/status-model.md`):
+`SK_RESULT: PASS` — the PR was created
+`SK_RESULT: FAIL` — a hard block stopped the ship (the story status is not advanced)

@@ -13,9 +13,16 @@ isolated context — state is passed via the file system (session.yaml + spec ar
   `sk.design --datamodel` or `sk.design --contracts` manually.
 
 ## Pre-flight
-1. Verify system-context.md and tech-stack.md are populated
-   system-context.md missing: STOP — run sk.init first
-   tech-stack.md missing: STOP — run sk.init first
+1. Verify the system-tier memory is populated — not merely present. `setup.sh` scaffolds these as
+   commented skeletons, so "the file exists" is not the check; "it has real content outside the
+   template comments" is.
+   - `.specify/memory/system-context.md`
+   - `.specify/memory/standards/tech-stack.md` (or, in a workspace, the impacted projects'
+     `.specify/memory/projects/{Project}/tech-stack.md`)
+   - `.specify/memory/projects/index.md` — the project router, required by sk.story
+   Any of them missing or still a bare skeleton: STOP with
+   `Run /sk.init first — {file} is still a template skeleton.` Name every file that failed, so one
+   sk.init run can fix them all.
 
 ## Orchestration: [FEATURE MODE]
 
@@ -23,7 +30,7 @@ isolated context — state is passed via the file system (session.yaml + spec ar
 Invoke skill: sk.story
 - Context injected: session.yaml, system-context.md, architecture-decisions.md, domain-model.md
 - Waits for: `01-story/` written and clarified, with checkpoint_mode set in `story.md` frontmatter
-- Reads back: active_unit_id / active_story_id from session.yaml (updated by sk.story → sk.specify)
+- Reads back: active_unit_id / active_story_id from session.yaml (updated by sk.story → sk.story_sub_specify)
 - Reads back: checkpoint_mode from `01-story/story.md` frontmatter
 
 ### Phase 2 — Design [FEATURE MODE only]

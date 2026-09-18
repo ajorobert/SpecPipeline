@@ -2,6 +2,7 @@
 name: Security Agent
 description: Security specialist. Invoked for security audits, OWASP review,
   auth pattern verification, dependency scanning, and secrets detection.
+role: security
 write_scope:
   deny:
     - "src/**"

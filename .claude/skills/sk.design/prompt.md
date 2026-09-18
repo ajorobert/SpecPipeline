@@ -79,11 +79,11 @@ Triggered when: `sk.design "<change description>"` is called.
 Gate behaviour (display, approved/cancel handling, autopilot hard stops) follows
 `.claude/skills/governance/review-gate.md`. This skill's schedule:
 
-| checkpoint_mode | Gate 1 (after architecture) | Gate 2 (after data model) | Gate 3 (after UI design) |
-|---|---|---|---|
-| autopilot | skip | skip | skip |
-| confirm | skip | PAUSE | PAUSE |
-| validate | PAUSE | PAUSE | PAUSE |
+| checkpoint_mode | Gate 1 (after architecture) | Gate 2 (after data model) | Gate 3 (after contracts) | Gate 4 (after UI design) |
+|---|---|---|---|---|
+| autopilot | skip | skip | skip | skip |
+| confirm | skip | PAUSE | PAUSE | PAUSE |
+| validate | PAUSE | PAUSE | PAUSE | PAUSE |
 
 Gate override: if 02-design/architecture.md does not yet exist AND unit introduces a new bounded context,
 treat as validate regardless of checkpoint_mode.
@@ -96,7 +96,7 @@ In TARGETED and REFRESH modes: gates apply only to phases that actually run.
 ### Phase 1 — Architecture
 Condition: run if FRESH, or RESUME with 02-design/architecture.md missing, or TARGETED --architecture,
            or REFRESH with architecture in affected phases
-Invoke skill: sk.architecture
+Invoke skill: sk.design_sub_architecture
 - Context injected: session.yaml, domain-model.md, service-registry.md, architecture-decisions.md
   (design-phase capability packs are resolved inside the sub-skill)
 - Waits for: 02-design/architecture.md and 02-design/impact-analysis.md written and engineering review passed
@@ -118,7 +118,7 @@ On cancel: remaining phases skipped.
 ### Phase 2 — Data Model
 Condition: run if needed per phase need detection, or RESUME with 02-design/database-design.md missing,
            or TARGETED --datamodel, or REFRESH with datamodel in affected phases
-Invoke skill: sk.datamodel
+Invoke skill: sk.design_sub_datamodel
 - Context injected: session.yaml, domain-model.md, data-standards.md
 - Reads from disk: 02-design/architecture.md
 - Waits for: 02-design/database-design.md written and domain-model.md updated
@@ -135,12 +135,26 @@ On cancel: contracts skipped.
 ### Phase 3 — API Contracts
 Condition: run if needed per phase need detection, or RESUME with 02-design/contracts/ missing,
            or TARGETED --contracts, or REFRESH with contracts in affected phases
-Invoke skill: sk.contracts
+Invoke skill: sk.design_sub_contracts
 - Context injected: session.yaml, service-registry.md, api-standards.md, tech-stack.md
 - Reads from disk: 02-design/architecture.md, 02-design/database-design.md, unit-brief.md
 - Waits for: 02-design/contracts/api-spec.json, 02-design/contracts/test-plan.md,
   02-design/api-contract.md, 02-design/projects/{BackendProject}.md, provider tests written,
   service-registry.md updated
+
+GATE 3 — API Contract Review (confirm, validate)
+Review: 02-design/contracts/api-spec.json, 02-design/contracts/test-plan.md, 02-design/api-contract.md,
+02-design/projects/{BackendProject}.md, and the provider contract tests written under each Backend
+project's Test Layout.
+Check for:
+  - Every endpoint the story needs exists; no endpoint exists that no story needs
+  - api-contract.md and contracts/api-spec.json agree — no endpoint documented in one and absent in the other
+  - No breaking change to an endpoint already in service-registry.md without a versioned replacement
+  - Idempotency-Key declared on every mutation endpoint (POST/PUT/PATCH/DELETE)
+  - Error responses follow api-standards.md; auth/authz is declared per endpoint
+  - The test plan has a provider section plus one consumer section per impacted Frontend/Mobile project,
+    each listing only the endpoints that consumer actually calls
+On cancel: Phases 4-6 skipped; contracts written so far are preserved.
 
 ### Phase 4 — Knowledge Base Assessment
 Condition: always runs after any phase completes (FRESH, RESUME, REFRESH, TARGETED)
@@ -174,7 +188,7 @@ Auto-generate a unit-level routing index.
    to understand unit components and impacted projects.
 2. Read the actual directory structure under each impacted project's `{CodeRoot}` to identify where
    modules and files live.
-3. Generate or overwrite `specs/intents/{intent}/units/{unit}/guide.yaml`. Use `templates/artifacts/guide-template.yaml` as reference. It must contain the non-obvious cross-cutting constraints in the `also-check:` field.
+3. Generate or overwrite `specs/intents/{intent}/units/{unit}/guide.yaml`. Use `{TEMPLATES_DIR}/artifacts/guide-template.yaml` as reference. It must contain the non-obvious cross-cutting constraints in the `also-check:` field.
 4. If missing, create/update the domain-level guide entry for this unit in `specs/domains/{domain}/guide.yaml`.
 5. If missing, create/update the system-level guide entry for this domain in `specs/guide.yaml`.
 6. Log: "Guide updated — {unit-id}".
@@ -194,7 +208,7 @@ If NO frontend signal is found:
   Proceed to the completion report.
 
 If a frontend signal IS found:
-  Invoke skill: sk.ui-design
+  Invoke skill: sk.design_sub_ui-design
   - Context injected: coding-standards.md, domain-model.md
   - Reads from disk: 02-design/architecture.md, 02-design/contracts/api-spec.json,
     02-design/contracts/test-plan.md, 02-design/api-contract.md,
@@ -205,7 +219,7 @@ If a frontend signal IS found:
   Autopilot hard stop: BLOCKING or MEDIUM findings in the frontend engineering review STOP the phase
   per review-gate.md; ADVISORY-only findings are logged and the phase proceeds.
 
-  GATE 3 — Frontend UI Review (confirm, validate)
+  GATE 4 — Frontend UI Review (confirm, validate)
   Review: 02-design/ui-model.md, 02-design/projects/ (one page per impacted Frontend/Mobile project)
   Check for:
     - Every story has a frontend surface (route/component) or is marked backend-only

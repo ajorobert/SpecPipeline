@@ -3,7 +3,7 @@ Framework-owned block, referenced by path from the per-project orchestrators (`s
 `sk.implement`, `sk.test`) and from `sk.uat` / `sk.security-audit`.
 
 ## Source of truth
-`unit-brief.md` → Impacted Projects table (written by `sk.architect-probe`). Every row gives
+`unit-brief.md` → Impacted Projects table (written by `sk.story_sub_architect-probe`). Every row gives
 `{Project}` (the exact name, never abbreviated), `{ProjectType}` (`Backend | Frontend | Mobile`),
 `{CodeRoot}` and Role. The same names are used for `02-design/projects/{Project}.md`,
 `03-plan/{Project}/`, `04-implementation/{Project}/` and `05-test/{Project}/`.

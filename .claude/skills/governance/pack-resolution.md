@@ -11,7 +11,7 @@ project's skills. Rule of thumb: skills carry grammar (the project-neutral "how"
 carries vocabulary (the per-project "what" and "where").
 
 ## Inputs
-- **phase**: given by the caller. One of `design | implement | review | test | uat | perf | refactor`.
+- **phase**: given by the caller. One of `design | plan | implement | review | test | uat | perf | refactor`.
 - **in-scope projects**: the `{Project}` / `{ProjectType}` passed by the orchestrator. If none was
   passed, use every row of `unit-brief.md` → Impacted Projects. If there is no unit, map session.yaml
   `role`: `backend` → Backend, `frontend` → Frontend, `mobile` → Mobile.

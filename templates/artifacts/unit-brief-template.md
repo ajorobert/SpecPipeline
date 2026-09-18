@@ -29,14 +29,14 @@ Example:
 -->
 
 ## Impacted Projects
-<!-- Written by sk.architect-probe. One row per project this unit changes; names and code roots come from
+<!-- Written by sk.story_sub_architect-probe. One row per project this unit changes; names and code roots come from
      .specify/memory/projects/index.md. Every per-project phase (02-design/projects/, 03-plan/, 04-implementation/,
      05-test/) reads this table. Type: Backend | Frontend | Mobile.
-Example:
-| Project | Type | Code Root | Role in this unit |
-|---|---|---|---|
-| {BackendProject} | Backend | {backend-code-root} | session endpoints + token validation |
-| {WebProject} | Frontend | {web-code-root} | login page + session handling |
+Written by sk.story_sub_architect-probe (both [FULL] and [IMPACT-ONLY] modes). It is NEVER left
+empty: sk.design / sk.plan / sk.implement / sk.test all STOP on an empty table, and their
+preconditions check for a populated row.
+Each row: the exact Project name and Code Root from projects/index.md, the Type, and a concrete role
+(e.g. "session endpoints + token validation", not "backend work").
 -->
 | Project | Type | Code Root | Role in this unit |
 |---|---|---|---|

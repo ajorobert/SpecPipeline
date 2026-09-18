@@ -23,7 +23,7 @@ MUST NOT write session.yaml role field. MUST NOT prompt user to switch role.
 Read session.yaml for active_intent_id, active_unit_id, active_story_id only.
 
 ### Group C — Self-asserting with defined default
-sk.analyze → SpecKit Lead Agent
+sk.plan_sub_analyze → SpecKit Lead Agent
 sk.verify → SpecKit Architect Agent
 
 ### Group D — Role-agnostic (no subagent)

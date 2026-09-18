@@ -9,6 +9,6 @@ inject_files:
   - .specify/memory/service-registry.md
 ---
 
-Assesses blast radius of proposed work before starting. Run before sk.specify for high-risk changes.
+Assesses blast radius of proposed work before starting. Run before sk.story_sub_specify for high-risk changes.
 
 Read and execute the full workflow in `prompt.md` in this directory.

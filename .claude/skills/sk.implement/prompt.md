@@ -3,7 +3,7 @@ Orchestrates the implementation phase for a unit, producing one delivery folder 
 Role: lead (orchestrator) | Level: unit
 
 This skill orchestrates the per-project implementation worker. It resolves the impacted projects from
-the unit's Impacted Projects table, invokes `sk.implementproject` once per project (each consuming that
+the unit's Impacted Projects table, invokes `sk.implement_sub_implementproject` once per project (each consuming that
 project's already-approved `03-plan/{Project}/` plan), and gates the result before reporting. Each
 sub-skill runs in its own isolated context. Orchestrators do not resolve capability packs — each worker
 resolves its own (phase = implement).
@@ -45,7 +45,7 @@ Determine mode based on arguments and existing files. First match wins.
 - Run Phase 2 (Review Gate) and report.
 
 **REFINE** (`--refine`, OR a `04-implementation/{Project}/review-{story-id}.md` exists for a targeted/impacted project)
-- For each in-scope project that has a `review-{story-id}.md`: invoke `sk.implementproject` in REFINE
+- For each in-scope project that has a `review-{story-id}.md`: invoke `sk.implement_sub_implementproject` in REFINE
   mode (code generation only — resolve review findings, no re-scaffolding).
 - Run Phase 2 (Review Gate) and report.
 
@@ -60,16 +60,21 @@ Projects in the Impacted Projects table with NO approved plan are skipped and lo
 (`no plan — run sk.plan --projects {key}` or `plan not approved`).
 
 ## Status Transitions
-Before invoking the first project worker, update `01-story/story.md` frontmatter:
+Per `.claude/skills/governance/status-model.md`. Before invoking the first project worker, update
+`01-story/story.md` frontmatter:
 - set `status.current` → in-progress
 - set `status.entered_at` → now (ISO 8601)
+
+Do NOT write any later status here. `status.current` → `testing` is owned by the Stop hook and fires
+only when this skill emits `SK_RESULT: PASS`, so a run that is cancelled at the gate correctly leaves
+the story at `in-progress`.
 
 ## Orchestration
 
 ### Phase 1 — Per-Project Implementation
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
-Invoke skill: `sk.implementproject`
+Invoke skill: `sk.implement_sub_implementproject`
 - Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`
   (backend for Backend, frontend for Frontend, mobile for Mobile), `checkpoint_mode`, and the execution
   mode (NORMAL or REFINE).
@@ -129,10 +134,15 @@ Next step: /sk.test or /sk.review
 - The impacted-project list is sourced from `unit-brief.md`; every impacted project is either
   implemented or explicitly logged as skipped with a reason.
 - `--projects` resolution is logged; `--role`/type conflicts STOP rather than guess.
-- Each `sk.implementproject` invocation is self-contained — no state leaks between projects.
+- Each `sk.implement_sub_implementproject` invocation is self-contained — no state leaks between projects.
 - Implementation realizes `03-plan/{Project}/` and `02-design/` — the orchestrator does not redesign or re-plan.
 - Existing functionality is never modified beyond the planned change set; new code is added, files are
   inspected before editing, and complete files are not rewritten unless required.
 - Active gates must receive explicit 'approved' before statuses change; skipped gates are logged.
 - 'cancel' at the gate preserves all artifacts and source written up to that point.
 - Completion report lists only what actually ran and what was skipped, with reasons.
+
+## Completion Signal
+Last line of output must be exactly one of (see `.claude/skills/governance/status-model.md`):
+`SK_RESULT: PASS` — every targeted project reached validation with nothing left blocked
+`SK_RESULT: FAIL` — one or more projects are blocked or failed validation

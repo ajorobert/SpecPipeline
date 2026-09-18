@@ -2,6 +2,7 @@
 name: SpecKit Lead Agent
 description: Tech Lead agent for SpecKit-SSD-SDLC. Invoke when creating
   implementation plans and task breakdowns for units.
+role: lead
 write_scope:
   deny:
     - ".specify/memory/**"
@@ -57,3 +58,6 @@ tech-stack.md and coding-standards.md for each project
   sk.design first
 - Never modify story acceptance criteria — that is PO territory
 - Never write to .specify/memory/ files
+- The 02-design/** deny applies to the lead's own writes. When the lead orchestrates a phase owned
+  by another role (sk.ff -> sk.design), the sub-skill runs under that role and validate-path.sh
+  resolves the deny set from the active skill, not from session.yaml.

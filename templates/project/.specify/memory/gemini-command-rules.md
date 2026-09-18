@@ -18,7 +18,7 @@ Unit-level skills (sk.design and its sub-skills, sk.plan, sk.implement, sk.test,
 - Require active_unit_id set in session.yaml
 - If null: instruct user to run sk.session focus --unit {unit-id}
 
-Story-level skills (sk.clarify, sk.architect-probe, sk.review, sk.investigate, sk.verify, sk.ship):
+Story-level skills (sk.story_sub_clarify, sk.story_sub_architect-probe, sk.review, sk.investigate, sk.verify, sk.ship):
 - Require active_story_id set in session.yaml
 - If null: instruct user to run sk.session focus --story {story-id}
 
@@ -42,9 +42,9 @@ Load packs only as `.claude/skills/governance/pack-resolution.md` directs, from
 - Declare mode at start of every execution
 
 ## Post-Execution Memory Updates
-sk.plan, sk.architecture → update service-registry.md, domain-model.md if changed
-sk.datamodel             → update domain-model.md
-sk.contracts             → update service-registry.md
+sk.plan, sk.design_sub_architecture → update service-registry.md, domain-model.md if changed
+sk.design_sub_datamodel             → update domain-model.md
+sk.design_sub_contracts             → update service-registry.md
 sk.adr                   → update architecture-decisions.md index
 
 ## ADR Triggers
@@ -57,7 +57,7 @@ Suggest (never create without confirmation) when:
 
 ## PHR Triggers
 Create automatically after:
-- sk.architecture
+- sk.design_sub_architecture
 - sk.implement when novel tradeoffs resolved
 
 ## Context Loading Order

@@ -10,6 +10,12 @@ source "${HOOK_DIR}/lib-story.sh"
 
 INPUT=$(cat)
 
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "${HOOK_DIR}/../.." && pwd)}"
+
+# The active-skill role marker lives for one turn only. Clear it first, whatever else happens,
+# so a crashed or aborted skill cannot leave validate-path.sh evaluating a stale role.
+sk_clear_active_role "$PROJECT_ROOT"
+
 if ! command -v jq >/dev/null 2>&1; then
   # Without jq the transcript cannot be parsed reliably — skip bookkeeping.
   exit 0
@@ -21,7 +27,6 @@ if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
   exit 0
 fi
 
-PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "${HOOK_DIR}/../.." && pwd)}"
 LAST_SKILL_FILE="${PROJECT_ROOT}/.claude/.last-skill"
 
 # No .last-skill → no conditional skill was recently invoked → nothing to do
@@ -34,11 +39,17 @@ SKILL_NAME=$(xargs < "$LAST_SKILL_FILE" 2>/dev/null)
 : > "$LAST_SKILL_FILE" 2>/dev/null
 find "$LAST_SKILL_FILE" -delete 2>/dev/null || true
 
+# Status transitions per .claude/skills/governance/status-model.md.
+# PASS_STATUS applies on SK_RESULT: PASS; FAIL_STATUS (when set) applies on SK_RESULT: FAIL.
+FAIL_STATUS=""
 case "$SKILL_NAME" in
-  sk.test)   NEW_STATUS="review" ;;
-  sk.review) NEW_STATUS="verify" ;;
-  sk.verify) NEW_STATUS="done"   ;;
-  *)         exit 0              ;;
+  sk.implement)      PASS_STATUS="testing"         ;;
+  sk.test)           PASS_STATUS="review"          ;;
+  sk.review)         PASS_STATUS="verify"          ; FAIL_STATUS="review-rejected" ;;
+  sk.security-audit) PASS_STATUS="security-review" ;;
+  sk.verify)         PASS_STATUS="done"            ;;
+  sk.ship)           PASS_STATUS="shipped"         ;;
+  *)                 exit 0                        ;;
 esac
 
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
@@ -78,8 +89,14 @@ case "$SKILL_NAME" in
   sk.verify) sk_upsert_field "$STORY_FILE" "verify-status" "$VERDICT" ;;
 esac
 
-# Story status only advances on PASS
-[[ "$VERDICT" != "PASS" ]] && exit 0
+# Most skills advance the story only on PASS. A skill that declares a FAIL_STATUS
+# (sk.review -> review-rejected) also records the rejected state.
+if [[ "$VERDICT" == "PASS" ]]; then
+  NEW_STATUS="$PASS_STATUS"
+else
+  [[ -z "$FAIL_STATUS" ]] && exit 0
+  NEW_STATUS="$FAIL_STATUS"
+fi
 
 sk_set_status "$STORY_FILE" "$NEW_STATUS" 2>/dev/null || {
   echo "post-response.sh: WARNING — failed to update status in: ${STORY_FILE}" >&2

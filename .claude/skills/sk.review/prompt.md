@@ -77,7 +77,7 @@ If gstack is installed (`command -v gstack`): also invoke `gstack /review` for a
 ## Output Artifact
 If any findings exist, write a review report to:
   UNIT_DIR/04-implementation/{Project}/review-{story-id}.md
-(sk.implement → sk.codegen reads this path to enter REFINE mode.)
+(sk.implement → sk.implement_sub_codegen reads this path to enter REFINE mode.)
 
 Format:
 ```

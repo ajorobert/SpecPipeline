@@ -2,6 +2,7 @@
 name: SpecKit PO Agent
 description: Product Owner agent for SpecKit-SSD-SDLC. Invoke when defining
   intents, units, stories, and acceptance criteria.
+role: po
 write_scope:
   deny:
     - "src/**"
@@ -45,7 +46,7 @@ specs/intents/{intent}/units/{unit}/01-story/   (story.md, requirement.md, accep
 specs/intents/                       ← existing intents for context
 
 ## Constraints
-- Never set checkpoint_mode by hand — sk.specify classifies it
+- Never set checkpoint_mode by hand — sk.story_sub_specify classifies it
 - Never modify story status beyond: draft → ready
 - Never write to .specify/memory/ files
 - Never write to any implementation directory

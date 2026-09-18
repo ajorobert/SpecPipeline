@@ -3,8 +3,8 @@ Orchestrates technical planning for a unit, producing one execution-plan folder 
 Role: lead (orchestrator) | Level: unit
 
 This skill orchestrates two internal sub-skills. It prepares a planning brief, invokes
-`sk.planproject` once per impacted project (resolved from the unit's Impacted Projects table), and
-runs `sk.analyze` at the end to catch cross-project / cross-artifact conflicts before implementation.
+`sk.plan_sub_planproject` once per impacted project (resolved from the unit's Impacted Projects table), and
+runs `sk.plan_sub_analyze` at the end to catch cross-project / cross-artifact conflicts before implementation.
 
 ## Plan Output Layout
 All plan artifacts for the unit live under `specs/intents/{intent}/units/{unit}/03-plan/{Project}/`
@@ -75,7 +75,7 @@ Condition: run in NORMAL/RESUME if missing; run in REFRESH. (Skipped in TARGETED
 ### Phase 1 — Project Planning
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
-Invoke skill: `sk.planproject`
+Invoke skill: `sk.plan_sub_planproject`
 - Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, and the effective `--role`
   (backend for Backend, frontend for Frontend, mobile for Mobile).
 - Context injected: `planning-brief.md`, `02-design/architecture.md`, `02-design/impact-analysis.md`,
@@ -89,7 +89,7 @@ Invoke skill: `sk.planproject`
 
 ### Phase 2 — Cross-Artifact Analysis
 Condition: always runs (except if the pipeline aborted early before any plan exists).
-Invoke skill: `sk.analyze`
+Invoke skill: `sk.plan_sub_analyze`
 - Context injected: all design artifacts under `02-design/`, all `03-plan/{Project}/plan.md` files.
 - Waits for: the Analyze report (read-only) identifying any CRITICAL / HIGH / MEDIUM findings.
 
@@ -97,7 +97,7 @@ Invoke skill: `sk.analyze`
 Protocol: `.claude/skills/governance/review-gate.md`. Active for `confirm` and `validate` when any new plan
 was generated or analyze ran; per-project approval (`approved {Project} …`) is allowed.
 Review: `planning-brief.md` (if generated/updated), every `03-plan/{Project}/` folder just generated/updated,
-and the sk.analyze report (highlight findings).
+and the sk.plan_sub_analyze report (highlight findings).
 Check for:
   - Project plans do not contradict each other or architecture.md
   - Every impacted project from unit-brief.md has a plan folder (or a logged reason it was skipped)
@@ -132,7 +132,7 @@ Next step: /sk.implement
 - The impacted-project list is sourced from `unit-brief.md`; every impacted project is either
   planned or explicitly logged as skipped with a reason.
 - `--projects` resolution is logged; `--role`/type conflicts STOP rather than guess.
-- Each sk.planproject invocation is self-contained — no state leaks between projects.
+- Each sk.plan_sub_planproject invocation is self-contained — no state leaks between projects.
 - Plans never contradict `02-design/` artifacts; the orchestrator does not redesign.
 - Active gates must receive explicit 'approved' before statuses change; skipped gates are logged.
 - 'cancel' at the gate preserves all artifacts written up to that point.

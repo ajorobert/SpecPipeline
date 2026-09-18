@@ -6,7 +6,7 @@ instead of restating paths.
 specs/intents/{intent}/
 ├── intent.md
 └── units/{unit}/
-    ├── unit-brief.md               # sk.specify / sk.architect-probe — Impacted Projects table
+    ├── unit-brief.md               # sk.story_sub_specify / sk.story_sub_architect-probe — Impacted Projects table
     ├── knowledge-base.md           # tier-3 KB (sk.knowledge-base, sk.review, sk.investigate)
     ├── guide.yaml                  # tier-3 routing index (sk.design)
     ├── planning-brief.md           # sk.plan — cross-project synthesis
@@ -26,13 +26,13 @@ specs/intents/{intent}/
     │   ├── ui-model.md             # frontend units only
     │   ├── contracts/              # api-spec.json (canonical), test-plan.md, README.md
     │   └── projects/{Project}.md   # one per impacted project
-    ├── 03-plan/{Project}/          # sk.plan → sk.planproject
+    ├── 03-plan/{Project}/          # sk.plan → sk.plan_sub_planproject
     │   └── plan.md, tasks.md, checklist.md, jira-subtask.md, estimation.md
-    ├── 04-implementation/{Project}/  # sk.implement → sk.implementproject
+    ├── 04-implementation/{Project}/  # sk.implement → sk.implement_sub_implementproject
     │   ├── implementation.md, progress.md, validation.md
     │   ├── review-{story-id}.md    # sk.review (drives REFINE mode)
     │   └── perf-findings.md, perf-tasks.md   # sk.perf
-    ├── 05-test/{Project}/          # sk.test → sk.testproject
+    ├── 05-test/{Project}/          # sk.test → sk.test_sub_testproject
     │   └── Backend: unit-test.md, integration-test.md, contract-test.md
     │       Frontend/Mobile: component-test.md, contract-test.md
     ├── 06-uat/                     # sk.uat — flat, unit-level

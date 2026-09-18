@@ -1,5 +1,5 @@
 Tech Stack
-Loaded by: sk.plan, sk.contracts, sk.test, sk.uat
+Loaded by: sk.plan, sk.design_sub_contracts, sk.test, sk.uat
 Changes require an ADR.
 Workspace mode: each project has its own .specify/memory/projects/{Project}/tech-stack.md, which wins over this file.
 
@@ -15,7 +15,7 @@ Infrastructure:
 Observability Tooling:
 
 Test Layout:
-# Where runnable tests live under each code root, per kind. sk.contracts / sk.testproject write tests here.
+# Where runnable tests live under each code root, per kind. sk.design_sub_contracts / sk.test_sub_testproject write tests here.
 # unit:        {path pattern}
 # integration: {path pattern}
 # contract:    {provider path pattern} | {consumer path pattern}

@@ -4,3 +4,4 @@
 .claude/.last-skill
 .claude/skill-audit.log
 .claude/cache-metrics.jsonl
+.claude/.active-skill-role

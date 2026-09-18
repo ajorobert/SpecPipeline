@@ -9,14 +9,13 @@ session.yaml (active_intent_id, active_unit_id)
 
 ## Resolve paths
 - `ADR_DIR` = `adr_dir:` from `.specify/project-config.md` → default `history/adr`
-- `SCRIPTS_DIR` = `scripts_dir:` from `.claude/.speckit-manifest` (written by setup.sh, e.g. `.speckit/scripts`)
-  → if the manifest is absent (you are inside the framework repository itself) use `scripts`
+- `SCRIPTS_DIR` and `TEMPLATES_DIR` per `.claude/skills/governance/framework-paths.md`
 
 ## Steps
 1. Determine next ADR number from architecture-decisions.md (and the highest existing file in `ADR_DIR`)
 2. Collect: title, context, decision, alternatives, consequences
 3. Run `bash {SCRIPTS_DIR}/create-adr.sh {number} "{title}" "{ADR_DIR}"`
-4. Write ADR using `templates/artifacts/adr-template.md` (under the framework dir when installed)
+4. Write ADR using `{TEMPLATES_DIR}/artifacts/adr-template.md`
    Include intent, unit, affected story IDs in frontmatter
 5. Update architecture-decisions.md index
 

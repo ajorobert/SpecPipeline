@@ -134,3 +134,40 @@ sk_audit() {
   echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") | ${skill} | ${story} | ${status}" \
     >> "${root}/.claude/skill-audit.log" 2>/dev/null || true
 }
+
+# ── Active-skill role ─────────────────────────────────────────────────────────
+# write_scope.deny in .claude/agents/*.md must be evaluated against the role of the
+# skill that is currently running, not the session role. A lead orchestrating sk.design
+# must not be denied the architect's own output. post-skill.sh records the role in
+# .claude/.active-skill-role; validate-path.sh prefers it; post-response.sh clears it.
+
+# Print the framework role for a skill name, or nothing.
+# SKILL.md `subagent_type:` → the agent file whose `name:` matches → that agent's `role:`.
+sk_skill_role() {
+  local root="$1" skill="$2" skill_file agent_name f role
+  skill_file="${root}/.claude/skills/${skill}/SKILL.md"
+  [[ -f "$skill_file" ]] || return 0
+  agent_name=$(sk_fm_field "$skill_file" subagent_type)
+  [[ -n "$agent_name" ]] || return 0
+  for f in "${root}"/.claude/agents/*.md; do
+    [[ -f "$f" ]] || continue
+    if [[ "$(sk_fm_field "$f" name)" == "$agent_name" ]]; then
+      role=$(sk_fm_field "$f" role)
+      printf '%s' "$role"
+      return 0
+    fi
+  done
+  return 0
+}
+
+sk_set_active_role() {
+  local root="$1" role="$2"
+  [[ -n "$role" ]] || return 0
+  printf '%s' "$role" > "${root}/.claude/.active-skill-role" 2>/dev/null || true
+}
+
+sk_clear_active_role() {
+  local root="$1" f="${1}/.claude/.active-skill-role"
+  [[ -f "$f" ]] || return 0
+  find "$f" -delete 2>/dev/null || true
+}

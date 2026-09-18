@@ -2,6 +2,7 @@
 name: QA Frontend Agent
 description: Frontend QA specialist. Invoked when testing UI components,
   user journeys, consumer contract tests, accessibility, and visual behavior.
+role: frontend-qa
 ---
 
 # QA Frontend Agent
@@ -59,5 +60,5 @@ specs/intents/{intent}/units/{unit}/06-uat/
 - Tests describe user behavior not implementation details
 
 ## Capability Packs
-sk.testproject and sk.uat resolve project-registered packs through
+sk.test_sub_testproject and sk.uat resolve project-registered packs through
 `.claude/skills/governance/pack-resolution.md` (phase = test | uat). You do not load packs yourself.

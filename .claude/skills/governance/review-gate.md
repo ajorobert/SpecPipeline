@@ -1,6 +1,6 @@
 # Review Gate Protocol
 Framework-owned block, referenced by path from every orchestrator gate (`sk.design`, `sk.plan`,
-`sk.implement`, `sk.implementproject`, `sk.test`, `sk.uat`, `sk.security-audit`). The skill supplies
+`sk.implement`, `sk.implement_sub_implementproject`, `sk.test`, `sk.uat`, `sk.security-audit`). The skill supplies
 the gate name, the artifact list and its own "Check for" items. This file supplies the behaviour.
 
 ## Schedule

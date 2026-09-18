@@ -3,6 +3,8 @@ Spec-aware root-cause debugging — knows what correct behavior looks like.
 Role: backend, frontend | Level: story
 gstack: optional enhancement — if installed, invoke for additional debugging signal
 
+Resolve `TEMPLATES_DIR` per `.claude/skills/governance/framework-paths.md` before reading any template.
+
 ## Pre-flight
 1. Run the story pre-flight in `.claude/skills/governance/preflight.md` (active story, UNIT_DIR,
    Impacted Projects, knowledge bases).
@@ -13,7 +15,7 @@ gstack: optional enhancement — if installed, invoke for additional debugging s
      Read frontmatter only — get session_count, increment by 1, update frontmatter
      Never scan the report body to determine the session number
    Missing → [CREATE MODE]
-     Create from templates/artifacts/investigation-report-template.md
+     Create from {TEMPLATES_DIR}/artifacts/investigation-report-template.md
      Set session_count: 1, first session is INV-001
 
 ## Context loading (cacheable — load first)
@@ -52,7 +54,7 @@ Classify each finding as one of:
 No spec files may be modified based on investigation findings without architect confirmation.
 
 ### Write investigation-report.md
-CREATE MODE: create from templates/artifacts/investigation-report-template.md.
+CREATE MODE: create from {TEMPLATES_DIR}/artifacts/investigation-report-template.md.
   Write first session block as `## Investigation INV-001 — {date}`.
 
 REFINE MODE: prepend a new session block immediately below the file header (above all prior
@@ -76,7 +78,7 @@ If KB_PATH exists:
   Append to `## Candidate Invariants` section.
   If the section does not yet exist, create it at the bottom of the file.
 If KB_PATH does not exist:
-  Create from templates/artifacts/unit-knowledge-base-template.md.
+  Create from {TEMPLATES_DIR}/artifacts/unit-knowledge-base-template.md.
   Populate only the `## Candidate Invariants` section; leave other sections as placeholders.
 
 Format:

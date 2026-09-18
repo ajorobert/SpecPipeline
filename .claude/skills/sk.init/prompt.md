@@ -3,6 +3,8 @@
 Initialize or update a project's SpecKit memory layer, or an enterprise
 workspace that governs multiple projects.
 
+Resolve `TEMPLATES_DIR` per `.claude/skills/governance/framework-paths.md` before reading any template.
+
 ## Mode Detection
 
 Resolve the mode in this order (first match wins). The single-project
@@ -259,10 +261,34 @@ packs — generate the manifest skeleton from the interview, never invent pack p
 - `## By signal`: leave empty and keep the template comment telling the team to register their packs
   (copy starting points from `skills_archive/` in the framework dir, or write their own).
 
+**`.specify/memory/projects/index.md`** — the project router. **Always written, including in
+single-project mode.** `sk.story_sub_specify` (step 3c) and `sk.story_sub_architect-probe` both
+require it, and `.claude/skills/governance/project-resolution.md` resolves `{Project}` / `{CodeRoot}`
+through it. A single-project workspace is simply a router with one row:
+
+```
+# {Project Name} — Project Router
+
+Workspace memory index. Each project owns an isolated memory folder under `projects/{name}/`.
+Read the relevant project folder before working in it.
+
+Total projects: 1  (Backend: {n} · Frontend: {n} · Mobile: {n})
+
+| Project | Type | Code Root |
+|---|---|---|
+| [{name}](./{name}/project.md) | {Backend \| Frontend \| Mobile} | `{code root path}` |
+```
+
+Then write that project's folder exactly as WORKSPACE INIT step W3 does:
+`projects/{name}/project.md`, `projects/{name}/tech-stack.md` (including **Test Layout** and
+**Forbidden Skip Idioms**), `projects/{name}/coding-standards.md`. If the system has more than one
+deployable surface (an API plus a web app, say), write one row and one folder per surface — that is a
+workspace, and offering to switch to WORKSPACE INIT is the better answer.
+
 ### Step 3 — Scaffold (if not exists)
 
 Create these only if they don't already exist:
-- `specs/guide.yaml` — empty system-level guide, generated from `templates/artifacts/guide-template.yaml` (Tier 1 structure)
+- `specs/guide.yaml` — empty system-level guide, generated from `{TEMPLATES_DIR}/artifacts/guide-template.yaml` (Tier 1 structure)
 - `specs/knowledge-base.md` — pre-fill Why This System Exists and Core Actors from interview
 - `history/adr/` — empty directory (create `.gitkeep` if needed)
 - `history/prompts/` — empty directory (create `.gitkeep` if needed)
@@ -280,6 +306,8 @@ Report what was created:
 ✓ .specify/memory/standards/api-standards.md
 ✓ .specify/memory/standards/data-standards.md
 ✓ .specify/memory/skill-routing.md   (surfaces + migrations; packs to register)
+✓ .specify/memory/projects/index.md  (router — 1 project)
+✓ .specify/memory/projects/{name}/   (project.md, tech-stack.md, coding-standards.md)
 ✓ specs/guide.yaml
 ✓ specs/knowledge-base.md
 
@@ -547,6 +575,45 @@ Non-negotiable behaviour across every project, regardless of tooling.
 - Metrics sink: {answer or "not decided yet — flagged for resolution"}
 ```
 
+### Step W3.7 — Generate the Shared System Memory (REQUIRED)
+
+A workspace needs the same system-tier memory a single project does. Skipping these leaves the
+pipeline unrunnable: `sk.ff` STOPs on an unpopulated `system-context.md` or `standards/tech-stack.md`;
+`sk.verify` and `pack-resolution.md` read `constitution.md`; `sk.design_sub_architecture` and
+`sk.design_sub_contracts` read and update `service-registry.md`; `sk.design_sub_datamodel` and
+`sk.story_sub_specify` read `domain-model.md`; every unit pre-flight reads `specs/knowledge-base.md`.
+Generate all of them from the workspace interview — never leave a template placeholder behind.
+
+- **`.specify/memory/system-context.md`** — the workspace as one system: purpose, primary actors, the
+  service/app inventory (one entry per project from W1, with its responsibility), external
+  dependencies, and the integration points between projects.
+- **`.specify/memory/service-registry.md`** — one entry per Backend project that exposes an API:
+  name, owning project, base path, the boundary it owns, and its consumers. Empty entries are fine
+  for a greenfield workspace; the file must exist because `sk.design_sub_contracts` appends to it.
+- **`.specify/memory/domain-model.md`** — the bounded contexts and the aggregates each one owns, as
+  far as the interview revealed them. `sk.design_sub_datamodel` maintains it from here on.
+- **`.specify/memory/architecture-decisions.md`** — the ADR index. If the workspace already keeps
+  ADRs somewhere else (a pre-existing `specs/adr/`, say), point this file at that index and record
+  `adr_dir` in `.specify/project-config.md` so `sk.adr` writes to the right place.
+- **`.specify/memory/constitution.md`** — `setup.sh` scaffolds this file as a commented skeleton; fill
+  it in place, replacing the guidance comments with real content.
+  Ask the same questions the NEW PROJECT flow asks (architecture principles, error-handling contract,
+  observability contract, non-negotiable constraints) and fill every section. "Not decided" is
+  allowed only for observability sinks, and is flagged.
+- **`.specify/memory/standards/tech-stack.md`** — the workspace-wide view: which projects exist, their
+  languages and framework versions, shared infrastructure (databases, brokers, caches, identity).
+  Per-project detail stays in `projects/{name}/tech-stack.md`; this file is the fallback
+  `.claude/skills/governance/project-resolution.md` uses when a project has no folder of its own.
+- **`.specify/memory/standards/coding-standards.md`** — the conventions that hold across every
+  project (naming, error handling, test coverage thresholds, review rules). Per-project overrides
+  stay in `projects/{name}/coding-standards.md`.
+- **`specs/knowledge-base.md`** — tier-1 knowledge base, seeded with Why This System Exists and Core
+  Actors from the interview. Non-derivable facts only.
+- **`specs/guide.yaml`** — empty system-level guide from `{TEMPLATES_DIR}/artifacts/guide-template.yaml`.
+
+Write each file only if it is absent or still a template skeleton; never overwrite a populated
+project-owned file without showing the current content and asking.
+
 ### Step W3.6 — Generate the Skill Routing Manifest
 
 Create `.specify/memory/skill-routing.md` from `templates/project/.specify/memory/skill-routing.md` if it does
@@ -565,6 +632,17 @@ Report what was created, e.g.:
 ```
 ✓ .specify/memory/projects/index.md   (router — {totalProjects} projects)
 ✓ .specify/memory/skill-routing.md     (surfaces + migrations; packs to register)
+
+Shared system memory:
+✓ .specify/memory/system-context.md
+✓ .specify/memory/service-registry.md
+✓ .specify/memory/domain-model.md
+✓ .specify/memory/architecture-decisions.md
+✓ .specify/memory/constitution.md
+✓ .specify/memory/standards/tech-stack.md
+✓ .specify/memory/standards/coding-standards.md
+✓ specs/knowledge-base.md
+✓ specs/guide.yaml
 
 For each project:
 ✓ .specify/memory/projects/{name}/project.md
@@ -601,8 +679,10 @@ What would you like to do?
   [1] Add a new project        — interview + new projects/{name}/ folder + router row
   [2] Update an existing project — pick one, regenerate its memory files
   [3] Update the router only     — fix names / types / code roots in index.md
-  [4] Update shared standards    — api / data / observability standards
+  [4] Update shared standards    — api / data / observability / tech-stack / coding standards
   [5] Update skill routing       — capability packs, surfaces, migration layouts
+  [6] Update shared system memory — system-context / service-registry / domain-model /
+                                    architecture-decisions / constitution / knowledge-base
 
 Enter a number or press Enter to cancel:
 ```
@@ -621,6 +701,9 @@ Enter a number or press Enter to cancel:
   `standards/{api,data,observability}-standards.md`, ask what changes,
   regenerate only the affected file(s). If the `standards/` folder is
   absent (workspace predates this step), generate it via Step W3.5.
+- **[6] Update shared system memory** — show the current content of the selected file(s), ask what
+  changes, regenerate only those. If any is absent (a workspace created before Step W3.7 existed),
+  generate it via Step W3.7.
 - **[5] Update skill routing** — as UPDATE mode item [9]: create the manifest via Step W3.6 if absent,
   offer to register unregistered project packs, and update Surfaces / Migrations rows. When a project is
   added via [1], also add its Surfaces or Migrations row.
@@ -638,7 +721,10 @@ memory is isolated.
 - `.specify/project-config.md`
 - `.specify/memory/system-context.md`
 - `.specify/memory/service-registry.md`
+- `.specify/memory/domain-model.md`
+- `.specify/memory/architecture-decisions.md`
 - `.specify/memory/constitution.md`
+- `.specify/memory/projects/index.md` + `projects/{name}/` (router; written in every mode)
 - `.specify/memory/standards/tech-stack.md`
 - `.specify/memory/standards/coding-standards.md`
 - `.specify/memory/standards/api-standards.md`
@@ -655,6 +741,15 @@ memory is isolated.
 - `.specify/memory/standards/api-standards.md` (shared)
 - `.specify/memory/standards/data-standards.md` (shared)
 - `.specify/memory/standards/observability-standards.md` (shared)
+- `.specify/memory/standards/tech-stack.md` (shared)
+- `.specify/memory/standards/coding-standards.md` (shared)
+- `.specify/memory/system-context.md`
+- `.specify/memory/service-registry.md`
+- `.specify/memory/domain-model.md`
+- `.specify/memory/architecture-decisions.md`
+- `.specify/memory/constitution.md`
+- `specs/knowledge-base.md`
+- `specs/guide.yaml`
 - `.specify/memory/skill-routing.md` (created if absent)
 
 ## Quality Bar
@@ -675,4 +770,6 @@ memory is isolated.
 - Each `tech-stack.md`: concrete Framework Version, never "TBD"
 - Each `coding-standards.md`: Architecture Pattern recorded with at least one enforceable boundary rule
 - Project folder slug matches the name used in the router row
-- Shared `standards/` folder present with all three files: `api-standards.md`, `data-standards.md`, `observability-standards.md` — concrete values; "not decided yet" allowed only for observability sinks and flagged
+- Shared `standards/` folder present with all five files: `api-standards.md`, `data-standards.md`, `observability-standards.md`, `tech-stack.md`, `coding-standards.md` — concrete values; "not decided yet" allowed only for observability sinks and flagged
+- Shared system memory present and populated: `system-context.md`, `service-registry.md`, `domain-model.md`, `architecture-decisions.md`, `constitution.md`, `specs/knowledge-base.md`, `specs/guide.yaml` — no template placeholders left, no `[PLACEHOLDER]` tokens
+- `constitution.md`: Architecture Principles, Error Handling Contract and Observability Contract all populated; "Not decided" only under Observability Contract tooling

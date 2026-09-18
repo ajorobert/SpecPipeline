@@ -15,7 +15,7 @@ max_packs: 6
 
 ## Always
 <!-- Loaded whenever the Scope matches. Scope is one of:
-       - a phase: design | implement | review | test | uat | perf | refactor
+       - a phase: design | plan | implement | review | test | uat | perf | refactor
        - a project type: Backend | Frontend | Mobile
        - an exact project name from .specify/memory/projects/index.md
        - {type-or-project}@{phase}, e.g. Backend@review
@@ -28,8 +28,8 @@ max_packs: 6
 
 ## By signal
 <!-- Loaded when a signal matches a story tag (exact) or the working text (whole word, case-insensitive).
-     Signals: comma-separated keywords. sk.specify offers the union of all signals as the story tag vocabulary.
-     Phases: comma-separated subset of design, implement, review, test, uat, perf, refactor.
+     Signals: comma-separated keywords. sk.story_sub_specify offers the union of all signals as the story tag vocabulary.
+     Phases: comma-separated subset of design, plan, implement, review, test, uat, perf, refactor.
      Applies to: any | Backend | Frontend | Mobile (comma-separated).
      Example row:
      | cache, caching, invalidation | .claude/skills/<caching-pack>/SKILL.md | design, implement, review | Backend | -->
@@ -37,7 +37,7 @@ max_packs: 6
 |---|---|---|---|
 
 ## Surfaces
-<!-- One row per user-facing surface (every Frontend/Mobile project). Read by sk.ui-design, sk.contracts
+<!-- One row per user-facing surface (every Frontend/Mobile project). Read by sk.design_sub_ui-design, sk.design_sub_contracts
      (consumer test-plan sections), sk.design (frontend signal detection) and sk.uat (tooling).
      Platform: browser | native. Native surfaces never use browser E2E tooling.
      Example row:

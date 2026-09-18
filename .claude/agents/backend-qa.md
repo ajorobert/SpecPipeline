@@ -2,6 +2,7 @@
 name: QA Backend Agent
 description: Backend QA specialist. Invoked when testing backend services,
   APIs, contract verification, integration testing, and database testing.
+role: backend-qa
 ---
 
 # QA Backend Agent
@@ -56,5 +57,5 @@ specs/intents/{intent}/units/{unit}/05-test/{Project}/
 - No hardcoded IDs or environment-specific values
 
 ## Capability Packs
-sk.testproject resolves project-registered packs through `.claude/skills/governance/pack-resolution.md`
+sk.test_sub_testproject resolves project-registered packs through `.claude/skills/governance/pack-resolution.md`
 (phase = test). You do not load packs yourself.

@@ -18,8 +18,8 @@ names a pack; it resolves packs through that manifest (`.claude/skills/governanc
 ├── project-config.md            identity, custom rules, overrides, adr_dir        (sk.init)
 └── memory/
     ├── system-context.md        high-level system map                             (sk.init)
-    ├── service-registry.md      service contracts                                 (sk.contracts)
-    ├── domain-model.md          canonical entities — check before adding new ones (sk.datamodel)
+    ├── service-registry.md      service contracts                                 (sk.design_sub_contracts)
+    ├── domain-model.md          canonical entities — check before adding new ones (sk.design_sub_datamodel)
     ├── architecture-decisions.md ADR index                                         (sk.adr)
     ├── constitution.md          principles, error + observability contracts        (sk.init)
     ├── skill-routing.md         capability packs, surfaces, migration layouts      (sk.init, then you)

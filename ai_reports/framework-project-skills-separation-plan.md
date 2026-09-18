@@ -1,9 +1,9 @@
 # Plan: Separate the SpecKit-SSD-SDLC framework from project skills, then deploy into tagin-platform
 
 **Date:** 2026-09-15
-**Status:** Approved plan — ready to execute in this repo (step 1), then in `tagin-platform` (steps 2–3)
+**Status:** **Step 1 complete** (this repo, `feat/skills-separation`, commit 52e1452). **Step 2 complete** (`tagin-platform`, branch `feat/skills-integration`, 2026-09-17) — executed as a **rewrite, not a copy**; see §3.1 for what actually landed and what was deliberately dropped. **Step 3 not started.**
 **Supersedes:** the proposal on branch `origin/claude/framework-project-skills-separation-j5rc2e` (2026-08-23), which put project skills in a separate marketplace repo. This plan puts them directly in the project repo.
-**Related analyses (reuse, do not redo):** `ai_reports/frontend-skills-audit.md`, `ai_reports/monorepo-adaptation-analysis.md`, `ai_reports/ai-native-sdlc-playbook-gap-analysis.md`, `.archive/**/SKILL_AUDIT.md`
+**Related analyses (reuse, do not redo):** `ai_reports/skills-archive-defects.md` (defects found while executing step 2), `ai_reports/frontend-skills-audit.md`, `ai_reports/monorepo-adaptation-analysis.md`, `ai_reports/ai-native-sdlc-playbook-gap-analysis.md`, `.archive/**/SKILL_AUDIT.md`
 
 ---
 
@@ -162,6 +162,54 @@ Target project for steps 2 and 3: **`tagin-platform`** (branch `dev`). It has no
 - Customise to tagIN (this is the whole point of project ownership): align pack text with the real repo — `BuildingBlocks.*` naming, module 4-project slice, `specs/adr/00NN-*` references (ADR-0019 arch tests, ADR-0026 REST guidelines), `docs/architecture` as human-primary per `memory/knowledge-three-layer-model.md`, `@tagin/auth`/`@tagin/ui-kit` packages for the frontends. Reconcile the drift items `SKILL_AUDIT.md` flagged (`react-admin-patterns` says React+Vite+Tanstack; the console is Next.js + NextAuth per `review-console-pr`).
 - Optional but recommended: move `~/.claude/commands/review-*-pr.md`, `review-api.md`, `review-result-publish.md` and `tagin-platform/.claude/commands/self-review-*.md` into `tagin-platform/.claude/skills/<name>/SKILL.md` so all project-specific AI assets live in one place under git; fix the known stale references there (`docs/reference_prompts/tagin-monorepo-structure.md` no longer exists; `review-portal-pr` name).
 - Do not touch `tagin-platform/.claude/settings.json` in this step beyond adding `Skill(...)` allows for the packs if needed.
+
+### 3.1 Step 2 as executed (2026-09-17) — supersedes the bullets above
+
+The packs were **rewritten against the target repo, not copied**. tagin-platform already had ~4,000 lines in
+`docs/architecture/01-building-blocks/` covering the same 20 topics more accurately, 25 ADRs (three of them
+self-declared normative), and `specs/adr/adr-index.md` acting as a signal→document router. Copying the packs in
+would have added a third, less accurate voice contradicting an explicitly-stated precedence rule. So each pack
+became a thin ~40–80 line skill: status line → normative ADRs → **one** `docs/architecture` pointer opened on
+demand → reference implementation → do / never / finish checks. No rule is stated twice.
+
+**Landed:** 20 skills in `tagin-platform/.claude/skills/`, plus `ADR-0027` (the skill layer and its precedence
+rule: ADR → skill → docs/architecture → code), a registry at `.claude/skills/README.md`, a fourth row in that
+repo's knowledge map, a loading rule in `adr-index.md`, and `Skill()` allows in `settings.json`.
+
+**Reshaped, because the original subject does not exist there:**
+
+| Pack | Became | Why |
+|---|---|---|
+| `orchestration-patterns` | `messaging-and-orchestration` | Hangfire and Elsa are decided (ADR-0009) but unwired — both config classes are empty and neither package is referenced. Wolverine + outbox is the real story. |
+| `file-pipeline-patterns` | `media-consumption` | Object storage is being integrated as a service under the Media module; business modules consume Media. A general skill teaching SeaweedFS would do more harm than good. |
+| `caching-patterns` | `caching-status` | `IQueryCache` ships with no implementation and `QueryCachingBehavior` is a no-op. The skill's job is to stop code being generated against a cache that isn't there. |
+
+**Not landed:** `react-admin-patterns` (factually wrong — see `ai_reports/skills-archive-defects.md`) and `search-patterns` (no
+Elasticsearch client). `design-styles.md`, `memory/auth_contract.md` and `memory/observability-stack.md` were
+also skipped. Nothing was parked in the project repo — skipped packs stay here and get re-imported when the
+technology actually lands.
+
+**Plan bullets deliberately dropped:**
+
+- **No `paths:` frontmatter.** It is not a confirmed Claude Code SKILL.md field; frontmatter is `name` +
+  `description` only, with an explicit "Use when …" trigger (the packs' `when_to_load` / `co_loads_with` /
+  `references` are inert outside the `sk.*` router and were removed).
+- **No `.specify/memory/skill-routing.md`.** The framework is not installed there yet. `.claude/skills/README.md`
+  is the single registry; step 3 should **generate** the routing manifest from it rather than create a second
+  router that can drift.
+- **No memory files copied.** `auth_contract.md` is half-filled and superseded by that repo's ADR-0010/0021/0023;
+  `observability-stack.md` describes wiring for a stack that is not deployed.
+- **Review-asset consolidation not done** — explicitly deferred by the repo owner.
+- **The comment-marker grammar was stripped entirely** (`// AUTH:`, `// OUTBOX:`, `// CACHE-TAG:`, …). Zero
+  occurrences existed in that codebase; adopting a repo-wide convention through a skill import, with no ADR and
+  no CI grep, was rejected.
+
+**Found while executing, in the target repo (not a framework issue):** ADR-0019 rule 20 `[scope-declared]` has no
+test implementation and 33 of 74 contracts carry no scope marker — reported to the repo owner.
+
+**For step 3:** `skill-routing.md` should be generated from `.claude/skills/README.md`; `adr_dir` is
+`specs/adr/`; and `setup.sh` must leave `.claude/skills/` and `.claude/commands/` untouched — the skills there
+are rewrites owned by the project, not copies of these packs.
 
 ---
 

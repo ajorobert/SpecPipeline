@@ -26,21 +26,23 @@ fi
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "${HOOK_DIR}/../.." && pwd)}"
 LAST_SKILL_FILE="${PROJECT_ROOT}/.claude/.last-skill"
 
-# Conditional skills — defer to Stop hook; write .last-skill and exit
+# Record the role this skill runs as, so validate-path.sh evaluates write_scope.deny against the
+# ACTIVE SKILL's role and not the session role. Cleared by post-response.sh at the end of the turn.
+sk_set_active_role "$PROJECT_ROOT" "$(sk_skill_role "$PROJECT_ROOT" "$SKILL_NAME")"
+
+# Conditional skills — the status they produce depends on a PASS/FAIL verdict the skill emits as
+# `SK_RESULT:` on its last line. Defer to the Stop hook; see governance/status-model.md.
 case "$SKILL_NAME" in
-  sk.test|sk.review|sk.verify)
+  sk.test|sk.review|sk.verify|sk.implement|sk.ship|sk.security-audit)
     echo "$SKILL_NAME" > "$LAST_SKILL_FILE" 2>/dev/null || true
     exit 0
     ;;
 esac
 
-# Unconditional skills — map to status and update the story now
+# Unconditional skills — the transition is known at invocation time.
 case "$SKILL_NAME" in
-  sk.specify)   NEW_STATUS="draft"   ;;
-  sk.plan)      NEW_STATUS="ready"   ;;
-  sk.implement) NEW_STATUS="testing" ;;
-  sk.ship)      NEW_STATUS="shipped" ;;
-  *)            exit 0               ;;
+  sk.story_sub_specify) NEW_STATUS="draft" ;;
+  *)                    exit 0             ;;
 esac
 
 STORY_FILE=$(sk_find_story_file "$PROJECT_ROOT")

@@ -9,7 +9,7 @@ updated: {date}
 # Impact Analysis: {unit-name}
 
 Per-project blast radius of this unit's design. Source of truth for the impacted
-projects is `unit-brief.md` (Impacted Projects table, written by sk.architect-probe);
+projects is `unit-brief.md` (Impacted Projects table, written by sk.story_sub_architect-probe);
 this document records WHAT the design changes in each of those projects.
 
 ## Impacted Projects

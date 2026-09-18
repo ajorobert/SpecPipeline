@@ -3,7 +3,7 @@ Orchestrates the testing phase for a unit, producing one test folder per impacte
 Role: lead (orchestrator) | Level: unit
 
 This skill orchestrates the per-project test worker. It resolves the impacted projects from the
-unit's Impacted Projects table, invokes `sk.testproject` once per project (each consuming that
+unit's Impacted Projects table, invokes `sk.test_sub_testproject` once per project (each consuming that
 project's design slice plus the unit's `02-design/contracts/`), and gates the result before
 reporting. Each sub-skill runs in its own isolated context. Orchestrators do not resolve capability
 packs — each worker resolves its own (phase = test).
@@ -49,7 +49,7 @@ Determine mode based on arguments and existing files. First match wins.
 - Run Phase 2 (Review Gate) and report.
 
 **REFINE** (`--refine`, OR a project's `05-test/{Project}/` reports failing tests)
-- For each in-scope project whose last run reported failures: invoke `sk.testproject` in REFINE mode
+- For each in-scope project whose last run reported failures: invoke `sk.test_sub_testproject` in REFINE mode
   (regenerate/repair only the failing tests; do not discard passing ones).
 - Run Phase 2 (Review Gate) and report.
 
@@ -69,7 +69,7 @@ logged with a reason (`no implementation — run sk.implement --projects {key}`)
 ### Phase 1 — Per-Project Testing
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
-Invoke skill: `sk.testproject`
+Invoke skill: `sk.test_sub_testproject`
 - Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`
   (backend for Backend, frontend for Frontend, mobile for Mobile), and the execution mode
   (NORMAL or REFINE).
@@ -134,7 +134,7 @@ Next step: /sk.uat (user-facing surfaces) or /sk.security-audit
 - The impacted-project list is sourced from `unit-brief.md`; every impacted project is either tested
   or explicitly logged as skipped with a reason.
 - `--projects` resolution is logged; `--role`/type conflicts STOP rather than guess.
-- Each `sk.testproject` invocation is self-contained — no state leaks between projects.
+- Each `sk.test_sub_testproject` invocation is self-contained — no state leaks between projects.
 - Tests realize `02-design/contracts/` and the unit's acceptance criteria — the orchestrator does not
   redesign contracts or invent endpoints.
 - Existing tests are never discarded on REFINE; only failing cases are repaired.

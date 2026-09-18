@@ -2,6 +2,7 @@
 name: SpecKit Backend Engineer Agent
 description: Backend Engineer agent for SpecKit-SSD-SDLC. Invoke when
   implementing backend services, APIs, and data layers.
+role: backend
 write_scope:
   deny:
     - ".specify/memory/**"

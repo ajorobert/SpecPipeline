@@ -2,14 +2,16 @@
 Runs the complete story capture and clarification pipeline.
 Role: po (orchestrator) | Level: story
 
-This skill orchestrates `sk.specify`, `sk.clarify`, and `sk.architect-probe` in sequence, running completeness checks and looping clarification as needed for both business and technical aspects.
+This skill orchestrates `sk.story_sub_specify`, `sk.story_sub_clarify`, and `sk.story_sub_architect-probe` in sequence, running completeness checks and looping clarification as needed for both business and technical aspects.
 
 ## Mode Detection
 Evaluate in this order:
 **TARGETED**
-- `sk.story --specify` → run Phase 1 only (standalone intent/unit/story capture)
+- `sk.story --specify` → run Phase 1 only (standalone intent/unit/story capture).
+  The Impacted Projects table is NOT written in this mode. Downstream phases will STOP until
+  `sk.story --probe` (or a full `sk.story` run) has filled it — say so in the completion report.
 - `sk.story --clarify` → run Phase 3 only (standalone business ambiguity resolution)
-- `sk.story --probe` → run Phase 5 only (standalone technical constraints resolution)
+- `sk.story --probe` → run Phase 5 only (technical constraints + Impacted Projects table)
 
 **FULL PIPELINE**
 - `sk.story` (no flag) → [FEATURE MODE]
@@ -22,7 +24,7 @@ Evaluate in this order:
 ## Pre-flight
 1. Read `session.yaml`
 2. Load `.specify/memory/system-context.md`, `.specify/memory/architecture-decisions.md`, `.specify/memory/domain-model.md`
-3. Load `.specify/memory/projects/index.md` as the **project router** (available projects + their types). It is used by `sk.architect-probe` to record the **impacted projects** into `unit-brief.md`. The story itself is NOT split per project.
+3. Load `.specify/memory/projects/index.md` as the **project router** (available projects + their types). It is used by `sk.story_sub_architect-probe` to record the **impacted projects** into `unit-brief.md`. The story itself is NOT split per project.
 
 ## Story Layout
 A unit has exactly one story, in the fixed phase folder `01-story/` (`.claude/skills/governance/phase-layout.md`).
@@ -52,9 +54,9 @@ Runs before Phase 1 when `--jira {Jira_Id}` is supplied. Skipped entirely in [MA
 ## Orchestration
 
 ### Phase 1 — Story Capture
-Invoke sub-skill: `sk.story/sk.specify` (or `--bug` if in bug mode)
-- In [JIRA MODE]: pass the Phase 0 seed data to `sk.specify`. It pre-fills intent/unit/story fields from Jira and only asks for fields Jira left genuinely empty — it does not re-run the full interview.
-- In [MANUAL MODE]: `sk.specify` runs the interactive interview as normal.
+Invoke sub-skill: `sk.story_sub_specify` (or `--bug` if in bug mode)
+- In [JIRA MODE]: pass the Phase 0 seed data to `sk.story_sub_specify`. It pre-fills intent/unit/story fields from Jira and only asks for fields Jira left genuinely empty — it does not re-run the full interview.
+- In [MANUAL MODE]: `sk.story_sub_specify` runs the interactive interview as normal.
 - Wait for specify phase to complete and write the story folder (`story.md`, `requirement.md`, `acceptance-criteria.md`)
 - Read back `active_unit_id` / `active_story_id` from `session.yaml`
 
@@ -81,7 +83,7 @@ Gather all items marked ⚠️ Partial or ❌ Missing as seeds for Phase 3.
 If all items are ✅ Clear, skip Phase 3 and go to Phase 4.
 
 ### Phase 3 — Iterative Business Clarification
-Loop `sk.story/sk.clarify` up to 3 times to resolve the gaps identified in Phase 2.
+Loop `sk.story_sub_clarify` up to 3 times to resolve the gaps identified in Phase 2.
 
 **Round 1:**
 - Present the ⚠️/❌ items to the clarify sub-skill.
@@ -108,10 +110,21 @@ Score each item below as ✅ Clear, ⚠️ Partial, or ❌ Missing.
   - [ ] Design references (Figma/assets) documented if frontend.
 
 Gather all items marked ⚠️ Partial or ❌ Missing as seeds for Phase 5.
-If all items are ✅ Clear, skip Phase 5 and go to Phase 6.
+Phase 5 runs either way — see below. A clean technical assessment shortens it, it never skips it.
 
-### Phase 5 — Iterative Technical Clarification
-Loop `sk.story/sk.architect-probe` up to 2 times to resolve gaps from Phase 4.
+### Phase 5 — Project Impact (ALWAYS) + Iterative Technical Clarification
+`sk.story_sub_architect-probe` is the only writer of the `unit-brief.md` → **Impacted Projects**
+table, and every downstream phase (`02-design/projects/`, `03-plan/{Project}/`,
+`04-implementation/{Project}/`, `05-test/{Project}/`) is driven by that table. The unit pre-flight of
+sk.design / sk.plan / sk.implement / sk.test STOPs when it is empty. **This phase therefore always
+runs**, in one of two modes:
+
+- **All Phase 4 items ✅ Clear** → invoke `sk.story_sub_architect-probe --impact-only`.
+  It performs the Impact Analysis and writes the Impacted Projects table, and asks no questions.
+- **Any ⚠️ Partial or ❌ Missing** → invoke `sk.story_sub_architect-probe` in full, looping up to 2
+  times. The full mode does the same Impact Analysis plus the question loop.
+
+Loop `sk.story_sub_architect-probe` up to 2 times to resolve gaps from Phase 4.
 
 **Round 1:**
 - Present the ⚠️/❌ items to the architect-probe sub-skill.
@@ -140,7 +153,7 @@ Once the story is `ready`, finalize the **single** story folder. Do NOT split pe
 - `acceptance-criteria.md` — the testable acceptance criteria.
 - `jira.md` — **optional**, written only in [JIRA MODE]: records the source Jira ID `{Jira_Id}`, the issue summary, and a link back to it for traceability. In [MANUAL MODE] this file is not created.
 
-**Impacted projects** stay recorded in `unit-brief.md` (written by `sk.architect-probe`) — they are a unit-level fact, not a reason to split the story.
+**Impacted projects** stay recorded in `unit-brief.md` (written by `sk.story_sub_architect-probe`) — they are a unit-level fact, not a reason to split the story.
 
 **Traceability chain to preserve in `story.md` frontmatter / body:**
 `Intent → Unit → Specification → Clarification → Architecture Probe → Story` (downstream stages: Design → Plan → Implementation → Test → UAT → Security Audit).
@@ -168,7 +181,9 @@ Next step: /sk.design (or /sk.ff if continuing the pipeline)
 - ✔ Unit resolved
 - ✔ Specification completed (story.md, requirement.md, acceptance-criteria.md written)
 - ✔ Clarifications completed
-- ✔ Architecture impact checked (impacted projects recorded in unit-brief.md)
+- ✔ Architecture impact checked, and `unit-brief.md` → Impacted Projects has **at least one row**
+      with a Project, Type (Backend | Frontend | Mobile) and Code Root. An empty table is a FAIL:
+      re-run Phase 5 before reporting complete.
 - ✔ Project router loaded
 - ✔ Single story folder `01-story/` (NOT split per project)
 - ✔ checkpoint_mode set in story.md frontmatter (autopilot | confirm | validate)

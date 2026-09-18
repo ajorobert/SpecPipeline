@@ -53,7 +53,7 @@ Hard blocks (same as sk.ship, but scoped to hotfix):
 - Targeted tests must pass
 - Blast radius services must be identified and noted in PR description
 
-Skip: sk.verify full suite, sk.uat, sk.analyze (not applicable for P0 speed)
+Skip: sk.verify full suite, sk.uat, sk.plan_sub_analyze (not applicable for P0 speed)
 Record skip rationale in PR description: "P0 hotfix — full verify deferred to post-incident review"
 
 Create PR:
