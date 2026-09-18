@@ -25,7 +25,7 @@ keep the two in sync.
 
 ## Request / Response Shapes
 <!-- Per endpoint: request body, success response, and the documented error responses
-     (ErrorOr → HTTP mapping). Reference the schema names from api-spec.json. -->
+     (the project's error-result → HTTP mapping, per api-standards.md). Reference the schema names from api-spec.json. -->
 
 ## Events
 <!-- Published and consumed events for this unit (mirror contracts/README.md → Events sections).

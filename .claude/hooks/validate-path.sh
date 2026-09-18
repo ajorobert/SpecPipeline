@@ -2,7 +2,11 @@
 # PreToolUse hook — validates that Edit/Write targets stay within the project root
 # Exit 2 = block; Exit 0 = allow
 
-set -euo pipefail
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib-story.sh
+source "${HOOK_DIR}/lib-story.sh"
 
 INPUT=$(cat)
 # Extract file_path — prefer jq, fall back to sed (jq may be absent on Windows bash)
@@ -55,16 +59,27 @@ if [[ "$FILE_PATH" == /* ]]; then
   fi
 fi
 
-# Per-agent write_scope enforcement — read active role from session.yaml,
-# load the matching agent file, and deny globs declared under write_scope.deny.
-SESSION_YAML="${PROJECT_ROOT}/.claude/session.yaml"
-if [[ -f "$SESSION_YAML" ]]; then
-  ROLE=$(grep -E '^role:' "$SESSION_YAML" \
-    | sed 's/^role:[[:space:]]*//' \
-    | sed 's/[[:space:]]*#.*//' \
-    | tr -d '"' \
-    | xargs 2>/dev/null || true)
+# Per-agent write_scope enforcement.
+#
+# Role resolution order (see .claude/skills/governance/status-model.md):
+#   1. .claude/.active-skill-role — the role of the skill currently running, written by
+#      post-skill.sh from that skill's subagent_type. This is authoritative: an orchestrator
+#      delegates phases to other roles, and each delegated write must be judged by the role
+#      that owns the phase, not by whoever started the session.
+#   2. session.yaml `role` — the fallback for ad-hoc work outside any skill.
+ACTIVE_ROLE_FILE="${PROJECT_ROOT}/.claude/.active-skill-role"
+ROLE=""
+ROLE_SOURCE=""
+if [[ -f "$ACTIVE_ROLE_FILE" ]]; then
+  ROLE=$(xargs < "$ACTIVE_ROLE_FILE" 2>/dev/null || true)
+  [[ -n "$ROLE" ]] && ROLE_SOURCE="active skill"
+fi
+if [[ -z "$ROLE" ]]; then
+  ROLE=$(sk_session_value "$PROJECT_ROOT" role)
+  [[ -n "$ROLE" ]] && ROLE_SOURCE="session.yaml"
+fi
 
+if true; then
   if [[ -n "$ROLE" ]] && [[ "$ROLE" != "null" ]]; then
     case "$ROLE" in
       backend)  AGENT_FILE="backend-engineer.md"  ;;
@@ -103,7 +118,7 @@ if [[ -f "$SESSION_YAML" ]]; then
           [[ -z "$GLOB" ]] && continue
           # shellcheck disable=SC2053
           if [[ "$TARGET" == $GLOB ]]; then
-            echo "Blocked: role \"${ROLE}\" may not write to \"${TARGET}\"" >&2
+            echo "Blocked: role \"${ROLE}\" (from ${ROLE_SOURCE}) may not write to \"${TARGET}\"" >&2
             echo "  matched deny pattern: ${GLOB}" >&2
             echo "  see: .claude/agents/${AGENT_FILE} (write_scope.deny)" >&2
             exit 2

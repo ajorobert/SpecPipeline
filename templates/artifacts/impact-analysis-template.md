@@ -3,14 +3,13 @@ unit: {unit-id}
 intent: {intent-id}
 status: draft | approved
 created: {date}
-updated: {date}Replace the existing project name with **Market Place** in the `impact-analysis-template`.
-
+updated: {date}
 ---
 
 # Impact Analysis: {unit-name}
 
 Per-project blast radius of this unit's design. Source of truth for the impacted
-projects is `unit-brief.md` (Impacted Projects table, written by sk.architect-probe);
+projects is `unit-brief.md` (Impacted Projects table, written by sk.story_sub_architect-probe);
 this document records WHAT the design changes in each of those projects.
 
 ## Impacted Projects
@@ -19,20 +18,20 @@ this document records WHAT the design changes in each of those projects.
      Format:
      | Project | Type | Code Root | Change Type | What Changes |
      |---------|------|-----------|-------------|--------------|
-     | MarketPlace.API | Backend | src/backend/Lucent.API | modified | Token validation, IUserContext, session endpoints |
-     | MarketPlace.Customer.Web | Frontend | src/frontend/Lucent.Customer.Web | modified | Login UI + OIDC client |
+     | {BackendProject} | Backend | {backend-code-root} | modified | Token validation, user context, session endpoints |
+     | {WebProject} | Frontend | {web-code-root} | modified | Login UI + identity-provider client |
      REQUIRED: every project from unit-brief.md appears exactly once. -->
 
 ## Cross-Project Contracts
 <!-- Contracts that cross a project boundary (API, event, shared schema).
      For each: producer project → consumer project(s), and the api-contract.md / api-spec.json reference.
      Example:
-     - MarketPlace.API exposes POST /api/v1/auth/session → consumed by Customer.Web, Admin.Web, Mobile -->
+     - {BackendProject} exposes POST /api/v1/auth/session → consumed by {WebProject}, {AdminProject}, {MobileProject} -->
 
 ## Sequencing & Dependencies
 <!-- Build/deploy order implied by the design.
      Example:
-     - Backend session endpoints must ship before any frontend OIDC client can integrate. -->
+     - Backend session endpoints must ship before any frontend identity client can integrate. -->
 
 ## Risk & Rollout Notes
 <!-- Blast-radius risks, breaking changes, feature-flag or migration coupling.

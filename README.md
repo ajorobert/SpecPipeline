@@ -33,16 +33,37 @@ Most AI failures occur because the model lacks context on *why* a decision was m
 SpecKit is added as a **git subtree** so you can stay in sync with our upstream framework improvements.
 
 ```bash
-git subtree add --prefix=.speckit https://github.com/ajorobert/SpecKit-SSD-SDLC master --squash
+git subtree add --prefix=.speckit https://github.com/ajorobert/SpecKit-SSD-SDLC main --squash
 bash .speckit/setup.sh
-/sk.init    # Runs interactive interview to build your .specify/memory files
+/sk.init    # Runs interactive interview to build your .specify/memory files (incl. skill-routing.md)
 ```
+
+`main` is the release branch (tagged by version, see `VERSION`); `dev` is the integration branch.
+
+**Add your stack knowledge (capability packs).** The framework is process only — it ships no stack or
+architecture opinion. Copy the packs you want from `.speckit/skills_archive/` (or write your own) into
+`.claude/skills/<pack>/`, then register them in `.specify/memory/skill-routing.md`:
+
+```bash
+cp -r .speckit/skills_archive/backend/backend-architecture .claude/skills/
+# then add a row to .specify/memory/skill-routing.md  (see .speckit/skills_archive/skill-routing.example.md)
+```
+
+### What `setup.sh` touches
+| Path | Behaviour |
+|---|---|
+| `.claude/skills/sk.*`, `governance/`, the 5 memory-pointer skills, framework agents, `.claude/hooks/*.sh` | Synced (framework-owned; `sk.*` is a reserved namespace) |
+| `.claude/.speckit-manifest` | Written (version + owned paths) |
+| `.claude/settings.json` | Merged — SpecKit hooks added if absent, deny rules unioned, your `allow` list untouched |
+| `CLAUDE.md`, `GEMINI.md` | Only the region between the `SPECKIT-SSD-SDLC MANAGED` markers is replaced |
+| `.specify/`, `specs/`, `history/` | Missing files created; existing files never overwritten |
+| Everything else under `.claude/` (your packs, `commands/`, `settings.local.json`, …) | Never read, written, or listed |
 
 ### 2. Enter a Session
 Every member of the team adopts a persona to unlock specialized commands:
 
 ```bash
-/sk.session start --role {po | architect | lead | backend-engineer | frontend-engineer | security}
+/sk.session start --role {po | architect | lead | backend | frontend | backend-qa | frontend-qa | security}
 ```
 
 ### 3. Set Your Focus
@@ -75,7 +96,7 @@ Your goal is to ensure technical consistency across services.
 
 ### 💻 Engineer: From Plan to Code
 Your goal is high-quality implementation with zero technical debt.
-1. **Plan**: `/sk.plan` — Generate a story-level technical implementation plan.
+1. **Plan**: `/sk.plan` — Generate one technical implementation plan per impacted project.
 2. **Implement**: `/sk.implement` — Follow the plan's checklist to write code and tests.
 3. **Review**: `/sk.review` — Perform a spec-aware self-review before submitting.
 
@@ -116,7 +137,7 @@ You use `/sk.session focus` to lock your agent onto a specific level. SpecKit sa
 
 ```bash
 /sk.session focus --intent user-auth               # Focus high-level for /sk.impact
-/sk.session focus --unit auth-api                  # Shift focus downward for /sk.architecture
+/sk.session focus --unit auth-api                  # Shift focus downward for /sk.design_sub_architecture
 /sk.session focus --story story-AUTH-API-001       # Shift focus to the exact ticket for /sk.plan and /sk.implement
 ```
 
@@ -178,10 +199,9 @@ Commands marked `[optional]` are skippable. Commands marked `[conditional]` are 
 ── REVIEW & QUALITY ─────────────────────────────────────────────────────────────
 [/sk.review]             ← [recommended] spec-aware code review: boundaries + contracts + ADRs (backend/frontend)
 /sk.test                 ← generate & run contract + integration tests (backend-qa/frontend-qa)
-[/sk.uat]                ← [conditional: frontend work] user acceptance testing by platform (frontend-qa)
-                           --platform web   → Playwright/Cypress (Next.js)
-                           --platform mobile → Maestro/Detox (React Native) — no browser tooling
-                           --platform admin  → Playwright/Cypress (React Admin)
+[/sk.uat]                ← [conditional: frontend work] user acceptance testing per surface (frontend-qa)
+                           --platform {surface} → tooling from skill-routing.md ## Surfaces
+                           native surfaces never use browser tooling
 /sk.security-audit       ← OWASP Top 10 + STRIDE audit, secrets scan (security)
 /sk.verify               ← PASS/FAIL across all quality gates — must pass before ship (architect/lead)
                            Gate 1: Spec (BCR/Stories) | Gate 2: Architecture (Entities/ADRs)
@@ -228,7 +248,7 @@ Commands marked `[optional]` are skippable. Commands marked `[conditional]` are 
 ```text
 /sk.verify           ← PASS/FAIL quality gate across all gates [run after test, before ship] (architect/lead)
 /sk.test             ← Generate & run contract + integration tests (QA agents)
-/sk.uat              ← Acceptance testing by platform: --platform web|mobile|admin (frontend-qa)
+/sk.uat              ← Acceptance testing per surface: --platform {surface} (frontend-qa)
 /sk.security-audit   ← OWASP Top 10 + STRIDE audit, secrets scan (security)
 /sk.investigate      ← Spec-aware debugging (backend/frontend)
 ```
@@ -270,6 +290,7 @@ A workspace router plus isolated per-project memory and shared standards.
 
 ```text
 .specify/memory/
+├── skill-routing.md              # capability packs, surfaces, migration layouts (project-owned)
 ├── projects/
 │   ├── index.md                  # ROUTER (always loaded): project | type | code-root
 │   ├── Backend.API/
@@ -287,6 +308,18 @@ A workspace router plus isolated per-project memory and shared standards.
 - **`projects/index.md`** is the always-loaded router. Every command reads it first to map a project name to its `code-root` and memory folder.
 - Each project owns an isolated `project.md` / `tech-stack.md` / `coding-standards.md` trio so context stays scoped — a backend task never loads mobile conventions.
 - **`standards/*.md`** are inherited by all projects (API, data, observability).
+- **`skill-routing.md`** registers the project's capability packs (`## Always`, `## By signal`), its user-facing
+  surfaces (framework, platform, E2E tooling) and migration layouts. sk.* skills read it through
+  `.claude/skills/governance/pack-resolution.md`; the framework itself names no pack.
+
+### Ownership tiers
+| Tier | Owner | Paths |
+|---|---|---|
+| Framework | SpecKit (synced by `setup.sh`) | `.claude/skills/sk.*`, `.claude/skills/governance`, memory-pointer skills, framework agents, `.claude/hooks/*.sh` |
+| Project skills | Your team | every other `.claude/skills/<pack>/`, `.claude/commands/` — seeded from `skills_archive/` |
+| Project memory | Your team | `.specify/**`, `specs/**`, `history/**`, `CLAUDE.md` outside the managed block, `.claude/settings.json` |
+
+See [docs/memory-guide.md](docs/memory-guide.md).
 
 ### Specs Layer — `specs/intents/` (the 7-phase unit lifecycle)
 
@@ -360,7 +393,7 @@ specs/intents/001-authentication/
 | `06-uat` | `/sk.uat` | – | `acceptance-result.md`, `user-flow-test.md`, `signoff.md` |
 | `07-security-audit` | `/sk.security-audit` | – | `owasp-report.md`, `stride-review.md`, `dependency-scan.md`, `security-signoff.md` |
 
-> **`02-design/contracts/`:** `api-spec.json` defines the API boundary; the accompanying `test-plan.md` has per-consumer sections (`### web`, `### mobile`, `### admin`) so a contract change surfaces exactly which frontend is affected.
+> **`02-design/contracts/`:** `api-spec.json` defines the API boundary; the accompanying `test-plan.md` has one consumer section per impacted Frontend/Mobile project (`### {Project}`) so a contract change surfaces exactly which surface is affected.
 
 ### Knowledge & History (`specs/` and `history/`)
 Ensures the framework remembers *why* decisions were made, and *where* to look.
@@ -394,9 +427,23 @@ No. SpecKit is platform-neutral. However, [gstack](https://github.com/garrytan/g
 
 Since SpecKit is added as a git subtree, upgrades are simple:
 ```bash
-git subtree pull --prefix=.speckit https://github.com/ajorobert/SpecKit-SSD-SDLC master --squash
+git subtree pull --prefix=.speckit https://github.com/ajorobert/SpecKit-SSD-SDLC main --squash
 bash .speckit/setup.sh
 ```
+Upgrades only replace framework-owned paths. Your capability packs, `.claude/commands/`, the `allow` list in
+`.claude/settings.json`, `settings.local.json`, everything in `.specify/`, `specs/`, `history/`, and the parts of
+`CLAUDE.md` / `GEMINI.md` outside the managed markers survive untouched. Re-running `setup.sh` with no upstream
+change produces no diff.
+
+</details>
+
+<details>
+<summary><strong>❓ FAQ: Where did the stack skills go?</strong></summary>
+
+Stack and pattern knowledge (for example backend architecture, data access, web and mobile patterns, DDD design
+principles, accessibility standards) now lives in `skills_archive/` as copyable starting points. Projects own
+the packs they adopt and register them in `.specify/memory/skill-routing.md`. See
+[skills_archive/README.md](skills_archive/README.md).
 
 </details>
 
@@ -419,16 +466,16 @@ bash .speckit/setup.sh
 <summary><strong>📈 Adaptive Checkpoints & Quality Gates</strong></summary>
 
 ### Checkpoint Modes
-Stories are classified by `sk.story` to govern execution speed:
+Stories are classified by `sk.story` to govern execution speed. The value lives in `01-story/story.md` frontmatter (`checkpoint_mode`) — the single source every gate and hook reads:
 - `autopilot`: No contract changes. `/sk.ff` runs end-to-end.
 - `confirm`: New feature. Pause pending approval after `/sk.plan`.
-- `validate`: Breaking changes/new service. Pauses after `/sk.architecture` **and** `/sk.plan`.
+- `validate`: Breaking changes/new service. Pauses after `/sk.design_sub_architecture` **and** `/sk.plan`.
 
 ### The 6 Quality Gates (`/sk.verify`)
 1. **Spec** - Acceptance criteria written, no missing dependencies.
 2. **Architecture** - Stories covered, entities added, cross-service ADRs defined.
 3. **Plan** - Contracts defined, checkpoint approvals cleared.
-4. **Implementation** - All tasks checked off `[X]`, no standard violations.
+4. **Implementation** - Every `03-plan/{Project}/tasks.md` task done in `progress.md`, no standard violations.
 5. **Test** - Contract & E2E tests passing.
 6. **Security** - No CRITICAL findings, secrets scan clean.
 
@@ -452,15 +499,15 @@ Stories are classified by `sk.story` to govern execution speed:
 SpecKit is tuned for Anthropic's prefix-based prompt cache (5-min TTL, up to 4 `cache_control` breakpoints). Skills layer injected files by volatility so common context stays in the cacheable prefix while story- and iteration-specific content goes in the tail.
 
 ### Tier Model
-- **Tier A — Framework invariant**: governance + standards + system-context + ADRs + design-principles. Changes weekly.
-- **Tier B — Domain/unit invariant**: domain-model, service-registry, unit knowledge-base, architecture.md, api-spec.json, tech-stack packs. Stable across a dev's iteration loop.
+- **Tier A — Framework invariant**: governance + standards + system-context + ADRs + design-phase packs. Changes weekly.
+- **Tier B — Domain/unit invariant**: domain-model, service-registry, unit knowledge-base, architecture.md, api-spec.json, capability packs. Stable across a dev's iteration loop.
 - **Tier C — Story invariant**: `01-story/story.md` + `03-plan/{Project}/plan.md`. Stable across 3–10 dev iterations on the same story.
 - **Tier D — Iteration tail**: diff, test output, review notes, user input, session-derived scalars (`active_story_id`, `active_unit_id`, `role`).
 
 "Dynamic" is relative to the caller's loop: `01-story/story.md` is Tier D for a PO hopping stories but Tier C for a dev grinding one story.
 
 ### Canonical inject_files order (all sk.* skills)
-`governance rules → standards → system-context → ADRs → domain-model → service-registry → design-principles → tech-pack` → (cache boundary) → tail wrapper containing story/plan/review-notes/user input.
+`governance rules → standards → system-context → ADRs → domain-model → service-registry → design-phase pack → capability packs (manifest order)` → (cache boundary) → tail wrapper containing story/plan/review-notes/user input.
 
 `session.yaml` is **not** in any skill's `inject_files` (except `sk.session` itself). Skills `Read` it at runtime so its contents land in Tier D naturally.
 
@@ -515,7 +562,7 @@ The complete directory layout a SpecKit workspace produces — the `/sk.init` me
 │
 └── specs/
     │
-    └── intents/             # Automatically resolve sk.intent and sk.unit by invoking the sk.specify subcommands within sk.story.
+    └── intents/             # Automatically resolve sk.intent and sk.unit by invoking the sk.story_sub_specify subcommands within sk.story.
         │
         └── 001-authentication/
             │

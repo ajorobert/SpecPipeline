@@ -4,21 +4,23 @@ Role: architect | Level: system | domain | unit
 
 ## Input Artifacts
 
+`ADR_DIR` = `adr_dir:` from `.specify/project-config.md` → default `history/adr`.
+
 ### If --tier system
 specs/knowledge-base.md (if exists — REFINE MODE)
 .specify/memory/system-context.md
-history/adr/ (all ADRs — extract system-level decisions)
+{ADR_DIR}/ (all ADRs — extract system-level decisions)
 
 ### If --tier domain
 specs/domains/{domain}/knowledge-base.md (if exists — REFINE MODE)
-history/adr/ (ADRs tagged to this domain)
+{ADR_DIR}/ (ADRs tagged to this domain)
 specs/intents/ (scan for units belonging to this domain)
 
 ### If --tier unit
 specs/intents/{intent}/units/{unit}/knowledge-base.md
   (if exists — REFINE MODE)
-specs/intents/{intent}/units/{unit}/architecture.md
-history/adr/ (ADRs tagged to this unit)
+specs/intents/{intent}/units/{unit}/02-design/architecture.md
+{ADR_DIR}/ (ADRs tagged to this unit)
 
 ## Steps
 
@@ -55,7 +57,7 @@ history/adr/ (ADRs tagged to this unit)
    NULL → ask user for unit
 2. [REFINE MODE] if unit knowledge-base.md exists
    [CREATE MODE] if not
-3. Read architecture.md for this unit
+3. Read 02-design/architecture.md for this unit
 4. Scan ADRs tagged to this unit
 5. Interview user for non-derivable content:
    - What decisions look arbitrary but aren't?

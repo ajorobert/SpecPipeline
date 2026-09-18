@@ -174,3 +174,15 @@ approved and let a human run the cleanup.
 **Original path:** .claude/skills/SKILL_AUDIT.md
 **Archived to:** .archive/2026-06-25/SKILL_AUDIT.md
 **Review:** [ ] approved for permanent delete
+
+## 2026-09-15 — .claude/skills/sk.implement/sk.tasks
+**Reason:** Dead skill: story-level tasks.yaml generator superseded by sk.plan → sk.planproject 03-plan/{Project}/tasks.md (framework-project-skills-separation plan §1.6)
+**Original path:** .claude/skills/sk.implement/sk.tasks
+**Archived to:** .archive/2026-09-15/sk.tasks
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-15 — .claude/skills/sk.plan/sk.planstory
+**Reason:** Dead skill: story-level plan superseded by sk.plan → sk.planproject per-project plans (framework-project-skills-separation plan §1.6)
+**Original path:** .claude/skills/sk.plan/sk.planstory
+**Archived to:** .archive/2026-09-15/sk.planstory
+**Review:** [ ] approved for permanent delete

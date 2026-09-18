@@ -21,5 +21,6 @@ Positive:
 Negative:
 
 Related
-- Intent: {active intent from state.yaml}
-- Unit: {active unit from state.yaml}
+- Intent: {active_intent_id from .claude/session.yaml}
+- Unit: {active_unit_id from .claude/session.yaml}
+- Stories: {affected story IDs}

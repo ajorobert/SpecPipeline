@@ -1,2 +1,7 @@
 # SpecKit runtime state (per-developer, not committed)
 .claude/session.yaml
+.claude/settings.local.json
+.claude/.last-skill
+.claude/skill-audit.log
+.claude/cache-metrics.jsonl
+.claude/.active-skill-role

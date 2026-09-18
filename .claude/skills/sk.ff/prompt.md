@@ -9,33 +9,42 @@ isolated context — state is passed via the file system (session.yaml + spec ar
 - `sk.ff` → [FEATURE MODE] full pipeline: sk.story → design → plan
 - `sk.ff --bug` → [BUG MODE] fix pipeline: sk.story --bug → plan
   Architecture step is skipped in bug mode — the unit architecture already exists.
-  If the bug fix requires a data model or contract change, stop and run sk.design --targeted manually.
+  If the bug fix requires a data model or contract change, stop and run
+  `sk.design --datamodel` or `sk.design --contracts` manually.
 
 ## Pre-flight
-1. Read session.yaml — verify system-context.md and tech-stack.md populated
-   system-context.md missing: STOP — run sk.init first
-   tech-stack.md missing: STOP — run sk.init first
+1. Verify the system-tier memory is populated — not merely present. `setup.sh` scaffolds these as
+   commented skeletons, so "the file exists" is not the check; "it has real content outside the
+   template comments" is.
+   - `.specify/memory/system-context.md`
+   - `.specify/memory/standards/tech-stack.md` (or, in a workspace, the impacted projects'
+     `.specify/memory/projects/{Project}/tech-stack.md`)
+   - `.specify/memory/projects/index.md` — the project router, required by sk.story
+   Any of them missing or still a bare skeleton: STOP with
+   `Run /sk.init first — {file} is still a template skeleton.` Name every file that failed, so one
+   sk.init run can fix them all.
 
 ## Orchestration: [FEATURE MODE]
 
 ### Phase 1 — Story Capture
 Invoke skill: sk.story
 - Context injected: session.yaml, system-context.md, architecture-decisions.md, domain-model.md
-- Waits for: story-{ID}.md written and clarified, with checkpoint_mode set in frontmatter
-- Reads back: active_story_id from session.yaml (updated by sk.story -> sk.specify)
-- Reads back: checkpoint_mode from story-{ID}.md frontmatter
+- Waits for: `01-story/` written and clarified, with checkpoint_mode set in `story.md` frontmatter
+- Reads back: active_unit_id / active_story_id from session.yaml (updated by sk.story → sk.story_sub_specify)
+- Reads back: checkpoint_mode from `01-story/story.md` frontmatter
 
 ### Phase 2 — Design [FEATURE MODE only]
-Condition: checkpoint_mode = validate → invoke sk.design
-           checkpoint_mode = standard or confirm → skip to Phase 3
+Condition: checkpoint_mode = validate or confirm → invoke sk.design
+           checkpoint_mode = autopilot → invoke sk.design only if `02-design/architecture.md` is missing;
+           otherwise skip to Phase 3
 
 If invoked:
 - Invoke skill: sk.design
 - sk.design auto-detects FRESH or RESUME mode and runs only phases needed for this unit
-  (architecture always; data model and contracts only if unit stories signal the need)
+  (architecture always; data model and contracts only if the story signals the need)
 - Gates inside sk.design are governed by checkpoint_mode per its own gate schedule
-- Waits for: all needed design artifacts written (architecture.md at minimum)
-- On sk.design completion: set story frontmatter checkpoint_status: approved
+- Waits for: all needed design artifacts written (02-design/architecture.md at minimum)
+- On sk.design completion: set `01-story/story.md` frontmatter checkpoint_status: approved
 
 ### Phase 3 — Implementation Plan
 Invoke skill: sk.plan
@@ -51,15 +60,11 @@ Invoke skill: sk.story --bug
 ### Phase 2 — Implementation Plan (no architecture step)
 Invoke skill: sk.plan
 - Waits for: sk.plan to complete (it manages its own checkpoint gate).
-- Verify story_type: bug in story frontmatter before proceeding
+- Verify story_type: bug in `01-story/story.md` frontmatter before proceeding
 
 ## Checkpoint Pause Protocol
-When a checkpoint pause is required:
-1. Display the pause message clearly
-2. Write current state (session.yaml updated with active focus)
-3. Wait for user input: 'approved' or 'cancel'
-4. 'cancel': STOP pipeline, report artifacts created so far
-5. 'approved': continue to next phase
+Pauses follow `.claude/skills/governance/review-gate.md`. Before pausing, make sure session.yaml holds the
+active focus so the pipeline can resume.
 
 ## Completion Report
 After all phases complete, display:
@@ -69,9 +74,9 @@ Story: {story-id} — {story title}
 Mode: {FEATURE | BUG}
 
 Artifacts created:
-  ✓ story-{ID}.md         (sk.story)
-  ✓ architecture.md       (sk.design — if validate checkpoint)
-  ✓ plan.md               (sk.plan)
+  ✓ 01-story/                (sk.story)
+  ✓ 02-design/               (sk.design — if run)
+  ✓ 03-plan/{Project}/       (sk.plan)
 
 Next step: /sk.implement
 ```

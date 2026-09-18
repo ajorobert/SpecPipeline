@@ -15,6 +15,10 @@ Stack:
      - All API responses must include a request_id field
 -->
 
+## Paths
+<!-- Framework path overrides. Omit a key to use the default. -->
+adr_dir: history/adr
+
 ## Overrides
 <!-- Override framework defaults here.
      Examples:

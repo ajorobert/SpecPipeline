@@ -12,26 +12,17 @@ Declare at start: `[REFACTOR MODE] No new behaviour. Scope: {user-supplied scope
    "What area are you refactoring and what is the problem being solved?"
    Record as: scope_statement
 3. Confirm invariant: "This refactor introduces no new behaviour and changes no public API contracts. Correct? (y/n)"
-   On n → STOP: use sk.specify + sk.plan + sk.implement instead
+   On n → STOP: use sk.story + sk.plan + sk.implement instead
+4. Identify the target project: the project in `.specify/memory/projects/index.md` whose Code Root contains the
+   scope (or the active unit's Impacted Projects row matching the role). Record `{Project}` / `{ProjectType}`.
 
-## Capability pack selection
-Load packs matching role and scope (≤4 packs):
-
-Role = backend: always `.claude/skills/backend-architecture/SKILL.md` (canonical SSOT), `.claude/skills/backend-feature-patterns/SKILL.md`
-- db/migration scope (persistence, database, postgres, ef core, dapper, migration, schema, jsonb, postgis, rls, repository, read model) → `.claude/skills/data-access-patterns/SKILL.md`
-- messaging scope (commands, queries, handlers, events, publish, subscribe, outbox, sagas, scheduled messages, message bus) → `.claude/skills/orchestration-patterns/SKILL.md`
-- authorization scope (authorization, roles, policies, rbac, abac, permissions, user context, resource ownership, audit identity) → `.claude/skills/authorization-patterns/SKILL.md`
-- authn-wiring scope (authentication, jwt, keycloak, oidc, claim mapping, m2m token acquisition, composition root) → `.claude/skills/infrastructure-wiring/SKILL.md`
-- adapter scope (port-and-adapter split, typed HttpClient, resilience, DelegatingHandler chain, idempotency-aware retry) → `.claude/skills/integration-adapter-patterns/SKILL.md`
-- feature-flag scope (rollouts, variant features, gating, sunset cleanup) → `.claude/skills/feature-management-patterns/SKILL.md`
-
-Role = frontend (Customer Portal): always `.claude/skills/react-component-patterns/SKILL.md`, `.claude/skills/frontend-design-system/SKILL.md`
-Role = frontend (Admin SPA): always `.claude/skills/react-admin-patterns/SKILL.md`, `.claude/skills/react-component-patterns/SKILL.md`
-
-List packs loaded before proceeding.
+## Step 0: Capability Packs
+Resolve capability packs per `.claude/skills/governance/pack-resolution.md`; phase = `refactor`,
+in-scope project = `{Project}` (or the role's project type if no project resolved), signals = scope_statement.
+Budget for this skill: at most 4 packs.
 
 ## Context loading (cacheable — load first)
-1. .specify/memory/standards/coding-standards.md (Tier A)
+1. The project's coding-standards.md (Tier A)
 2. .specify/memory/architecture-decisions.md — check no ADR blocks the change (Tier A)
 
 ## Target context (tail — load LAST)
@@ -71,7 +62,7 @@ Run existing tests (do not write new tests for refactored internals unless tests
 
 ## Output Artifacts
 specs/intents/{intent}/units/{unit}/refactor-plan.md (or .specify/refactor-plan.md)
-src/** (refactored files, no net new files beyond renames)
+{CodeRoot}/** (refactored files, no net new files beyond renames)
 
 ## Quality Bar
 - No new public API surface introduced

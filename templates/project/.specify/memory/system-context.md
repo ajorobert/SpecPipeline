@@ -1,9 +1,9 @@
 System Context
-Loaded by: sk.specify, sk.impact, sk.ff
+Loaded by: sk.story_sub_specify, sk.impact, sk.ff
 
 <!-- Populate this file during sk.init or early in the project.
      sk.ff will not proceed if this file is empty.
-     Every field marked [REQUIRED] must be filled before running sk.specify.
+     Every field marked [REQUIRED] must be filled before running sk.story_sub_specify.
      Use plain text or short bullet lists — no markdown headings needed within sections. -->
 
 System Overview
@@ -16,7 +16,7 @@ System Type:
      Example: "Microservices (REST + async events)" -->
 
 Services:
-<!-- [REQUIRED] One line per backend service. Add entries as new services are defined via sk.contracts.
+<!-- [REQUIRED] One line per backend service. Add entries as new services are defined via sk.design_sub_contracts.
      Format: - {service-name}: {one-sentence responsibility}
      Example:
      - auth-service: Issues and validates JWT tokens; manages user credentials and sessions
@@ -27,8 +27,8 @@ Frontend Surfaces:
 <!-- One line per frontend application or surface.
      Format: - {surface-name}: {type} — {one-sentence description}
      Example:
-     - web-app: React SPA — operator dashboard for managing menus, inventory, and orders
-     - mobile-app: React Native — kitchen display and order fulfilment for staff -->
+     - web-app: single-page web app — operator dashboard for managing menus, inventory, and orders
+     - mobile-app: cross-platform native app — kitchen display and order fulfilment for staff -->
 
 External Dependencies:
 <!-- Third-party services, APIs, and infrastructure this system relies on.
@@ -40,5 +40,5 @@ External Dependencies:
 
 Current Development Focus:
 <!-- [OPTIONAL] What the team is actively building right now.
-     Helps sk.specify and sk.impact narrow context to relevant services.
+     Helps sk.story_sub_specify and sk.impact narrow context to relevant services.
      Example: "Implementing order splitting and multi-location inventory sync (Intent: INV-004)" -->

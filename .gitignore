@@ -3,3 +3,5 @@
 .claude/session.yaml
 history/reconcile-reports/
 .claude/cache-metrics.jsonl
+.claude/.last-skill
+.claude/skill-audit.log

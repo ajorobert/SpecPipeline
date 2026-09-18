@@ -4,18 +4,23 @@ Role: architect | Level: unit or intent
 
 ## Input Artifacts
 .specify/memory/architecture-decisions.md
+.specify/project-config.md (`adr_dir` override, if present)
 session.yaml (active_intent_id, active_unit_id)
 
+## Resolve paths
+- `ADR_DIR` = `adr_dir:` from `.specify/project-config.md` → default `history/adr`
+- `SCRIPTS_DIR` and `TEMPLATES_DIR` per `.claude/skills/governance/framework-paths.md`
+
 ## Steps
-1. Determine next ADR number from architecture-decisions.md
+1. Determine next ADR number from architecture-decisions.md (and the highest existing file in `ADR_DIR`)
 2. Collect: title, context, decision, alternatives, consequences
-3. Run .your-layer/scripts/create-adr.sh {number} "{title}"
-4. Write ADR using adr-template.md
+3. Run `bash {SCRIPTS_DIR}/create-adr.sh {number} "{title}" "{ADR_DIR}"`
+4. Write ADR using `{TEMPLATES_DIR}/artifacts/adr-template.md`
    Include intent, unit, affected story IDs in frontmatter
 5. Update architecture-decisions.md index
 
 ## Output Artifacts
-history/adr/ADR-{NNN}-{title}.md
+{ADR_DIR}/ADR-{NNN}-{title}.md
 .specify/memory/architecture-decisions.md (index updated)
 knowledge-base.md (relevant tier updated if decision is significant)
 
@@ -37,3 +42,4 @@ Do not duplicate the full ADR content.
 - Alternatives table populated with at least 2 options
 - Consequences has both positive and negative entries
 - Affected stories listed in frontmatter
+- ADR written to the resolved ADR_DIR

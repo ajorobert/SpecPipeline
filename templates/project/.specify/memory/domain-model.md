@@ -1,10 +1,10 @@
 Domain Model
-Loaded by: sk.architecture, sk.plan, sk.datamodel
-Updated by: sk.datamodel — do not edit manually
+Loaded by: sk.design_sub_architecture, sk.plan, sk.design_sub_datamodel
+Updated by: sk.design_sub_datamodel — do not edit manually
 
 <!-- Records the global entity ownership map across all bounded contexts.
-     sk.datamodel appends new entities here when a unit's data model is defined.
-     sk.analyze checks for naming conflicts and ownership violations against this file.
+     sk.design_sub_datamodel appends new entities here when a unit's data model is defined.
+     sk.plan_sub_analyze checks for naming conflicts and ownership violations against this file.
 
      BOUNDED CONTEXTS
      List each bounded context (typically maps 1:1 to a unit or service).

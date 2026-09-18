@@ -28,9 +28,20 @@ Example:
 - INTENT-OTHER-01 (API contract reliance)
 -->
 
-## Stories
-<!-- List the discrete User Stories (-NNN) required to implement this unit.
-Example:
-- INTENT-UNIT-001: Implement JWT generation
-- INTENT-UNIT-002: Create login endpoint
+## Impacted Projects
+<!-- Written by sk.story_sub_architect-probe. One row per project this unit changes; names and code roots come from
+     .specify/memory/projects/index.md. Every per-project phase (02-design/projects/, 03-plan/, 04-implementation/,
+     05-test/) reads this table. Type: Backend | Frontend | Mobile.
+Written by sk.story_sub_architect-probe (both [FULL] and [IMPACT-ONLY] modes). It is NEVER left
+empty: sk.design / sk.plan / sk.implement / sk.test all STOP on an empty table, and their
+preconditions check for a populated row.
+Each row: the exact Project name and Code Root from projects/index.md, the Type, and a concrete role
+(e.g. "session endpoints + token validation", not "backend work").
+-->
+| Project | Type | Code Root | Role in this unit |
+|---|---|---|---|
+
+## Story
+<!-- The unit's story lives in 01-story/ (one story per unit).
+- {INTENT}-{UNIT}-{NNN}: {story title}
 -->
