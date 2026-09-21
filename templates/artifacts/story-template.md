@@ -4,16 +4,18 @@ intent: {INTENT-CODE}
 unit: {INTENT-CODE}-{UNIT-CODE}
 title: {title}
 status:
-  current: draft        # draft | ready | in-progress | review | review-rejected | testing | security-review | done
-  entered_at: {date}    # ISO 8601 datetime when current state was entered
+  current: draft        # draft | ready | in-progress | testing | review | review-rejected | verify | security-review | done | shipped | rolled-back
+  entered_at: {date}    # ISO 8601 datetime when current state was entered (hooks update it)
   completed_at: null    # ISO 8601 datetime when story reached 'done'
   blocked_by: null      # task id, story id, or free-text reason if blocked
 owner: null
-checkpoint_mode: null   # autopilot | confirm | validate
+story_type: feature     # feature | bug | hotfix
+tags: []                # keywords from .specify/memory/skill-routing.md ## By signal (drive pack resolution)
+checkpoint_mode: null   # autopilot | confirm | validate — single source of truth for every gate
 checkpoint_status: null # null | approved
-architecture-ref: null  # relative path to unit architecture.md
+architecture-ref: null  # relative path to ../02-design/architecture.md
 test-status: null       # null | pass | fail
-security-status: null   # null | CLEAR | CONDITIONAL | BLOCKED
+security-status: null   # null | clear | conditional | blocked
 verify-status: null     # null | PASS | FAIL  (set by sk.verify via Stop hook)
 created: {date}
 updated: {date}

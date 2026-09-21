@@ -1,103 +1,39 @@
 <!-- SPECKIT-SSD-SDLC MANAGED -->
-
-> **[STACK NOTE]** This project uses .NET 10, Wolverine (not MassTransit), HybridCache (not raw Redis), FastEndpoints (not MVC), ErrorOr (not Ardalis.Result), Mapster, SeaweedFS, Tempo (not Jaeger), GlitchTip via Sentry SDK, Keycloak only (no Firebase), Strapi v5.
-
-> **[PLACEHOLDER CONVENTION]** Skill code examples use `YourContext.*` as the .NET bounded-context root namespace placeholder (e.g. `YourContext.Api`, `YourContext.Application`). At code-generation time, substitute with the actual context name from `.specify/memory/system-context.md`. Metric/log identifiers use `directory.*` (project label) or `your-service` (URL slugs).
+<!-- Managed by .speckit/setup.sh (SpecKit-SSD-SDLC v1.0.0). This region is replaced on framework updates — put project instructions below the END marker. -->
 
 # SpecKit-SSD-SDLC
 
 ## Identity
 Spec-driven development framework for full-stack multi-service systems.
-Read .specify/project-config.md for project identity, custom rules, and overrides.
-Skills: .claude/skills/sk.*/SKILL.md
-Agents: .claude/agents/
-Context skills: .claude/skills/{governance,design-principles,domain-model,service-registry,standards,system-context,architecture-decisions}/
-Roles: po | architect | lead | backend | frontend | security
+Project identity, custom rules, overrides: .specify/project-config.md
+Skills: .claude/skills/sk.*/SKILL.md (process) · Agents: .claude/agents/ · Session: .claude/session.yaml
+Roles: po | architect | lead | backend | frontend | backend-qa | frontend-qa | security
+
+> **[PLACEHOLDER CONVENTION]** Framework skills never hardcode project facts. `{Project}`, `{CodeRoot}`, `{ProjectType}`, `{IdP}` and similar placeholders resolve from project memory: `.specify/memory/projects/index.md`, per-project `tech-stack.md`, and the unit's `unit-brief.md` → Impacted Projects. Capability packs (stack and pattern skills) are project-owned and registered in `.specify/memory/skill-routing.md`; sk.* skills load them only through `.claude/skills/governance/pack-resolution.md`.
 
 ## System Prompt Inclusions
-<!-- specs/knowledge-base.md is inlined at session start via @import.
-     Modifying it mid-session leaves the system prompt stale.
-     A PostToolUse hook will warn you when this happens — restart Claude Code to reload. -->
+<!-- specs/knowledge-base.md is inlined at session start via @import. Editing it mid-session leaves the
+     system prompt stale; a PostToolUse hook warns you — restart Claude Code to reload. -->
 @specs/knowledge-base.md
 
 ## Rules
-1. Skills are located in .claude/skills/sk.*/. Each skill declares its own inject_files and subagent_type. command-rules.md is no longer globally imported — relevant rules are embedded per skill.
-2. Session state: .claude/session.yaml
-
-## Tech Stack Context Skills
-These are passive knowledge packs — never invoked directly. They are loaded via inject_files in the relevant sk.* skills based on the work being done.
-
-### Cross-Cutting
-| Skill folder | Load when |
-|---|---|
-| `observability-contracts` | Any observability work — defines resource attrs, runtime-config JSON shape, PII deny-list, Loki label allow-list, span naming. Loaded by every observability-{backend,frontend,infra} skill. |
-| `observability-infra` | OTel Collector config, Loki/Jaeger/Prometheus/GlitchTip deployment, Grafana dashboards, tail sampling, backend swap planning |
-
-### Backend
-| Skill folder | Load when |
-|---|---|
-| `backend-feature-patterns` | Clean Arch layers, handler shape, ErrorOr, Mapster, FluentValidation, idempotency, comment markers |
-| `design-code-review` | Backend code review (sk.review) |
-| `fastendpoints-patterns` | FastEndpoints v6, Scalar OpenAPI, ErrorOr→HTTP mapping, idempotency-key, throttling |
-| `bff-patterns` | BFF API layer design or implementation |
-| `wolverine-patterns` | Wolverine in-process + brokered messaging, outbox, sagas, scheduled messages |
-| `workflow-and-jobs-patterns` | Elsa v3 long-running workflows + Hangfire background jobs, decision rule with Wolverine sagas, OTel propagation, dashboard auth |
-| `keycloak-patterns` | Keycloak JWT validation, IUserContext, RBAC policies, ABAC handlers, M2M, claim mapping |
-| `integration-adapter-patterns` | External integration adapter authoring: port-and-adapter split, typed HttpClient, DelegatingHandler chain, Polly v8 resilience, idempotency-aware retry |
-| `feature-management-patterns` | Microsoft.FeatureManagement, IFeatureManagerSnapshot, built-in + custom filters, variant features, flag naming, sunset discipline |
-| `observability-backend` | .NET service / BFF backend / Wolverine / Hangfire instrumentation (OTel, Serilog, Sentry .NET, dynamic sampler) |
-
-### Data
-| Skill folder | Load when |
-|---|---|
-| `persistence-patterns` | EF Core write + Dapper read, migrations, JSONB, PostGIS, RLS + TenantInterceptor, transaction + outbox binding |
-| `hybridcache-patterns` | HybridCache L1+L2, tag invalidation, cross-instance cache coherence, escape hatches (locks, rate limit, streams) |
-| `elasticsearch-patterns` | Elastic.Clients.Elasticsearch 8.x, geo search, Wolverine-driven indexing, alias-based reindex, tenant-isolated queries |
-| `file-pipeline-patterns` | SeaweedFS storage + ImageSharp processing + nClam scanning, Wolverine upload state-machine saga, presigned uploads, ABAC for file access |
-
-### Frontend — Customer Portal
-| Skill folder | Load when |
-|---|---|
-| `nextjs-patterns` | Next.js App Router, NextAuth v5, Strapi CMS, R2 images |
-| `frontend-design-system` | Tailwind v4, shadcn/ui, dark mode, design tokens |
-| `react-component-patterns` | Component decomposition, TypeScript props, form handling |
-| `zustand-state-management` | Global/shared UI state |
-| `accessibility-standards` | Any frontend implementation or UAT |
-| `observability-frontend` | OTel JS, Sentry, PostHog, Clarity, BFF runtime-config, source maps |
-
-### Frontend — Admin SPA
-| Skill folder | Load when |
-|---|---|
-| `react-admin-patterns` | React + Vite + Tanstack Router admin SPA |
-| `frontend-design-system` | Tailwind v4, shadcn/ui (same as portal) |
-| `react-component-patterns` | Component patterns (same as portal) |
-| `zustand-state-management` | Global state (same as portal) |
-| `accessibility-standards` | Any frontend implementation or UAT |
-| `observability-frontend` | Same as portal — OTel JS, Sentry, PostHog, Clarity |
-
-### Frontend — Mobile App
-| Skill folder | Load when |
-|---|---|
-| `react-native-patterns` | React Native + Expo managed workflow, NativeWind v5 |
-| `observability-frontend` | OTel RN, Sentry RN, cached runtime-config, source maps |
+1. Each sk.* skill declares its own inject_files and subagent_type; execute its prompt.md.
+2. Artifact paths follow .claude/skills/governance/phase-layout.md. checkpoint_mode lives in the active story's frontmatter.
 
 ## Security Rules
-5. Never use `rm`, `rmdir`, `del`, or `unlink` — these commands are blocked by policy.
-6. To remove a file, use the archive script: `bash .claude/hooks/archive-file.sh "<relative-path>" "<reason for removal>"`
-   - This moves the file to `.archive/YYYY-MM-DD/` and logs it for human review.
-   - A human must review `.archive/ARCHIVE_LOG.md` before any permanent deletion.
-7. Never edit or write files outside the project root directory. All file paths must resolve within the project root.
-8. The `.archive/` folder is human-review territory — never delete files from it.
+3. Never use `rm`, `rmdir`, `del`, or `unlink` — these commands are blocked by policy.
+4. To remove a file, use the archive script: `bash .claude/hooks/archive-file.sh "<relative-path>" "<reason for removal>"` — it moves the file to `.archive/YYYY-MM-DD/` and logs it in `.archive/ARCHIVE_LOG.md` for human review.
+5. Never edit or write files outside the project root directory.
+6. The `.archive/` folder is human-review territory — never delete files from it.
 
 ## Knowledge Bases (non-derivable context)
-Tier 1 — system:  specs/knowledge-base.md
-Tier 2 — domain:  specs/domains/{domain}/knowledge-base.md
-Tier 3 — unit:    specs/intents/{intent}/units/{unit}/knowledge-base.md
-
-Read tier 1 before any work.
-Read relevant tier 2 when working within a domain.
-Read tier 3 before implementing or testing a unit.
-These complement code reading — they contain only what
-code cannot tell you.
+Tier 1 — system: specs/knowledge-base.md · Tier 2 — domain: specs/domains/{domain}/knowledge-base.md · Tier 3 — unit: specs/intents/{intent}/units/{unit}/knowledge-base.md
+Read tier 1 before any work, tier 2 when working within a domain, tier 3 before implementing or testing a unit. They complement code reading — they hold only what code cannot tell you.
 
 <!-- END SPECKIT-SSD-SDLC MANAGED -->
+
+## Framework repository notes
+This repository is the framework itself. Framework-owned assets are listed in `setup.sh` (`FRAMEWORK_SKILL_DIRS`, `FRAMEWORK_AGENTS`, `sk.*`, `.claude/hooks/*.sh`).
+- The managed region above is a rendered copy of `templates/root/CLAUDE.md` — edit the template, then re-render.
+- `skills_archive/` holds capability packs for projects to copy. They are not loaded here and must never be referenced by a `sk.*` skill.
+- Keep stack names out of framework files. The verification grep is in `ai_reports/framework-project-skills-separation-plan.md` §6.

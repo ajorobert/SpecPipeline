@@ -11,27 +11,30 @@ before any other work, if they exist:
 4. `.specify/project-config.md` — project identity and overrides (if exists)
 
 ## Session Resolution
-Every skill resolves context from .claude/session.yaml
-If session.yaml role is null: STOP, instruct user to run sk.session start
+Every skill resolves context from .claude/session.yaml and the paths in
+`.claude/skills/governance/phase-layout.md`.
 
-Unit-level skills (sk.architecture, sk.datamodel, sk.contracts):
+Unit-level skills (sk.design and its sub-skills, sk.plan, sk.implement, sk.test, sk.uat, sk.security-audit):
 - Require active_unit_id set in session.yaml
 - If null: instruct user to run sk.session focus --unit {unit-id}
 
-Story-level skills (sk.plan, sk.implement, sk.clarify):
+Story-level skills (sk.clarify, sk.architect-probe, sk.review, sk.investigate, sk.verify, sk.ship):
 - Require active_story_id set in session.yaml
 - If null: instruct user to run sk.session focus --story {story-id}
 
-## Test Role Routing
-sk.test branches on session.yaml role:
-- role = backend → generate provider contract tests + integration tests
-- role = frontend → generate consumer contract tests + E2E tests + component tests
-- role = other → STOP: "sk.test requires backend or frontend role"
+checkpoint_mode is read from `01-story/story.md` frontmatter — never from session.yaml.
 
-## Security Role Gate
-sk.security-audit requires role = security in session.yaml
-Any other role → STOP: "sk.security-audit requires security role.
-Run sk.session switch --role security"
+## Test Routing
+sk.test runs per impacted project and branches on the project type (not the session role):
+- Backend → provider contract tests + integration tests + unit tests
+- Frontend / Mobile → consumer contract tests + component tests (+ E2E where the platform runs it)
+
+## Security Role
+sk.security-audit runs as the Security Agent persona regardless of session role.
+
+## Capability Packs
+Load packs only as `.claude/skills/governance/pack-resolution.md` directs, from
+`.specify/memory/skill-routing.md`. Never browse `.claude/skills/` to discover packs.
 
 ## Idempotency
 - Artifact exists → [REFINE MODE] update, never overwrite

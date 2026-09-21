@@ -138,3 +138,51 @@ approved and let a human run the cleanup.
 **Original path:** .claude/skills/polly-resilience-patterns/
 **Archived to:** .archive/2026-05-18/polly-resilience-patterns
 **Review:** [ ] approved for permanent delete
+
+## 2026-05-18 — .claude/skills/observability-contracts/
+**Reason:** Folded inline into observability-backend §6 (PII deny-list, Loki label allow-list, trace correlation) and observability-frontend §6 (PII deny-list, trace correlation). Cross-skill duplication is intentional — both skills load independently and the PII rule must be present in both.
+**Original path:** .claude/skills/observability-contracts/
+**Archived to:** .archive/2026-05-18/observability-contracts
+**Review:** [ ] approved for permanent delete
+
+## 2026-05-18 — .claude/skills/observability-infra/
+**Reason:** Replaced by .specify/memory/observability-stack.md. Wiring is one-time setup, not recurring feature work. Skills now contain rules only.
+**Original path:** .claude/skills/observability-infra/
+**Archived to:** .archive/2026-05-18/observability-infra
+**Review:** [ ] approved for permanent delete
+
+## 2026-06-25 — .claude/skills/wolverine-patterns/wolverine-patterns.md
+**Reason:** Dissolved in seam refactor: events seam -> backend-architecture, sagas -> orchestration-patterns, Wolverine wiring -> infrastructure-wiring
+**Original path:** .claude/skills/wolverine-patterns/wolverine-patterns.md
+**Archived to:** .archive/2026-06-25/wolverine-patterns.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-06-25 — .claude/skills/keycloak-patterns/keycloak-patterns.md
+**Reason:** Dissolved in seam refactor: AuthN wiring -> infrastructure-wiring, IUserContext -> backend-architecture, RBAC/ABAC usage -> authorization-patterns
+**Original path:** .claude/skills/keycloak-patterns/keycloak-patterns.md
+**Archived to:** .archive/2026-06-25/keycloak-patterns.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-06-25 — .claude/skills/bff-patterns/bff-patterns.md
+**Reason:** Dissolved in seam refactor: merged into api-endpoint-patterns (BFF/aggregation endpoints section)
+**Original path:** .claude/skills/bff-patterns/bff-patterns.md
+**Archived to:** .archive/2026-06-25/bff-patterns.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-06-25 — .claude/skills/SKILL_AUDIT.md
+**Reason:** Superseded by the seam refactor (2026-06-25). The audit analyzed the pre-refactor skill set (csharp-clean-arch, auth-patterns, messaging-patterns, redis-patterns, postgresql-patterns, etc.) which has since been restructured into the seam/edge/plumbing inventory. Its findings (single-owner markers, design-code-review derive, BFF overlap) are now resolved in backend-architecture + the rewritten skills.
+**Original path:** .claude/skills/SKILL_AUDIT.md
+**Archived to:** .archive/2026-06-25/SKILL_AUDIT.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-15 — .claude/skills/sk.implement/sk.tasks
+**Reason:** Dead skill: story-level tasks.yaml generator superseded by sk.plan → sk.planproject 03-plan/{Project}/tasks.md (framework-project-skills-separation plan §1.6)
+**Original path:** .claude/skills/sk.implement/sk.tasks
+**Archived to:** .archive/2026-09-15/sk.tasks
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-15 — .claude/skills/sk.plan/sk.planstory
+**Reason:** Dead skill: story-level plan superseded by sk.plan → sk.planproject per-project plans (framework-project-skills-separation plan §1.6)
+**Original path:** .claude/skills/sk.plan/sk.planstory
+**Archived to:** .archive/2026-09-15/sk.planstory
+**Review:** [ ] approved for permanent delete

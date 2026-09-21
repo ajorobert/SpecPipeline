@@ -2,20 +2,25 @@
 # PreToolUse hook — checks a skill's declared preconditions before invocation.
 # Exit 2 = block; Exit 0 = allow.
 #
-# Reads the `preconditions:` YAML block from .claude/skills/<skill>/SKILL.md
-# and evaluates each entry. Supported forms:
-#   - story.<field> == <value>
-#   - story.<field> != <value>
-#   - story.<dotted.path> == <value>       (e.g. story.status.current)
-#   - file_exists: <glob>
+# Reads the `preconditions:` YAML block from the skill's SKILL.md and evaluates each entry.
+# Supported rule forms:
+#   - story.<dotted.path> == <value>             (values compare case-insensitively; empty/null = "null")
+#   - story.<dotted.path> != <value>
+#   - story.<dotted.path> in [<v1>, <v2>]
+#   - file_exists: <glob>                        (glob relative to project root)
+#   - file_contains: <glob> :: <ERE>             (at least one matching file contains the pattern)
+#   - when <story condition> => <rule>           (rule evaluated only when the condition holds)
+# Globs may use {unit_dir}: the active unit folder (e.g. specs/intents/001-auth/units/login).
 #
-# Story fields come from the active story's frontmatter, located via
-# active_story_id in session.yaml.
+# The active story is located via lib-story.sh (01-story/story.md of the active unit).
 
 set -uo pipefail
 
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib-story.sh
+source "${HOOK_DIR}/lib-story.sh"
+
 INPUT=$(cat)
-# Extract skill name — prefer jq, fall back to sed (jq may be absent on Windows bash)
 if command -v jq >/dev/null 2>&1; then
   SKILL_NAME=$(echo "$INPUT" | jq -r '.tool_input.skill // empty' 2>/dev/null)
 else
@@ -26,13 +31,17 @@ if [[ -z "$SKILL_NAME" ]] || [[ "$SKILL_NAME" != sk.* ]]; then
   exit 0
 fi
 
-PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "${HOOK_DIR}/../.." && pwd)}"
 SKILL_FILE="${PROJECT_ROOT}/.claude/skills/${SKILL_NAME}/SKILL.md"
-SESSION_YAML="${PROJECT_ROOT}/.claude/session.yaml"
-
+if [[ ! -f "$SKILL_FILE" ]]; then
+  shopt -s nullglob
+  NESTED=("${PROJECT_ROOT}/.claude/skills"/*/"${SKILL_NAME}"/SKILL.md)
+  shopt -u nullglob
+  [[ ${#NESTED[@]} -gt 0 ]] && SKILL_FILE="${NESTED[0]}"
+fi
 [[ -f "$SKILL_FILE" ]] || exit 0
 
-# Extract preconditions block (lines between `preconditions:` and the next top-level key or `---`)
+# Extract preconditions block (list items between `preconditions:` and the next top-level key or `---`)
 PRECONDS=$(awk '
   /^preconditions:[[:space:]]*$/ { in_block=1; next }
   in_block && /^[a-zA-Z_][a-zA-Z0-9_-]*:/ { in_block=0 }
@@ -45,124 +54,124 @@ PRECONDS=$(awk '
 
 [[ -z "$PRECONDS" ]] && exit 0
 
-# Locate active story frontmatter (may be absent — some preconditions don't need it)
-STORY_FILE=""
-if [[ -f "$SESSION_YAML" ]]; then
-  ACTIVE_STORY_ID=$(grep -E '^active_story_id:' "$SESSION_YAML" \
-    | sed 's/^active_story_id:[[:space:]]*//' \
-    | sed 's/[[:space:]]*#.*//' \
-    | tr -d '"' \
-    | xargs 2>/dev/null || true)
-  if [[ -n "$ACTIVE_STORY_ID" ]] && [[ "$ACTIVE_STORY_ID" != "null" ]]; then
-    shopt -s nullglob
-    MATCHES=("${PROJECT_ROOT}/specs/intents"/*/units/*/stories/"story-${ACTIVE_STORY_ID}.md")
-    shopt -u nullglob
-    [[ ${#MATCHES[@]} -gt 0 ]] && STORY_FILE="${MATCHES[0]}"
-  fi
+STORY_FILE=$(sk_find_story_file "$PROJECT_ROOT")
+UNIT_DIR_REL=""
+if [[ -n "$STORY_FILE" ]]; then
+  UNIT_DIR_ABS="$(dirname "$(dirname "$STORY_FILE")")"
+  UNIT_DIR_REL="${UNIT_DIR_ABS#"$PROJECT_ROOT"/}"
 fi
-
-# Read a frontmatter field via dotted path from the story file.
-# Understands flat (`test-status: pass`) and nested (`status:\n  current: shipped`) YAML.
-story_field() {
-  local path="$1"
-  [[ -z "$STORY_FILE" ]] && { echo ""; return; }
-
-  awk -v path="$path" '
-    BEGIN {
-      n = split(path, parts, ".")
-      fm = 0
-    }
-    /^---[[:space:]]*$/ {
-      fm++
-      if (fm == 2) exit
-      next
-    }
-    fm != 1 { next }
-
-    {
-      # indent = leading spaces
-      match($0, /^[[:space:]]*/)
-      indent = RLENGTH
-      line = substr($0, indent + 1)
-      # skip comments / blanks
-      if (line ~ /^#/ || line == "") next
-      # parse key: value
-      if (match(line, /^[A-Za-z_][A-Za-z0-9_-]*:/)) {
-        key = substr(line, 1, RLENGTH - 1)
-        rest = substr(line, RLENGTH + 1)
-        sub(/^[[:space:]]*/, "", rest)
-        sub(/[[:space:]]*#.*$/, "", rest)
-        gsub(/^["'\'']|["'\'']$/, "", rest)
-      } else next
-
-      # depth 0: top-level; depth 1: indent 2; etc.
-      depth = int(indent / 2)
-
-      if (depth >= n) next
-      if (key != parts[depth + 1]) next
-
-      if (depth == n - 1) {
-        print rest
-        exit
-      }
-      # else descend — just continue; we track by matching key per depth
-    }
-  ' "$STORY_FILE"
-}
 
 FAIL=0
 FAIL_MESSAGES=()
 
-while IFS= read -r RULE; do
-  RULE=$(echo "$RULE" | sed 's/[[:space:]]*#.*$//' | xargs)
-  [[ -z "$RULE" ]] && continue
+lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
-  # file_exists: <glob>
-  if [[ "$RULE" =~ ^file_exists:[[:space:]]*(.+)$ ]]; then
-    GLOB="${BASH_REMATCH[1]}"
-    shopt -s nullglob
-    MATCHES=( ${PROJECT_ROOT}/${GLOB} )
-    shopt -u nullglob
-    if [[ ${#MATCHES[@]} -eq 0 ]]; then
-      FAIL=1
-      FAIL_MESSAGES+=("  - required file(s) not found: ${GLOB}")
+# Evaluate a story condition. Echo "true"/"false"; echo "nostory" when no active story; "invalid" otherwise.
+story_condition() {
+  local expr="$1" path op expected actual item
+  if [[ "$expr" =~ ^story\.([A-Za-z0-9_.-]+)[[:space:]]+in[[:space:]]+\[(.*)\][[:space:]]*$ ]]; then
+    path="${BASH_REMATCH[1]}"; op="in"; expected="${BASH_REMATCH[2]}"
+  elif [[ "$expr" =~ ^story\.([A-Za-z0-9_.-]+)[[:space:]]*(==|!=)[[:space:]]*(.+)$ ]]; then
+    path="${BASH_REMATCH[1]}"; op="${BASH_REMATCH[2]}"; expected="${BASH_REMATCH[3]}"
+  else
+    echo "invalid"; return
+  fi
+  [[ -z "$STORY_FILE" ]] && { echo "nostory"; return; }
+  actual=$(lower "$(sk_fm_field "$STORY_FILE" "$path")")
+  [[ -z "$actual" ]] && actual="null"
+  LAST_PATH="$path"; LAST_ACTUAL="$actual"
+  case "$op" in
+    "==") [[ "$actual" == "$(lower "$(echo "$expected" | sed "s/^[\"']//; s/[\"']$//" | xargs)")" ]] && echo true || echo false ;;
+    "!=") [[ "$actual" != "$(lower "$(echo "$expected" | sed "s/^[\"']//; s/[\"']$//" | xargs)")" ]] && echo true || echo false ;;
+    "in")
+      IFS=',' read -ra ITEMS <<< "$expected"
+      for item in "${ITEMS[@]}"; do
+        item=$(lower "$(echo "$item" | sed "s/[\"']//g" | xargs)")
+        [[ "$actual" == "$item" ]] && { echo true; return; }
+      done
+      echo false ;;
+  esac
+}
+
+expand_glob() {
+  local glob="$1"
+  if [[ "$glob" == *"{unit_dir}"* ]]; then
+    [[ -z "$UNIT_DIR_REL" ]] && return 1
+    glob="${glob//\{unit_dir\}/$UNIT_DIR_REL}"
+  fi
+  printf '%s' "$glob"
+}
+
+eval_rule() {
+  local rule="$1" glob pattern result f
+  if [[ "$rule" =~ ^file_exists:[[:space:]]*(.+)$ ]]; then
+    if ! glob=$(expand_glob "${BASH_REMATCH[1]}"); then
+      FAIL=1; FAIL_MESSAGES+=("  - no active story — cannot resolve {unit_dir} in: ${rule}"); return
     fi
-    continue
+    if ! compgen -G "${PROJECT_ROOT}/${glob}" >/dev/null; then
+      FAIL=1; FAIL_MESSAGES+=("  - required file(s) not found: ${glob}")
+    fi
+    return
   fi
 
-  # story.<path> (==|!=) <value>
-  if [[ "$RULE" =~ ^story\.([A-Za-z0-9_.-]+)[[:space:]]*(==|!=)[[:space:]]*(.+)$ ]]; then
-    PATH_EXPR="${BASH_REMATCH[1]}"
-    OP="${BASH_REMATCH[2]}"
-    EXPECTED="${BASH_REMATCH[3]}"
-    EXPECTED=$(echo "$EXPECTED" | sed 's/^["'\'']//; s/["'\'']$//' | xargs)
-    ACTUAL=$(story_field "$PATH_EXPR")
-
-    if [[ -z "$STORY_FILE" ]]; then
-      FAIL=1
-      FAIL_MESSAGES+=("  - no active story found — cannot evaluate: ${RULE}")
-      continue
+  if [[ "$rule" =~ ^file_contains:[[:space:]]*(.+)[[:space:]]+::[[:space:]]+(.+)$ ]]; then
+    pattern="${BASH_REMATCH[2]}"
+    if ! glob=$(expand_glob "${BASH_REMATCH[1]}"); then
+      FAIL=1; FAIL_MESSAGES+=("  - no active story — cannot resolve {unit_dir} in: ${rule}"); return
     fi
+    while IFS= read -r f; do
+      [[ -n "$f" ]] && grep -qE "$pattern" "$f" 2>/dev/null && return
+    done < <(compgen -G "${PROJECT_ROOT}/${glob}")
+    FAIL=1; FAIL_MESSAGES+=("  - no file matching ${glob} contains /${pattern}/")
+    return
+  fi
 
-    case "$OP" in
-      "==")
-        if [[ "$ACTUAL" != "$EXPECTED" ]]; then
-          FAIL=1
-          FAIL_MESSAGES+=("  - story.${PATH_EXPR} is \"${ACTUAL:-<empty>}\", expected \"${EXPECTED}\"")
-        fi
-        ;;
-      "!=")
-        if [[ "$ACTUAL" == "$EXPECTED" ]]; then
-          FAIL=1
-          FAIL_MESSAGES+=("  - story.${PATH_EXPR} is \"${ACTUAL}\", must not equal \"${EXPECTED}\"")
-        fi
-        ;;
+  if [[ "$rule" == story.* ]]; then
+    result=$(story_condition "$rule")
+    case "$result" in
+      true) ;;
+      false)
+        FAIL=1
+        FAIL_MESSAGES+=("  - $(story_condition_message "$rule")") ;;
+      nostory)
+        FAIL=1; FAIL_MESSAGES+=("  - no active story found — cannot evaluate: ${rule}") ;;
+      *)
+        echo "check-skill-preconditions.sh: WARNING — unrecognized rule: ${rule}" >&2 ;;
+    esac
+    return
+  fi
+
+  echo "check-skill-preconditions.sh: WARNING — unrecognized rule: ${rule}" >&2
+}
+
+story_condition_message() {
+  local rule="$1" path actual
+  [[ "$rule" =~ ^story\.([A-Za-z0-9_.-]+) ]] && path="${BASH_REMATCH[1]}"
+  actual=$(sk_fm_field "$STORY_FILE" "$path")
+  echo "story.${path} is \"${actual:-<empty>}\" — rule not met: ${rule}"
+}
+
+while IFS= read -r RULE; do
+  RULE=$(printf '%s' "$RULE" | sed 's/[[:space:]]#.*$//; s/^[[:space:]]*//; s/[[:space:]]*$//')
+  # YAML list items may be quoted (needed when a rule contains ": " or starts with "{")
+  if [[ "$RULE" == \"*\" ]] || [[ "$RULE" == \'*\' ]]; then
+    RULE="${RULE:1:${#RULE}-2}"
+  fi
+  [[ -z "$RULE" ]] && continue
+
+  if [[ "$RULE" == when\ * ]] && [[ "$RULE" == *" => "* ]]; then
+    COND="${RULE#when }"; COND="${COND%% => *}"
+    THEN="${RULE#* => }"
+    case "$(story_condition "$COND")" in
+      true)    eval_rule "$THEN" ;;
+      false)   ;;
+      nostory) FAIL=1; FAIL_MESSAGES+=("  - no active story found — cannot evaluate: ${RULE}") ;;
+      *)       echo "check-skill-preconditions.sh: WARNING — unrecognized condition: ${COND}" >&2 ;;
     esac
     continue
   fi
 
-  # Unknown rule form — warn but don't block
-  echo "check-skill-preconditions.sh: WARNING — unrecognized rule: ${RULE}" >&2
+  eval_rule "$RULE"
 done <<< "$PRECONDS"
 
 if [[ "$FAIL" -eq 1 ]]; then
@@ -170,8 +179,9 @@ if [[ "$FAIL" -eq 1 ]]; then
   for MSG in "${FAIL_MESSAGES[@]}"; do
     echo "$MSG" >&2
   done
+  [[ -n "$STORY_FILE" ]] && echo "Active story: ${STORY_FILE#"$PROJECT_ROOT"/}" >&2
   echo "" >&2
-  echo "See ${SKILL_FILE#$PROJECT_ROOT/} for the declared preconditions." >&2
+  echo "See ${SKILL_FILE#"$PROJECT_ROOT"/} for the declared preconditions." >&2
   exit 2
 fi
 

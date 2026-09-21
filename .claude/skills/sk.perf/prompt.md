@@ -10,27 +10,23 @@ Declare at start: `[PERF MODE] Input: {load-test | profiler | both}. Role: {back
    NULL → ask user: "backend or frontend performance work?"
 2. Ask user to provide one of:
    (a) Load test results (k6, JMeter, Gatling output — paste or file path)
-   (b) Profiler output (dotnet-trace, Chrome DevTools, Lighthouse — paste or file path)
+   (b) Profiler output (runtime profiler trace, browser performance panel, Lighthouse — paste or file path)
    (c) Both
    NEITHER provided → STOP: this skill requires empirical input, not hypothesis
 3. Ask: "What is the target metric and acceptance threshold?"
    Example: "p99 < 200ms under 500 concurrent users", "LCP < 2.5s on 3G"
    Record as: perf_target
+4. Identify the target project: the active unit's Impacted Projects row matching the role, or the project in
+   `.specify/memory/projects/index.md` whose Code Root contains the profiled code. Record `{Project}`.
+   Resolve `PERF_DIR = specs/intents/{intent}/units/{unit}/04-implementation/{Project}/`
+   (no active unit → `PERF_DIR = .specify/perf/`).
 
 ## Context loading
 1. `.specify/memory/standards/observability-standards.md` — logging/metric/trace conventions that any perf-related instrumentation must follow
 
-## Capability pack selection
-Load packs matching role (≤4 packs):
-
-Role = backend: always `.claude/skills/backend-feature-patterns/SKILL.md`
-- DB bottleneck signals (persistence, database, postgres, ef core, dapper, indexing, jsonb, postgis, concurrency) → `.claude/skills/persistence-patterns/SKILL.md`
-- Cache opportunity signals (cache, caching, hybrid cache, L1/L2, tag invalidation, distributed lock, rate limit, redlock, redis stream) → `.claude/skills/hybridcache-patterns/SKILL.md`
-- Search bottleneck signals → `.claude/skills/elasticsearch-patterns/SKILL.md`
-
-Role = frontend: always `.claude/skills/react-component-patterns/SKILL.md`, `.claude/skills/frontend-design-system/SKILL.md`
-
-List packs loaded.
+## Step 0: Capability Packs
+Resolve capability packs per `.claude/skills/governance/pack-resolution.md`; phase = `perf`,
+in-scope project = `{Project}`, signals = the profiler / load-test input. Budget for this skill: at most 4 packs.
 
 ## Step 1 — Diagnose
 Analyse the profiler/load-test input:
@@ -41,7 +37,7 @@ Analyse the profiler/load-test input:
   - Estimated impact: what % of latency/size this represents
   - Evidence: quote the specific metric from the input
 
-Write findings to: perf-findings.md (see Output Artifacts)
+Write findings to: PERF_DIR/perf-findings.md
 
 ## Step 2 — Prioritise
 Rank bottlenecks by: (estimated impact) × (implementation risk⁻¹)
@@ -49,14 +45,14 @@ Present ranked list to user. Ask: "Which optimizations should I implement? (all 
 Record selected optimizations.
 
 ## Step 3 — Generate tasks
-For each selected optimization, write a task entry:
+For each selected optimization, write a task entry (`- [ ] P{NN} — {title}`):
 - Task description
 - Target file/component
 - Acceptance criterion: measurable, tied to perf_target
 - Test method: how the improvement will be verified (benchmark, re-run load test, Lighthouse CI)
 
-Write tasks to: specs/intents/{intent}/units/{unit}/stories/{story-id}/tasks.yaml
-(If no active story: write to .specify/perf-tasks.yaml and remind user to create a story)
+Write tasks to: PERF_DIR/perf-tasks.md
+(If no active unit: remind the user to capture the work as a story with sk.story)
 
 ## Step 4 — Implement
 Execute tasks in priority order:
@@ -64,7 +60,7 @@ Execute tasks in priority order:
 - Implement the optimization (query rewrite, index addition, cache layer, lazy load, code split, etc.)
 - Add or update the benchmark/test for each change
 - After each task: report metric delta if measurable inline (e.g. "query reduced from 12 to 1 round trip")
-- After each task: set its status to done in tasks.yaml
+- After each task: tick it `- [x]` in perf-tasks.md
 
 ## Step 5 — Verify
 Run the agreed test method for each completed optimization:
@@ -74,9 +70,9 @@ Run the agreed test method for each completed optimization:
 If target missed: report remaining gap and suggest next candidate optimization.
 
 ## Output Artifacts
-perf-findings.md (diagnosis + ranked bottlenecks)
-specs/intents/{intent}/units/{unit}/stories/{story-id}/tasks.yaml (or .specify/perf-tasks.yaml)
-src/** (optimized files)
+PERF_DIR/perf-findings.md (diagnosis + ranked bottlenecks)
+PERF_DIR/perf-tasks.md
+{CodeRoot}/** (optimized files)
 benchmark results summary (inline report)
 
 ## Quality Bar

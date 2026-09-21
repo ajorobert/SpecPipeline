@@ -1,36 +1,33 @@
 <!-- SPECKIT-SSD-SDLC MANAGED -->
+<!-- Managed by .speckit/setup.sh (SpecKit-SSD-SDLC v{{SPECKIT_VERSION}}). This region is replaced on framework updates — put project instructions below the END marker. -->
 
 # SpecKit-SSD-SDLC
 
 ## Identity
 Spec-driven development framework for full-stack multi-service systems.
-Read .specify/project-config.md for project identity, custom rules, and overrides.
-Commands: .claude/commands/sk.*.md
-Agents: .claude/agents/
-Skills: .claude/skills/ (auto-loaded by context)
+Project identity, custom rules, overrides: .specify/project-config.md
+Skills: .claude/skills/sk.*/SKILL.md (process) · Agents: .claude/agents/ · Session: .claude/session.yaml
 Roles: po | architect | lead | backend | frontend | backend-qa | frontend-qa | security
 
+> **[PLACEHOLDER CONVENTION]** Framework skills never hardcode project facts. `{Project}`, `{CodeRoot}`, `{ProjectType}`, `{IdP}` and similar placeholders resolve from project memory: `.specify/memory/projects/index.md`, per-project `tech-stack.md`, and the unit's `unit-brief.md` → Impacted Projects. Capability packs (stack and pattern skills) are project-owned and registered in `.specify/memory/skill-routing.md`; sk.* skills load them only through `.claude/skills/governance/pack-resolution.md`.
+
+## System Prompt Inclusions
+<!-- specs/knowledge-base.md is inlined at session start via @import. Editing it mid-session leaves the
+     system prompt stale; a PostToolUse hook warns you — restart Claude Code to reload. -->
+@specs/knowledge-base.md
+
 ## Rules
-1. Read .specify/memory/command-rules.md before any sk.* command
-2. Session state: .claude/session.yaml
+1. Each sk.* skill declares its own inject_files and subagent_type; execute its prompt.md.
+2. Artifact paths follow .claude/skills/governance/phase-layout.md. checkpoint_mode lives in the active story's frontmatter.
 
 ## Security Rules
-5. Never use `rm`, `rmdir`, `del`, or `unlink` — these commands are blocked by policy.
-6. To remove a file, use the archive script: `bash .claude/hooks/archive-file.sh "<relative-path>" "<reason for removal>"`
-   - This moves the file to `.archive/YYYY-MM-DD/` and logs it for human review.
-   - A human must review `.archive/ARCHIVE_LOG.md` before any permanent deletion.
-7. Never edit or write files outside the project root directory. All file paths must resolve within the project root.
-8. The `.archive/` folder is human-review territory — never delete files from it.
+3. Never use `rm`, `rmdir`, `del`, or `unlink` — these commands are blocked by policy.
+4. To remove a file, use the archive script: `bash .claude/hooks/archive-file.sh "<relative-path>" "<reason for removal>"` — it moves the file to `.archive/YYYY-MM-DD/` and logs it in `.archive/ARCHIVE_LOG.md` for human review.
+5. Never edit or write files outside the project root directory.
+6. The `.archive/` folder is human-review territory — never delete files from it.
 
 ## Knowledge Bases (non-derivable context)
-Tier 1 — system:  specs/knowledge-base.md
-Tier 2 — domain:  specs/domains/{domain}/knowledge-base.md
-Tier 3 — unit:    specs/intents/{intent}/units/{unit}/knowledge-base.md
-
-Read tier 1 before any work.
-Read relevant tier 2 when working within a domain.
-Read tier 3 before implementing or testing a unit.
-These complement code reading — they contain only what
-code cannot tell you.
+Tier 1 — system: specs/knowledge-base.md · Tier 2 — domain: specs/domains/{domain}/knowledge-base.md · Tier 3 — unit: specs/intents/{intent}/units/{unit}/knowledge-base.md
+Read tier 1 before any work, tier 2 when working within a domain, tier 3 before implementing or testing a unit. They complement code reading — they hold only what code cannot tell you.
 
 <!-- END SPECKIT-SSD-SDLC MANAGED -->

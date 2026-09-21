@@ -2,8 +2,14 @@
 Runs the complete unit design pipeline — architecture, data model, and API contracts — in one invocation.
 Role: architect (orchestrator) | Level: unit
 
-This skill orchestrates three sub-skills in strict sequence. Each sub-skill runs with its own
+This skill orchestrates sub-skills in strict sequence. Each sub-skill runs with its own
 isolated context — state is passed via the file system (session.yaml + spec artifacts).
+Orchestrators do not resolve capability packs; each sub-skill resolves its own (phase = design).
+
+## Design Output Layout
+All design artifacts live under `specs/intents/{intent}/units/{unit}/02-design/`
+(full tree: `.claude/skills/governance/phase-layout.md`). Per-project page names come from
+`unit-brief.md` → Impacted Projects. Unit-tier `knowledge-base.md` and `guide.yaml` stay at the unit root.
 
 ## Invocation Forms
 - `sk.design`                        — auto-detect mode, run all needed phases
@@ -13,12 +19,9 @@ isolated context — state is passed via the file system (session.yaml + spec ar
 - `sk.design "<change description>"` — REFRESH mode: update affected artifacts, record decision
 
 ## Pre-flight
-1. Read session.yaml — verify active_unit_id and active_intent_id are set
-   Either missing: STOP — run sk.session first to set the active unit
-2. Read unit-brief.md — confirm it exists and is populated
-   Missing: STOP — run sk.specify first to create the unit brief
-3. Read checkpoint_mode from session.yaml (set by sk.specify)
-   If missing: default to validate
+Run the unit pre-flight in `.claude/skills/governance/preflight.md`. This gives UNIT_DIR, DESIGN_DIR,
+the Impacted Projects, and `checkpoint_mode` from `01-story/story.md` frontmatter. If the unit-brief
+exists but is not populated, STOP and run sk.story first.
 
 ## Mode Detection
 Evaluate in this order — first match wins:
@@ -31,17 +34,18 @@ Evaluate in this order — first match wins:
   → see REFRESH workflow below
 
 **RESUME** — no flag, no description, some artifacts exist but pipeline is incomplete
-  Incomplete means: architecture.md exists but data-model.md or contracts/ are missing
+  Incomplete means: 02-design/architecture.md exists but 02-design/database-design.md or
+  02-design/contracts/ are missing
   → start from first missing artifact, skip completed phases
 
-**FRESH** — no flag, no description, architecture.md does not exist
+**FRESH** — no flag, no description, 02-design/architecture.md does not exist
   → run phase need detection, then run all needed phases
 
 ## Phase Need Detection (FRESH and RESUME modes only)
-Read all stories in the unit. Determine which phases are needed:
+Read the unit's story (`01-story/`). Determine which phases are needed:
 
 - Phase 1 (architecture): always needed in FRESH mode
-- Phase 2 (data model): needed if stories mention entities, tables, schema, data,
+- Phase 2 (data model): needed if the story mentions entities, tables, schema, data,
   storage, persistence, cache, search, or file upload
   If not needed: log "Phase 2 skipped — no data persistence signals in stories"
 - Phase 3 (contracts): needed if unit exposes or consumes APIs, events, or commands
@@ -72,15 +76,16 @@ Triggered when: `sk.design "<change description>"` is called.
 6. Gates apply per normal gate schedule for the active checkpoint_mode
 
 ## Gate Schedule
-Gates are driven by checkpoint_mode (see governance/checkpoint-rules.md):
+Gate behaviour (display, approved/cancel handling, autopilot hard stops) follows
+`.claude/skills/governance/review-gate.md`. This skill's schedule:
 
-| checkpoint_mode | Gate 1 (after architecture) | Gate 2 (after data model) |
-|---|---|---|
-| autopilot | skip | skip |
-| confirm | skip | PAUSE |
-| validate | PAUSE | PAUSE |
+| checkpoint_mode | Gate 1 (after architecture) | Gate 2 (after data model) | Gate 3 (after contracts) | Gate 4 (after UI design) |
+|---|---|---|---|---|
+| autopilot | skip | skip | skip | skip |
+| confirm | skip | PAUSE | PAUSE | PAUSE |
+| validate | PAUSE | PAUSE | PAUSE | PAUSE |
 
-Gate override: if architecture.md does not yet exist AND unit introduces a new bounded context,
+Gate override: if 02-design/architecture.md does not yet exist AND unit introduces a new bounded context,
 treat as validate regardless of checkpoint_mode.
 Log: "Gate override: new bounded context detected — validate required."
 
@@ -89,90 +94,67 @@ In TARGETED and REFRESH modes: gates apply only to phases that actually run.
 ## Orchestration
 
 ### Phase 1 — Architecture
-Condition: run if FRESH, or RESUME with architecture.md missing, or TARGETED --architecture,
+Condition: run if FRESH, or RESUME with 02-design/architecture.md missing, or TARGETED --architecture,
            or REFRESH with architecture in affected phases
-Invoke skill: sk.architecture
-- Context injected: session.yaml, domain-model.md, service-registry.md,
-  architecture-decisions.md, design-principles/SKILL.md
-- Waits for: architecture.md written and engineering review passed
+Invoke skill: sk.design_sub_architecture
+- Context injected: session.yaml, domain-model.md, service-registry.md, architecture-decisions.md
+  (design-phase capability packs are resolved inside the sub-skill)
+- Waits for: 02-design/architecture.md and 02-design/impact-analysis.md written and engineering review passed
 
-AUTOPILOT ENGINEERING REVIEW HARD STOP — autopilot mode only
-After sk.architecture completes, check the engineering review result:
-- If any BLOCKING or MEDIUM findings exist: STOP pipeline immediately.
-  Display:
-  ```
-  sk.design | Autopilot blocked — Engineering Review FAILED  [checkpoint_mode: autopilot]
+Autopilot hard stop: if the engineering review reports any BLOCKING or MEDIUM finding, STOP before
+Phase 2 per review-gate.md ("Fix the architecture and re-run sk.design, or escalate checkpoint_mode to
+'confirm'"). ADVISORY-only findings are logged and the pipeline proceeds.
 
-  The engineering review found issues that must be resolved before proceeding:
-  {list all BLOCKING and MEDIUM findings}
-
-  Fix the architecture and re-run sk.design, or escalate checkpoint_mode to 'confirm'.
-  ```
-  Do NOT continue to Phase 2.
-- If only ADVISORY findings: log them and proceed automatically.
-- If no findings: proceed automatically.
-
-REVIEW GATE 1 — validate mode only (skip for autopilot and confirm)
-If gate is active, display:
-```
-sk.design | Gate 1 — Architecture Review  [checkpoint_mode: validate]
-
-Review the following before continuing:
-  specs/intents/{intent}/units/{unit}/architecture.md
-  specs/intents/{intent}/units/{unit}/knowledge-base.md  (if updated)
-
+GATE 1 — Architecture Review (validate only)
+Review: 02-design/architecture.md, 02-design/impact-analysis.md, knowledge-base.md (if updated)
 Check for:
   - Bounded context is correct and scoped to this unit only
+  - impact-analysis.md covers every project in unit-brief.md with a change type
   - No unresolved BLOCKING or MEDIUM findings from the engineering review
   - Any ADVISORY findings (new cross-service decisions) have an ADR planned
   - Open questions are acceptable to carry into data model design
-
-Type 'approved' to proceed to data model design.
-Type 'cancel' to stop — artifacts created so far will be preserved.
-```
-- 'cancel': STOP. Report artifacts written so far. Remaining phases skipped.
-- 'approved': continue
-If gate is skipped: log "Gate 1 skipped (checkpoint_mode: {mode})" and proceed automatically.
+On cancel: remaining phases skipped.
 
 ### Phase 2 — Data Model
-Condition: run if needed per phase need detection, or RESUME with data-model.md missing,
+Condition: run if needed per phase need detection, or RESUME with 02-design/database-design.md missing,
            or TARGETED --datamodel, or REFRESH with datamodel in affected phases
-Invoke skill: sk.datamodel
-- Context injected: session.yaml, domain-model.md, data-standards.md, design-principles/SKILL.md
-- Reads from disk: architecture.md
-- Waits for: data-model.md written and domain-model.md updated
+Invoke skill: sk.design_sub_datamodel
+- Context injected: session.yaml, domain-model.md, data-standards.md
+- Reads from disk: 02-design/architecture.md
+- Waits for: 02-design/database-design.md written and domain-model.md updated
 
-REVIEW GATE 2 — confirm and validate modes only (skip for autopilot)
-If gate is active, display:
-```
-sk.design | Gate 2 — Data Model Review  [checkpoint_mode: {mode}]
-
-Review the following before continuing:
-  specs/intents/{intent}/units/{unit}/data-model.md
-  .specify/memory/domain-model.md  (if updated)
-
+GATE 2 — Data Model Review (confirm, validate)
+Review: 02-design/database-design.md, .specify/memory/domain-model.md (if updated)
 Check for:
   - No entity conflicts with other units in domain-model.md
   - Breaking schema changes are intentional and migration strategy is defined
   - Index strategy covers all query patterns
   - Transaction boundaries are declared for every write path
-
-Type 'approved' to proceed to API contract design.
-Type 'cancel' to stop — artifacts created so far will be preserved.
-```
-- 'cancel': STOP. Report artifacts written so far. Contracts skipped.
-- 'approved': continue
-If gate is skipped: log "Gate 2 skipped (checkpoint_mode: autopilot)" and proceed automatically.
+On cancel: contracts skipped.
 
 ### Phase 3 — API Contracts
-Condition: run if needed per phase need detection, or RESUME with contracts/ missing,
+Condition: run if needed per phase need detection, or RESUME with 02-design/contracts/ missing,
            or TARGETED --contracts, or REFRESH with contracts in affected phases
-Invoke skill: sk.contracts
-- Context injected: session.yaml, service-registry.md, api-standards.md,
-  tech-stack.md, design-principles/SKILL.md
-- Reads from disk: architecture.md and data-model.md
-- Waits for: api-spec.json, test-plan.md, provider tests written,
+Invoke skill: sk.design_sub_contracts
+- Context injected: session.yaml, service-registry.md, api-standards.md, tech-stack.md
+- Reads from disk: 02-design/architecture.md, 02-design/database-design.md, unit-brief.md
+- Waits for: 02-design/contracts/api-spec.json, 02-design/contracts/test-plan.md,
+  02-design/api-contract.md, 02-design/projects/{BackendProject}.md, provider tests written,
   service-registry.md updated
+
+GATE 3 — API Contract Review (confirm, validate)
+Review: 02-design/contracts/api-spec.json, 02-design/contracts/test-plan.md, 02-design/api-contract.md,
+02-design/projects/{BackendProject}.md, and the provider contract tests written under each Backend
+project's Test Layout.
+Check for:
+  - Every endpoint the story needs exists; no endpoint exists that no story needs
+  - api-contract.md and contracts/api-spec.json agree — no endpoint documented in one and absent in the other
+  - No breaking change to an endpoint already in service-registry.md without a versioned replacement
+  - Idempotency-Key declared on every mutation endpoint (POST/PUT/PATCH/DELETE)
+  - Error responses follow api-standards.md; auth/authz is declared per endpoint
+  - The test plan has a provider section plus one consumer section per impacted Frontend/Mobile project,
+    each listing only the endpoints that consumer actually calls
+On cancel: Phases 4-6 skipped; contracts written so far are preserved.
 
 ### Phase 4 — Knowledge Base Assessment
 Condition: always runs after any phase completes (FRESH, RESUME, REFRESH, TARGETED)
@@ -201,19 +183,55 @@ Evaluate whether this design run produced non-derivable content worth capturing:
 Condition: always runs after any phase completes (all modes).
 
 Auto-generate a unit-level routing index.
-1. Read `unit-brief.md`, `architecture.md`, `data-model.md`, and contracts to understand unit components.
-2. Read the actual directory structure (`src/**`) to identify where modules and files live.
-3. Generate or overwrite `specs/intents/{intent}/units/{unit}/guide.yaml`. Use `templates/artifacts/guide-template.yaml` as reference. It must contain the non-obvious cross-cutting constraints in the `also-check:` field.
+1. Read `unit-brief.md`, `02-design/architecture.md`, `02-design/impact-analysis.md`,
+   `02-design/database-design.md`, `02-design/api-contract.md`, and `02-design/contracts/`
+   to understand unit components and impacted projects.
+2. Read the actual directory structure under each impacted project's `{CodeRoot}` to identify where
+   modules and files live.
+3. Generate or overwrite `specs/intents/{intent}/units/{unit}/guide.yaml`. Use `{TEMPLATES_DIR}/artifacts/guide-template.yaml` as reference. It must contain the non-obvious cross-cutting constraints in the `also-check:` field.
 4. If missing, create/update the domain-level guide entry for this unit in `specs/domains/{domain}/guide.yaml`.
 5. If missing, create/update the system-level guide entry for this domain in `specs/guide.yaml`.
 6. Log: "Guide updated — {unit-id}".
 
-## Checkpoint Pause Protocol
-When a review gate pause is required:
-1. Display the gate message clearly with the artifact paths
-2. Wait for user input: 'approved' or 'cancel'
-3. 'cancel': STOP pipeline, list all artifacts written so far, suggest next step
-4. 'approved': continue to next phase
+### Phase 6 — Frontend UI Design
+Condition: run ONLY if the unit has a user-facing surface. This phase is self-contained — it does its own
+review, its own KB assessment, and registers its own artifact in the guide. It never alters the behaviour
+of Phases 1–5; for a pure backend unit it skips cleanly and the pipeline output is unchanged.
+
+**Frontend signal detection** — any of:
+  - `unit-brief.md` → Impacted Projects has a row with Type = Frontend or Type = Mobile
+  - a surface or project listed in `.specify/memory/skill-routing.md` → `## Surfaces` is named in the story
+  - story `tags` or prose mention: page, screen, route, component, UI, frontend, portal, admin, mobile
+
+If NO frontend signal is found:
+  Log: "Phase 6 skipped — no frontend signals detected. Pipeline output unchanged."
+  Proceed to the completion report.
+
+If a frontend signal IS found:
+  Invoke skill: sk.design_sub_ui-design
+  - Context injected: coding-standards.md, domain-model.md
+  - Reads from disk: 02-design/architecture.md, 02-design/contracts/api-spec.json,
+    02-design/contracts/test-plan.md, 02-design/api-contract.md,
+    02-design/database-design.md (if present), unit-brief.md, 01-story/
+  - Waits for: 02-design/ui-model.md and one 02-design/projects/{Project}.md per impacted
+    Frontend/Mobile project written, and frontend engineering review passed
+
+  Autopilot hard stop: BLOCKING or MEDIUM findings in the frontend engineering review STOP the phase
+  per review-gate.md; ADVISORY-only findings are logged and the phase proceeds.
+
+  GATE 4 — Frontend UI Review (confirm, validate)
+  Review: 02-design/ui-model.md, 02-design/projects/ (one page per impacted Frontend/Mobile project)
+  Check for:
+    - Every story has a frontend surface (route/component) or is marked backend-only
+    - State placement is correct — no server-owned data in the global client store
+    - Every consumed field exists in the API contract — no invented endpoints
+    - Loading, empty, and error states are defined for every async surface
+    - Accessibility targets are present for interactive components
+
+  After the gate, update the unit guide entry so the frontend artifacts are indexed:
+  - Add `02-design/ui-model.md` and the `02-design/projects/{Project}.md` frontend pages to the unit
+    `guide.yaml` artifact list and record any cross-cutting frontend constraint in its `also-check:` field.
+  - Log: "Guide updated with ui-model — {unit-id}".
 
 ## Completion Report
 After all phases complete, display:
@@ -242,7 +260,7 @@ Next step: /sk.plan
 - Mode is detected and logged at the start — never ambiguous
 - REFRESH always records the decision in unit knowledge-base.md before touching any artifact
 - Domain-wide implications in REFRESH are flagged as ADVISORY, never silently written to tier 1/2
-- Gate schedule is derived from checkpoint_mode — never overridden downward without logging
+- Gate schedule is derived from checkpoint_mode (story frontmatter) — never overridden downward without logging
 - New bounded context always triggers validate regardless of checkpoint_mode
 - Active gates must receive explicit 'approved' before the next phase starts
 - Skipped gates are logged inline so the user can see what was bypassed
