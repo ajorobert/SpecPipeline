@@ -10,12 +10,12 @@ updated: {date}
 
 ## Objective
 <!-- Briefly define what the overall goal of this Intent is.
-Example: "Migrate the legacy authentication system to OAuth2 to improve security and user experience." -->
+Example: "Move customer sign-in to a single identity provider to improve security and user experience." -->
 
 ## Success Criteria
 <!-- Define measurable requirements that prove the intent is complete.
 Example:
-- [ ] Auth service deployed and reachable at /api/v1/auth
+- [ ] Every customer-facing app signs in through the identity provider
 - [ ] 0 critical security audit findings
 - [ ] 100% of P0 user workflows verified under new system
 -->

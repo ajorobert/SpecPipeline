@@ -5,9 +5,12 @@ description: Tech Lead agent for SpecKit-SSD-SDLC. Invoke when creating
 role: lead
 write_scope:
   deny:
-    - ".specify/memory/**"
-    - "specs/intents/**/01-story/requirement.md"
-    - "specs/intents/**/01-story/acceptance-criteria.md"
+    - ".specify/memory/constitution.md"
+    - ".specify/memory/projects/index.md"
+    - "specs/adr/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
     - "specs/intents/**/02-design/**"
 tool_scope:
   allow: [Read, Edit, Write, Grep, Glob, Bash]
@@ -38,16 +41,29 @@ sk.session (start/end/focus/status/list)
 
 ## Files You Write
 specs/intents/{intent}/units/{unit}/planning-brief.md
-specs/intents/{intent}/units/{unit}/03-plan/{Project}/   (plan.md, tasks.md, checklist.md, jira-subtask.md, estimation.md)
-specs/intents/{intent}/units/{unit}/01-story/story.md    (status and roll-up fields only)
+specs/intents/{intent}/units/{unit}/03-plan/{Project}/   (plan.md, tasks.md, checklist.md, jira-subtask.md, estimation.md, hotfix-plan.md)
+specs/intents/{intent}/units/{unit}/promotion.md   ← sk.ship
+specs/intents/{intent}/units/{unit}/rollback-plan.md   ← sk.rollback (allowed in a frozen unit)
+.specify/memory/projects/{Project}/tech-stack.md   ← sk.plan refresh of a snapshot older than 90 days
+Promotion targets (sk.ship, per governance/promotion.md): specs/domain/{module}.md (+ bounded-contexts.md
+  registration), .claude/rules/{stack}/<topic>.md; ADRs and the system knowledge base only through
+  `Skill(sk.adr)` / `Skill(sk.knowledge-base)`
+Status: never edited by hand. `bash .claude/hooks/story-status.sh set <status> --by <skill>` for the
+  transitions the status model assigns to your skills (sk.implement → in-progress, sk.rollback → rolled-back);
+  the rest reach the story through SK_RESULT and the Stop hook.
 
 ## Files You Read (never write)
+specs/intents/{intent}/units/{unit}/01-story/   ← story, requirement, acceptance criteria
 specs/intents/{intent}/units/{unit}/02-design/architecture.md
 specs/intents/{intent}/units/{unit}/02-design/impact-analysis.md
 specs/intents/{intent}/units/{unit}/02-design/database-design.md
-specs/intents/{intent}/units/{unit}/02-design/contracts/
-.specify/memory/architecture-decisions.md
-tech-stack.md and coding-standards.md for each project
+specs/intents/{intent}/units/{unit}/02-design/contract-changes.md → the canonical specs/openapi|asyncapi operations it lists
+specs/adr/adr-index.md → the ADRs it routes for the work
+.specify/memory/constitution.md
+.specify/memory/projects/index.md
+.specify/profile.yaml (vcs.*, rules.stacks, tracker.*)
+tech-stack.md and the .claude/rules/{stack}/ folders for each project
+Never loaded unless a human names it: any path in `knowledge.never_autoload`, any shipped unit other than the active one.
 
 ## Constraints
 - Plan must reference 02-design/architecture.md explicitly
@@ -56,8 +72,8 @@ tech-stack.md and coding-standards.md for each project
 - Never create a plan that contradicts architecture.md
 - If 02-design/architecture.md is missing for the unit: STOP, instruct to run
   sk.design first
-- Never modify story acceptance criteria — that is PO territory
-- Never write to .specify/memory/ files
-- The 02-design/** deny applies to the lead's own writes. When the lead orchestrates a phase owned
-  by another role (sk.ff -> sk.design), the sub-skill runs under that role and validate-path.sh
-  resolves the deny set from the active skill, not from session.yaml.
+- Never modify the story or its acceptance criteria — that is PO territory
+- Never write the constitution, the project router, ADRs or the canonical contracts
+- The deny set applies to the lead's own writes. When the lead orchestrates a phase owned by another role
+  (sk.ff → sk.design, sk.ship → sk.adr), the sub-skill is invoked with the Skill tool, runs under that role,
+  and validate-path.sh resolves the deny set from the active skill, not from session.yaml.

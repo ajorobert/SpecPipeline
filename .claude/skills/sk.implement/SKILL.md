@@ -1,10 +1,10 @@
 ---
 name: sk.implement
-description: "Invoke when: executing the implementation phase for a unit, producing one delivery folder per impacted project. Role: lead (orchestrator). Runs at unit level. Invokes: sk.implement_sub_implementproject (for each impacted project). Produces 04-implementation/{Project}/ (implementation.md, progress.md, validation.md) per impacted project. Reads: session.yaml, unit-brief.md, 02-design/**, 03-plan/{Project}/ (plan.md, tasks.md, checklist.md), coding-standards.md."
+description: "Invoke when: executing the implementation phase for a unit, producing one delivery folder per impacted project. Role: lead (orchestrator). Runs at unit level. Invokes with the Skill tool: sk.implement_sub_implementproject (once per impacted project). Produces 04-implementation/{Project}/ (implementation.md, progress.md, validation.md) per impacted project. Reads: .specify/state/session.yaml, unit-brief.md, 02-design/** (contract-changes.md → canonical specs/openapi|asyncapi operations), 03-plan/{Project}/ (plan.md, tasks.md, checklist.md), .specify/memory/projects/index.md. Writes: status.current → in-progress via story-status.sh."
 subagent_type: SpecKit Lead Agent
 inject_files:
   - .claude/skills/governance/checkpoint-rules.md
-  - .specify/memory/standards/tech-stack.md
+  - .specify/memory/projects/index.md
 preconditions:
   - "file_contains: {unit_dir}/unit-brief.md :: ^[|][^|]+[|][[:space:]]*(Backend|Frontend|Mobile)[[:space:]]*[|]"
   - "story.checkpoint_mode in [autopilot, confirm, validate]"
@@ -13,10 +13,10 @@ preconditions:
 ---
 
 Orchestrator skill — full implementation pipeline for a unit.
-Invokes `sk.implement_sub_implementproject` for each impacted project (from the unit's Impacted Projects table),
-each consuming that project's `03-plan/{Project}/` and producing a delivery folder under
-`04-implementation/{Project}/`. Each sub-skill runs in its own isolated context — state is passed
-via the file system (session.yaml + spec/plan artifacts).
+Invokes `sk.implement_sub_implementproject` with the Skill tool for each impacted project (from the unit's
+Impacted Projects table), each consuming that project's `03-plan/{Project}/` and producing a delivery
+folder under `04-implementation/{Project}/`. Each sub-skill runs in its own isolated context — state is passed
+via the file system (`.specify/state/session.yaml` + spec/plan artifacts).
 
 Requires `03-plan/{Project}/plan.md` for each targeted project (approved when checkpoint_mode is
 confirm or validate). Refine mode activated per project if a `review-{story-id}.md` exists.

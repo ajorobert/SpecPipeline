@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# Usage: create-phr.sh "<feature-name>"
-# Creates a numbered PHR file in history/prompts/<feature>/
+# create-phr.sh — reserve the next Prompt History Record file. Run from the project root.
+#
+#   bash {SCRIPTS_DIR}/create-phr.sh "<feature-name>"
+#
+# Creates history/prompts/<feature>/ on first use and an empty PHR-NNN-<date>.md in it.
+# sk.phr writes the content.
 
 set -e
 

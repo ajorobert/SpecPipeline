@@ -3,8 +3,8 @@ Framework-owned block, referenced by path. Resolves where the framework's own as
 differs between this repository and an installed project.
 
 ## Why this is needed
-`setup.sh` syncs only `.claude/skills/sk.*`, `.claude/skills/governance`, the memory-pointer skills,
-the framework agents and `.claude/hooks/*.sh` into a project. It does **not** copy `templates/` or
+`setup.sh` syncs only `.claude/skills/sk.*`, `.claude/skills/governance`, the framework agents and
+`.claude/hooks/*.sh` into a project. It does **not** copy `templates/` or
 `scripts/` — those stay in the framework subtree (normally `.speckit/`). A skill that writes
 `{TEMPLATES_DIR}/artifacts/...` as a bare path therefore resolves nothing in an installed project.
 
@@ -24,5 +24,5 @@ the framework agents and `.claude/hooks/*.sh` into a project. It does **not** co
 - Every reference to a framework template is written `{TEMPLATES_DIR}/artifacts/<name>` — never a bare
   `templates/...` path.
 - Templates are read-only. A skill never writes into `{TEMPLATES_DIR}` or `{FRAMEWORK_DIR}`.
-- Project-owned paths (`.specify/`, `specs/`, `history/`, `.claude/session.yaml`) are always relative to
-  the project root and never go through this resolution.
+- Project-owned paths (`.specify/`, `specs/`, `history/`, `.claude/rules/`, `.claude/skills/README.md`)
+  are always relative to the project root and never go through this resolution.

@@ -24,13 +24,20 @@ Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/`, `PLAN_DIR = UNIT_DIR/
 - DESIGN_DIR/projects/{Project}.md                   (if exists — the per-project design slice; primary source)
 - DESIGN_DIR/architecture.md                         (required — system architecture)
 - DESIGN_DIR/impact-analysis.md                      (if exists — sequencing & dependencies)
-- DESIGN_DIR/contracts/api-spec.json                 (if exists — canonical machine API contract)
+- DESIGN_DIR/contract-changes.md                     (if exists — changed operations + compatibility class)
+- The canonical operations contract-changes.md lists — only those, in `specs/openapi/{audience}.yaml` /
+  `specs/asyncapi/{module}.yaml` as edited on this branch (the contract the code must match)
 - DESIGN_DIR/database-design.md                      (if exists — DB/data model)
 - DESIGN_DIR/ui-model.md                             (if exists — REQUIRED for Frontend/Mobile projects)
 - UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md  (the unit's story)
 - UNIT_DIR/knowledge-base.md                         (if exists — non-derivable unit context)
 - IMPL_DIR/review-{story-id}.md                      (if exists — drives REFINE mode)
-- The project's coding-standards.md and tech-stack.md (`.claude/skills/governance/project-resolution.md`)
+- `.specify/memory/projects/{Project}/tech-stack.md` (`.claude/skills/governance/project-resolution.md`)
+- The project's coding rules: every `.claude/rules/{stack}/` folder mapped to `{Project}` (or its
+  `{ProjectType}`) by `rules.stacks` in `.specify/profile.yaml` (default Backend → `backend`, Frontend →
+  `web`, Mobile → `mobile`). A missing folder is logged `{folder} not present — skipped`.
+- `.specify/memory/constitution.md` and the ADRs routed by `specs/adr/adr-index.md` for this work
+  (loading rules: `.claude/skills/governance/profile.md`)
 
 ## Pre-flight
 1. Verify PLAN_DIR/plan.md and PLAN_DIR/tasks.md exist.
@@ -90,8 +97,8 @@ updated: {today}
 Status values: `pending` → `scaffolded` → `done` (or `blocked` with a reason).
 
 ### 2. Structural Scaffolding
-Invoke skill: `sk.implement_sub_scaffolding` with this project's context.
-- Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`, and the project slice
+Invoke with the Skill tool: `Skill(sk.implement_sub_scaffolding)` with this project's context.
+- Pass (as the skill's args): `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`, and the project slice
   (`03-plan/{Project}/plan.md`, `03-plan/{Project}/tasks.md`, plus the design/contract artifacts).
 - It creates files, types, interfaces, request/response types, stubs, and test fixtures inside `{CodeRoot}`
   per the plan's Files Affected — NO business logic. It marks each scaffolded task `scaffolded` in `progress.md`.
@@ -100,18 +107,20 @@ Invoke skill: `sk.implement_sub_scaffolding` with this project's context.
 GATE — Scaffolding Review (confirm, validate; protocol `.claude/skills/governance/review-gate.md`)
 Review: the scaffolding generated under {CodeRoot} for {Project}.
 Check for:
-  - File locations match 03-plan/{Project}/plan.md → Files Affected and coding-standards.md.
+  - File locations match 03-plan/{Project}/plan.md → Files Affected and the project's `.claude/rules/{stack}/`.
+  - Contract codegen ran (or its skip was logged) per `contracts.codegen`.
   - No business logic was prematurely implemented.
   - Existing files were inspected; existing functionality was not altered.
 On cancel: scaffolding for {Project} is preserved; code generation is skipped for this project.
 
 ### 3. Code Generation
-Invoke skill: `sk.implement_sub_codegen` with this project's context.
-- Pass: the same project context as scaffolding, plus `review-{story-id}.md` in REFINE mode.
+Invoke with the Skill tool: `Skill(sk.implement_sub_codegen)` with this project's context.
+- Pass (as the skill's args): the same project context as scaffolding, plus `review-{story-id}.md` in REFINE mode.
 - It implements the business logic, rules, conditions, transformations, and validations inside the
   scaffolded structures within `{CodeRoot}`, executing `03-plan/{Project}/tasks.md` in build order.
   It marks each completed task `done` in `progress.md`.
-- Implementation must match `contracts/api-spec.json` exactly and honor the plan's Test Plan.
+- Implementation must match the canonical operations listed in `contract-changes.md` exactly and honor
+  the plan's Test Plan.
 
 ### 4. Write implementation.md
 Write `04-implementation/{Project}/implementation.md`:
@@ -144,7 +153,7 @@ Must reconcile with plan.md → Files Affected; flag any addition not in the pla
 
 ## Decisions
 Implementation-level decisions made while realizing the plan (library choice, local structure), each
-traced to plan.md / architecture.md / a capability pack. No new architecture — if a decision implies a
+traced to plan.md / architecture.md / an ADR / a rule file / a capability pack. No new architecture — if a decision implies a
 design change, record it as an Issue instead and stop short of redesigning.
 
 ## Deviations from Plan
@@ -189,6 +198,9 @@ Anything preventing this project from passing the unit review gate, with severit
 ## IMPORTANT Implementation Rules (enforced)
 - Do NOT modify existing functionality. Only add the change set the plan calls for.
 - MUST inspect existing code in the target area before editing — match established patterns.
+- MUST follow the constitution, the routed ADRs and the project's `.claude/rules/{stack}/` (precedence:
+  `.claude/skills/governance/profile.md`). On a conflict with the plan, follow the higher source and
+  record the conflict in implementation.md → Deviations from Plan.
 - MUST NOT rewrite complete files unless required; prefer additive, surgical edits.
 - Add missing functionality per the plan; do not invent scope beyond it.
 - Before modifying any file, analyze the existing implementation first.
@@ -201,6 +213,7 @@ Violating these rules means the implementation is incorrect.
 - Every task in `03-plan/{Project}/tasks.md` is accounted for in `progress.md` (done | blocked + reason).
 - `implementation.md` → Changed Files reconciles with plan.md → Files Affected; out-of-plan files are flagged.
 - `validation.md` reports build, tests, and AC coverage honestly — failures surfaced, never PASS over a failure.
-- Implementation matches `contracts/api-spec.json`; Frontend/Mobile follows `ui-model.md`.
+- Implementation matches the canonical operations in `contract-changes.md`; Frontend/Mobile follows `ui-model.md`.
+- Code follows the project's `.claude/rules/{stack}/`, the routed ADRs and the constitution; conflicts are recorded.
 - Existing functionality preserved; edits are additive and pattern-matching; no gratuitous file rewrites.
 - All three docs written (implementation.md, progress.md, validation.md).

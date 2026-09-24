@@ -1,11 +1,10 @@
 ---
 name: sk.implement_sub_scaffolding
-description: "INTERNAL sub-skill of sk.implement. Never invoke directly or in response to a user request — only when the sk.implement pipeline directs it. Performs structural scaffolding (creating files, classes, stubs, test fixtures) for ONE project within its {CodeRoot}, with no business logic. Role: backend | frontend | mobile."
+description: "INTERNAL sub-skill of sk.implement. Never invoke directly or in response to a user request — only when the sk.implement pipeline directs it. Performs structural scaffolding (creating files, classes, stubs, test fixtures) for ONE project within its {CodeRoot}, with no business logic. Runs contracts.codegen from .specify/profile.yaml when set. Role: backend | frontend | mobile. Reads: 03-plan/{Project}/ (plan.md, tasks.md), 02-design/ (architecture.md, projects/{Project}.md, contract-changes.md → canonical specs/openapi|asyncapi operations, database-design.md, ui-model.md), specs/domain/{module}.md of the touched contexts, .specify/memory/projects/{Project}/tech-stack.md, the project's .claude/rules/{stack}/ (rules.stacks), specs/adr/adr-index.md → routed ADRs, .specify/memory/constitution.md, .claude/skills/README.md (implement packs). Writes: {CodeRoot}, 04-implementation/{Project}/progress.md."
 subagent_type: SpecKit Backend Engineer Agent
 inject_files:
-  - .specify/memory/standards/coding-standards.md
-  - .specify/memory/standards/observability-standards.md
-  - .specify/memory/architecture-decisions.md
+  - .specify/memory/constitution.md
+  - specs/adr/adr-index.md
 ---
 
 Structural scaffolding step for one impacted project of a unit.

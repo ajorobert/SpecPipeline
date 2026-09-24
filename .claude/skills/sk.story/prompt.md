@@ -3,6 +3,7 @@ Runs the complete story capture and clarification pipeline.
 Role: po (orchestrator) | Level: story
 
 This skill orchestrates `sk.story_sub_specify`, `sk.story_sub_clarify`, and `sk.story_sub_architect-probe` in sequence, running completeness checks and looping clarification as needed for both business and technical aspects.
+Every sub-skill is invoked with the **Skill tool** (`Skill(sk.story_sub_specify)`, with any flags as its args), never by reading its prompt.md — that is how `skill-start.sh` runs preconditions and sets the active role (`.claude/skills/governance/status-model.md`).
 
 ## Mode Detection
 Evaluate in this order:
@@ -18,13 +19,21 @@ Evaluate in this order:
 - `sk.story --bug` → [BUG MODE]
 
 **SOURCE MODIFIER** (combines with FULL PIPELINE; default is manual)
-- `sk.story --jira {Jira_Id}` → [JIRA MODE] — ingest the Jira task via MCP and auto-seed the pipeline (still pairs with FEATURE/BUG framing; `--bug` may be added).
-- No `--jira` flag → [MANUAL MODE] — capture the story via the interactive interview (existing behavior).
+- `sk.story --jira {Jira_Id}` → [JIRA MODE] — ingest the tracker issue through the tracker connector and auto-seed the pipeline (still pairs with FEATURE/BUG framing; `--bug` may be added).
+- No `--jira` flag → [MANUAL MODE] — capture the story via the interactive interview.
 
 ## Pre-flight
-1. Read `session.yaml`
-2. Load `.specify/memory/system-context.md`, `.specify/memory/architecture-decisions.md`, `.specify/memory/domain-model.md`
-3. Load `.specify/memory/projects/index.md` as the **project router** (available projects + their types). It is used by `sk.story_sub_architect-probe` to record the **impacted projects** into `unit-brief.md`. The story itself is NOT split per project.
+1. Read `.specify/state/session.yaml`.
+2. Read `.specify/profile.yaml` once (every key optional; defaults in `.claude/skills/governance/profile.md`).
+   Note `tracker.kind` (default `none`) and `tracker.project`. Never read a path matched by
+   `knowledge.never_autoload`.
+3. Knowledge, per the loading rules in `.claude/skills/governance/profile.md`:
+   - `specs/knowledge-base.md` — the system overview (already in context through CLAUDE.md).
+   - `specs/adr/adr-index.md` — load the ALWAYS block's ADRs now; signal blocks are loaded by
+     `sk.story_sub_architect-probe` once the story's tags and text exist.
+   - `specs/domain/bounded-contexts.md` — the context map.
+   A missing home is logged `{home} not present — skipped`; it is never created here.
+4. Load `.specify/memory/projects/index.md` as the **project router** (available projects + their types). It is used by `sk.story_sub_architect-probe` to record the **impacted projects** into `unit-brief.md`. The story itself is NOT split per project.
 
 ## Story Layout
 A unit has exactly one story, in the fixed phase folder `01-story/` (`.claude/skills/governance/phase-layout.md`).
@@ -34,31 +43,33 @@ specs/intents/{intent}/units/{unit}/01-story/
     story.md                # user story (frontmatter + As-a/I-want/So-that + scope)
     requirement.md          # business + non-functional requirements, clarifications, architecture constraints
     acceptance-criteria.md  # testable acceptance criteria (GWT)
-    jira.md                 # optional — Jira source mapping (only in [JIRA MODE])
+    jira.md                 # only when tracker-seeded — the issue description as seeded
 ```
 - Story ID stays `{INTENT}-{UNIT}-{NNN}` in `story.md` frontmatter.
 - Work that needs a second story belongs in a new unit.
 - Whenever a phase below says "the story", it means this folder; assessments read across `story.md` + `requirement.md` + `acceptance-criteria.md`.
+- `status.current` and `jira_id` are written only through `bash .claude/hooks/story-status.sh`, never by Edit/Write.
 
 ## Phase 0 — Jira Ingestion (only in [JIRA MODE])
 Runs before Phase 1 when `--jira {Jira_Id}` is supplied. Skipped entirely in [MANUAL MODE].
-1. Load the Atlassian MCP tool schema first (deferred): `ToolSearch` with query `select:mcp__claude_ai_Atlassian_Rovo__getJiraIssue` (also fetch `searchJiraIssuesUsingJql` if the parent/epic must be resolved).
-2. Fetch the issue `{Jira_Id}` via `getJiraIssue`. If the fetch fails (auth missing, unknown ID, MCP not connected): STOP and report — do not silently fall back to manual.
-3. Map Jira fields → pipeline seed data:
+1. Load the tracker connector's tool schemas first (they are deferred): `ToolSearch` for the issue-read
+   tool (for Jira, the Atlassian MCP `getJiraIssue`; also its JQL search tool if the parent/epic must be resolved).
+2. Fetch the issue `{Jira_Id}`. If the fetch fails (auth missing, unknown ID, connector not available): STOP and report — do not silently fall back to manual.
+3. Map issue fields → pipeline seed data:
    - **Summary** → story title + action.
    - **Description / acceptance-criteria field / checklist** → requirement, happy path, and seed acceptance criteria.
    - **Issue type** (`Bug` → also engage [BUG MODE] framing) and **labels/components** → tags + project-impact hints.
    - **Epic / parent** → candidate Intent; the issue itself → candidate Unit + Story.
-4. Carry the seed data forward so sub-skills PRE-FILL answers instead of re-asking. Record the source `jira_id: {Jira_Id}` in story frontmatter.
+4. Carry the seed data forward so sub-skills PRE-FILL answers instead of re-asking. The key is linked to the story in Phase 5b.
 
 ## Orchestration
 
 ### Phase 1 — Story Capture
-Invoke sub-skill: `sk.story_sub_specify` (or `--bug` if in bug mode)
-- In [JIRA MODE]: pass the Phase 0 seed data to `sk.story_sub_specify`. It pre-fills intent/unit/story fields from Jira and only asks for fields Jira left genuinely empty — it does not re-run the full interview.
+`Skill(sk.story_sub_specify)` (args `--bug` in bug mode). `skill-start.sh` moves the story to `draft` when it starts.
+- In [JIRA MODE]: pass the Phase 0 seed data to `sk.story_sub_specify`. It pre-fills intent/unit/story fields from the issue and only asks for fields the issue left genuinely empty — it does not re-run the full interview.
 - In [MANUAL MODE]: `sk.story_sub_specify` runs the interactive interview as normal.
 - Wait for specify phase to complete and write the story folder (`story.md`, `requirement.md`, `acceptance-criteria.md`)
-- Read back `active_unit_id` / `active_story_id` from `session.yaml`
+- Read back `active_unit_id` / `active_story_id` from `.specify/state/session.yaml`
 
 ### Phase 2 — Business Completeness Assessment
 Run a structural coverage check on the generated story folder (`story.md` + `acceptance-criteria.md`).
@@ -83,7 +94,7 @@ Gather all items marked ⚠️ Partial or ❌ Missing as seeds for Phase 3.
 If all items are ✅ Clear, skip Phase 3 and go to Phase 4.
 
 ### Phase 3 — Iterative Business Clarification
-Loop `sk.story_sub_clarify` up to 3 times to resolve the gaps identified in Phase 2.
+Loop `Skill(sk.story_sub_clarify)` up to 3 times to resolve the gaps identified in Phase 2.
 
 **Round 1:**
 - Present the ⚠️/❌ items to the clarify sub-skill.
@@ -119,12 +130,10 @@ table, and every downstream phase (`02-design/projects/`, `03-plan/{Project}/`,
 sk.design / sk.plan / sk.implement / sk.test STOPs when it is empty. **This phase therefore always
 runs**, in one of two modes:
 
-- **All Phase 4 items ✅ Clear** → invoke `sk.story_sub_architect-probe --impact-only`.
+- **All Phase 4 items ✅ Clear** → `Skill(sk.story_sub_architect-probe)` with args `--impact-only`.
   It performs the Impact Analysis and writes the Impacted Projects table, and asks no questions.
-- **Any ⚠️ Partial or ❌ Missing** → invoke `sk.story_sub_architect-probe` in full, looping up to 2
+- **Any ⚠️ Partial or ❌ Missing** → `Skill(sk.story_sub_architect-probe)` in full, looping up to 2
   times. The full mode does the same Impact Analysis plus the question loop.
-
-Loop `sk.story_sub_architect-probe` up to 2 times to resolve gaps from Phase 4.
 
 **Round 1:**
 - Present the ⚠️/❌ items to the architect-probe sub-skill.
@@ -133,25 +142,43 @@ Loop `sk.story_sub_architect-probe` up to 2 times to resolve gaps from Phase 4.
 - Re-run Phase 4 Assessment. If all ✅, exit loop.
 - **Round 2:** Repeat if needed. Exit loop after Round 2 regardless.
 
+### Phase 5b — Tracker Seeding (when `tracker.kind` is set, or in [JIRA MODE])
+Skipped when `tracker.kind` is `none` and no `--jira` was given. Runs before Phase 6 so the `ready`
+transition already mirrors (`.claude/skills/governance/tracker-mirror.md`).
+1. **Link** ([JIRA MODE]): the issue is `{Jira_Id}` from Phase 0.
+   **Create** (no `--jira`, `tracker.kind` set, story has no `jira_id` yet): ask the PO
+   "Create a {tracker.kind} issue in {tracker.project} for this story, or link an existing key? (create / link {KEY} / skip)".
+   On `create`, load the connector's create tool with `ToolSearch` (for Jira, the Atlassian MCP
+   `createJiraIssue`) and create the issue in `tracker.project`: summary = story title, description =
+   the seeded description (step 2), issue type = Bug for bug stories, else the project's story type.
+   On `skip`, record `Tracker seeding skipped by PO` in the completion report and go to Phase 6.
+2. Write `01-story/jira.md` — the seeded description only: the issue key, a link to it, and the
+   description text as sent to (or ingested from) the tracker. It carries no status and no copy of the
+   story frontmatter; the framework is the record and the issue follows it.
+3. Store the key: `bash .claude/hooks/story-status.sh field jira_id {KEY}`.
+4. If the connector is unavailable or the call fails: do not write `jira_id`; tell the PO, and continue.
+   The story works without a tracker issue; `sk.story` can seed it later.
+
 ### Phase 6 — Final Validation Gate
 Before marking the story as ready:
 1. Show a combined summary of the final Business & Technical Assessments.
 2. If all items are ✅ across both:
-   - Auto-set `status.current: ready` (and `status.entered_at`) in the `story.md` frontmatter.
+   - Run `bash .claude/hooks/story-status.sh set ready --by sk.story`.
    - Display success summary.
 3. If any ❌ remain:
    - Display the missing items.
    - Ask PO: "Type 'proceed' to accept and proceed (items will be flagged as risk), or 'clarify' to do one more manual round."
-   - If 'proceed': set `status.current: ready` in `story.md`.
+   - If 'proceed': run `bash .claude/hooks/story-status.sh set ready --by sk.story`.
+4. If the command fails, report its output and STOP — never write `status.current` by hand.
 
 ### Phase 7 — Finalize Story Folder
 Once the story is `ready`, finalize the **single** story folder. Do NOT split per project.
 
 **Confirm the folder is complete** at `specs/intents/{intent}/units/{unit}/01-story/`:
-- `story.md` — frontmatter (`id`, `intent`, `unit`, `status.current`, `story_type`, `tags`, `checkpoint_mode`, and `jira_id` in [JIRA MODE]) + the As-a/I-want/So-that statement + in/out-of-scope.
+- `story.md` — frontmatter (`id`, `intent`, `unit`, `status.current`, `story_type`, `tags`, `checkpoint_mode`, and `jira_id` when tracker-seeded) + the As-a/I-want/So-that statement + in/out-of-scope.
 - `requirement.md` — business + non-functional requirements, the clarifications log, and architecture constraints (NFRs, security, observability, integration).
 - `acceptance-criteria.md` — the testable acceptance criteria.
-- `jira.md` — **optional**, written only in [JIRA MODE]: records the source Jira ID `{Jira_Id}`, the issue summary, and a link back to it for traceability. In [MANUAL MODE] this file is not created.
+- `jira.md` — **only when tracker-seeded** (Phase 5b): the seeded issue description. Otherwise this file is not created.
 
 **Impacted projects** stay recorded in `unit-brief.md` (written by `sk.story_sub_architect-probe`) — they are a unit-level fact, not a reason to split the story.
 
@@ -164,13 +191,14 @@ sk.story complete.
 Story: {story-id} — {story title}
 Status: ready
 Checkpoint: {checkpoint_mode}
+Tracker: {jira_id | not seeded — reason}
 
 Checklist Summary:
 - Business Passed: {X}/{Total}
 - Technical Passed: {Y}/{Total}
 - Missing: {Z} (listed if any)
 
-Story folder: 01-story/ (story.md, requirement.md, acceptance-criteria.md{, jira.md if --jira})
+Story folder: 01-story/ (story.md, requirement.md, acceptance-criteria.md{, jira.md if tracker-seeded})
 Impacted projects (in unit-brief.md): {Backend/Frontend/Mobile list}
 
 Next step: /sk.design (or /sk.ff if continuing the pipeline)
@@ -187,4 +215,5 @@ Next step: /sk.design (or /sk.ff if continuing the pipeline)
 - ✔ Project router loaded
 - ✔ Single story folder `01-story/` (NOT split per project)
 - ✔ checkpoint_mode set in story.md frontmatter (autopilot | confirm | validate)
-- ✔ jira.md present only when sourced from Jira
+- ✔ `status.current: ready`, set by `story-status.sh` (Phase 6)
+- ✔ jira.md present only when tracker-seeded, and `jira_id` written by `story-status.sh field`

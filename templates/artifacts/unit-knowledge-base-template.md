@@ -29,9 +29,9 @@ Format:
 <!-- Third-party limits, regulatory, contractual, or operational facts an agent can't derive from code.
      Format: - {constraint}: {source or reason}
      Example:
-     - Stripe webhook retries up to 3 times over 24h: must be idempotent on payment.succeeded
-     - PCI DSS: card data must never touch this service; tokenization handled by payment-service only
-     - AWS Lambda: 15-minute max execution; batch jobs must be chunked accordingly -->
+     - Payment provider retries each webhook up to 3 times over 24h: handling must tolerate repeats
+     - Card-data compliance scope: card data must never touch this project; tokenization happens in the payments context only
+     - Hosting runtime: 15-minute max execution; batch jobs must be chunked accordingly -->
 
 ## Safe Change Patterns
 <!-- How to safely extend this unit. Be specific — generic advice ("write tests") is not useful here.

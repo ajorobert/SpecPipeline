@@ -24,16 +24,7 @@ Format:
 -->
 
 ## Domain Map
-<!-- How core domains relate to each other.
-     Not the API contracts — those are in specs.
-     The business reason domains are separated the way they are.
-
-Format:
-### {Domain}
-- Owns: what business concepts this domain is responsible for
-- Does not own: explicit exclusions and why
-- Depends on: other domains and the nature of that dependency
--->
+The bounded contexts and how they relate: `specs/domain/bounded-contexts.md`.
 
 ## System-Wide Invariants
 <!-- Rules that apply across all domains.

@@ -5,3 +5,4 @@ history/reconcile-reports/
 .claude/cache-metrics.jsonl
 .claude/.last-skill
 .claude/skill-audit.log
+.specify/state/

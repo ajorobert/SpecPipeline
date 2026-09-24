@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# On-demand aggregator for .claude/cache-metrics.jsonl.
+# On-demand aggregator for .specify/state/cache-metrics.jsonl.
 # Usage:
 #   bash .claude/hooks/cache-metrics-report.sh          # overall + per-skill + per-role
 #   bash .claude/hooks/cache-metrics-report.sh tail 20  # last 20 rows, raw
@@ -8,7 +8,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-LOG="${PROJECT_ROOT}/.claude/cache-metrics.jsonl"
+LOG="${PROJECT_ROOT}/.specify/state/cache-metrics.jsonl"
 
 if [[ ! -f "$LOG" ]]; then
   echo "No metrics log yet at: $LOG"

@@ -14,16 +14,23 @@ Role: architect | Level: story
 Declare the mode at the start of execution.
 
 ## Pre-flight
-1. Read session.yaml active_story_id
+1. Read `.specify/state/session.yaml` active_story_id
    NULL → STOP: run sk.session focus --story {id} first
 2. Load the active story folder (`.claude/skills/governance/phase-layout.md`):
    specs/intents/{intent}/units/{unit}/01-story/
-   Read `story.md`, `requirement.md`, and `acceptance-criteria.md`.
-3. Load `.specify/memory/architecture-decisions.md`
-4. Load the project router `.specify/memory/projects/index.md`. For each project that the story plausibly touches, load that project's memory:
-   - `.specify/memory/projects/{project}/project.md`
-   - `.specify/memory/projects/{project}/tech-stack.md`
-   - `.specify/memory/projects/{project}/coding-standards.md`
+   Read `story.md` (including `tags`), `requirement.md`, and `acceptance-criteria.md`.
+3. Read `.specify/profile.yaml` once (defaults in `.claude/skills/governance/profile.md`). Never read a
+   path matched by `knowledge.never_autoload`, or a shipped unit other than this one.
+4. Knowledge, per the loading rules in `.claude/skills/governance/profile.md`:
+   - `.specify/memory/constitution.md` — the team's fixed principles.
+   - `specs/adr/adr-index.md` — load the ALWAYS block's ADRs, then the ADRs of every signal block that
+     matches the story's `tags` or its text. Follow the index's own loading rules; never glob `specs/adr/`.
+   - `specs/domain/bounded-contexts.md` — which context owns what; read a context's
+     `specs/domain/{module}.md` only when the story plainly lands in it.
+   A missing home is logged `{home} not present — skipped`.
+5. Load the project router `.specify/memory/projects/index.md` (Project · Type · Code Root · Role).
+   For each project that the story plausibly touches, read its
+   `.specify/memory/projects/{Project}/tech-stack.md` (platform, E2E tooling, migrations) when present.
 
 ## Architecture scan
 Perform a structured coverage scan across these technical categories.
@@ -37,7 +44,7 @@ For each category, mark status: Clear / Partial / Missing. If an orchestrator pa
 - **UX/Design Constraints:** If frontend facing, are there existing Figma links, mockups, or specific accessibility constraints?
 
 ## Impact Analysis — Identify Impacted Projects  (runs in BOTH modes — never skipped)
-Using the project router and per-project memory loaded in pre-flight, determine which projects the story changes.
+Using the project router and the knowledge loaded in pre-flight, determine which projects the story changes.
 Classify each impacted project under its type and record concrete reasons (not just names):
 
 - **Backend:** `[]`
@@ -45,16 +52,16 @@ Classify each impacted project under its type and record concrete reasons (not j
 - **Mobile:** `[]`
 
 For the set of impacted projects, analyze and note:
-- **API changes** — new/modified endpoints, request/response contract changes.
-- **Database impact** — new tables, migrations, schema or index changes.
-- **Integration impact** — downstream/external services or events affected.
+- **API changes** — new/modified operations in `specs/openapi/{audience}.yaml` / `specs/asyncapi/{module}.yaml` (name the audience or module, not the payloads).
+- **Database impact** — new tables, schema or index changes (a database migration in the schema-owning project).
+- **Integration impact** — downstream/external services, events, or other bounded contexts affected (per `bounded-contexts.md`).
 - **Security impact** — new actors, permissions, tenant-isolation or data-exposure changes.
-- **Breaking changes** — contract or behavior changes that affect existing consumers.
+- **Breaking changes** — contract or behavior changes that affect existing consumers (consumers come from `projects/index.md` Role and the routed ADRs).
 - **Dependencies** — ordering constraints between projects (e.g. Backend endpoint must land before Frontend consumes it).
 
-Record the impacted projects in the **Impacted Projects** table of the unit's `unit-brief.md` (Path: `specs/intents/{intent}/units/{unit}/unit-brief.md`) — one row per project: `| Project | Type | Code Root | Role in this unit |`, using the exact name and Code Root from the project router. Every downstream phase (`02-design/projects/`, `03-plan/{Project}/`, `04-implementation/{Project}/`, `05-test/{Project}/`) reads this table. The story is NOT split per project.
+Record the impacted projects in the **Impacted Projects** table of the unit's `unit-brief.md` (Path: `specs/intents/{intent}/units/{unit}/unit-brief.md`) — one row per project: `| Project | Type | Code Root | Role in this unit |`, copying Project, Type and Code Root verbatim from the project router and writing a concrete role for this unit. Every downstream phase (`02-design/projects/`, `03-plan/{Project}/`, `04-implementation/{Project}/`, `05-test/{Project}/`) reads this table. The story is NOT split per project.
 
-Capture the six analysis points (API changes, Database impact, Integration impact, Security impact, Breaking changes, Dependencies) under a `## Architecture Constraints` section in the story's `requirement.md` where they affect this story's scope.
+Capture the six analysis points (API changes, Database impact, Integration impact, Security impact, Breaking changes, Dependencies) under a `## Architecture Constraints` section in the story's `requirement.md` where they affect this story's scope. Cite each routed ADR or constitution principle that constrains the story (`ADR-NNNN`), without restating it.
 
 ## Question loop (max 3-5 questions)  — [FULL] mode only; skipped entirely in [IMPACT-ONLY]
 Generate an internal prioritized queue of up to 5 questions from Partial/Missing categories.
@@ -73,7 +80,9 @@ For each question:
 
 ## After loop completes
 - Final pass: confirm no technical [NEEDS CLARIFICATION] markers remain in the story folder
-- If constraints significantly conflict with `architecture-decisions.md`: flag to the user to consider updating system ADRs or rejecting the story scale.
+- If constraints conflict with the constitution or a routed ADR: flag it to the user (the higher source
+  wins, per `governance/profile.md` → Precedence) and suggest either a new ADR (`sk.adr`) or narrowing the
+  story's scale. Never edit an ADR or the constitution here.
 
 ## Output Artifacts
 01-story/requirement.md (updated with technical constraints + a `## Architecture Constraints` section)
@@ -84,8 +93,8 @@ unit-brief.md (Impacted Projects table)
   (Backend | Frontend | Mobile), Code Root and a concrete role. **This holds in both modes.** If the
   story genuinely changes no project, that is a story defect — report it rather than writing an
   empty table.
-- Project names and Code Roots are copied verbatim from `.specify/memory/projects/index.md` — never
-  abbreviated, never invented.
+- Project names, Types and Code Roots are copied verbatim from `.specify/memory/projects/index.md` —
+  never abbreviated, never invented.
 - [FULL] only: all technical boundaries (Scale, Security, Observability, Integration, UX) are locked
   down; no vague engineering terms remain ("fast", "secure" are quantified); total questions ≤ 5.
 - [IMPACT-ONLY]: no questions asked, and `requirement.md` is left untouched except for the six

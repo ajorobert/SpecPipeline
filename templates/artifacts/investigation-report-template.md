@@ -19,10 +19,10 @@ session_count: 1
 
 #### Finding-001
 **Classification**: Implementation Bug | Spec/Contract Mismatch
-**Expected** (per spec): <!-- quote the relevant AC or api-spec.json endpoint -->
+**Expected** (per spec): <!-- quote the relevant AC, or the canonical operation (specs/openapi/{audience}.yaml / specs/asyncapi/{module}.yaml) listed in 02-design/contract-changes.md -->
 **Actual** (observed): <!-- what the system actually does -->
 **Root cause**: <!-- specific code-level cause for impl bug; or why spec doesn't match required behavior for mismatch -->
-**Affected artifact**: <!-- {CodeRoot}/file:line for impl bug; story AC# or api-spec.json /{endpoint} for mismatch -->
+**Affected artifact**: <!-- {CodeRoot}/file:line for impl bug; story AC# or the canonical spec file + operation for mismatch -->
 
 <!-- Repeat Finding-002, Finding-003 etc. for each additional bug found in this session -->
 
@@ -36,7 +36,7 @@ session_count: 1
 - [ ] Spec/Contract Mismatch present → update AC in 01-story/acceptance-criteria.md, run /sk.design --contracts if contract shape changed
 
 ### Candidate Invariants (this session)
-<!-- Unreviewed staging entries. Architect promotes to Business Invariants via sk.knowledge-base --tier unit -->
+<!-- Unreviewed staging entries, also appended to the unit knowledge-base.md. Promotion at ship (governance/promotion.md) moves each surviving one to its home: specs/domain/{module}.md, an ADR, or a .claude/rules/{stack}/ file -->
 <!-- Skip and note reason for obvious invariants (null checks, input validation, etc.) -->
 - [INV-001] {rule that must hold, not obvious from reading code} — story {story-id} ({date})
 

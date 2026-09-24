@@ -1,0 +1,38 @@
+# .specify/profile.yaml — fixture host
+version: 1
+
+knowledge:
+  never_autoload:
+    - "docs/architecture/**"
+  adr:
+    exemplar: specs/adr/0001-modular-monolith.md
+    guard: true
+  domain:
+    template: none
+
+contracts:
+  verify: "dotnet test src/backend/tests/Shop.Architecture.Tests --filter SpecParityTests"
+  compat_rules: specs/adr/0003-contract-compatibility.md
+  codegen: none
+
+rules:
+  stacks:
+    backend: [api]
+    web: [console, storefront]
+    api: [api]
+
+skills:
+  max_packs: 8
+
+vcs:
+  base_branch: dev
+  create_branch: on-request
+  branch: "{kind}/{topic}"
+  commit: conventional
+  pr_title: "[{ticket}] {Kind} / {title}"
+  no_ticket: "NO TICKET"
+
+tracker:
+  kind: jira
+  project: SHOP
+  mode: mirror

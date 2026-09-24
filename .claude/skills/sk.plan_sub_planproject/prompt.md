@@ -20,6 +20,17 @@ in-scope project = `{Project}` (`{ProjectType}`), signals = story tags + the des
 realizes. A pack's rules constrain the Technical Approach, Code Areas and Files Affected sections —
 they never introduce new behaviour, which belongs to `02-design/`.
 
+## Step 0b: Tech Stack Snapshot
+Read `.specify/memory/projects/{Project}/tech-stack.md` (`.claude/skills/governance/project-resolution.md`).
+- Missing: log `tech-stack.md not present for {Project} — skipped` and plan from the code under
+  `{CodeRoot}` and its manifests; never create a placeholder.
+- Find the newest date in its `## Versions` → Verified column. If it is more than 90 days before today,
+  refresh the snapshot before planning: read each manifest the rows cite (under `{CodeRoot}`), update every
+  version that differs, set each checked row's Verified to `{today} against {manifest path}`, and keep the
+  file's other sections untouched. Log `tech-stack.md refreshed for {Project} ({n} versions changed)`.
+  A changed version is a fact, not a decision: never change a component choice here — that needs an ADR.
+- Otherwise log `tech-stack.md current for {Project} (verified {date})`.
+
 ## Input Artifacts
 Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/` and
 `DESIGN_DIR = UNIT_DIR/02-design/`.
@@ -30,13 +41,18 @@ Resolve `UNIT_DIR = specs/intents/{intent}/units/{unit}/` and
 - DESIGN_DIR/impact-analysis.md                      (required — per-project blast radius, sequencing)
 - DESIGN_DIR/projects/{Project}.md                   (if exists — the per-project design slice; primary source)
 - DESIGN_DIR/database-design.md                      (if exists — DB/data model)
-- DESIGN_DIR/api-contract.md                         (if exists — human-readable API communication)
-- DESIGN_DIR/contracts/api-spec.json                 (if exists — canonical machine API contract)
-- DESIGN_DIR/contracts/test-plan.md                  (if exists — provider/consumer test plan)
+- DESIGN_DIR/contract-changes.md                     (if exists — changed operations, compatibility class,
+                                                      provider/consumer test plan)
+- The canonical contract operations contract-changes.md lists — only those operations, in
+  `specs/openapi/{audience}.yaml` / `specs/asyncapi/{module}.yaml` as edited on this branch
 - DESIGN_DIR/ui-model.md                             (if exists — REQUIRED for Frontend/Mobile projects)
 - UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md  (the unit's story)
 - UNIT_DIR/01-story/jira.md                          (if exists — Jira source for subtask linkage)
-- The project's tech-stack.md and coding-standards.md (`.claude/skills/governance/project-resolution.md`)
+- `.specify/memory/projects/{Project}/tech-stack.md` (Step 0b)
+- `.specify/memory/constitution.md` and the ADRs routed by `specs/adr/adr-index.md` for this work
+  (loading rules: `.claude/skills/governance/profile.md`)
+- The project's rule folders `.claude/rules/{stack}/` mapped by `rules.stacks` in `.specify/profile.yaml`
+  (file layout and naming only — the plan cites a rule, it never restates one)
 
 ## Pre-flight
 1. Verify DESIGN_DIR/architecture.md exists.
@@ -93,8 +109,8 @@ projects/{Project}.md → Role in this Unit + Scope of Change. Name the stories 
 
 ## Technical Approach & Key Decisions
 The implementation strategy and the decisions that shape it. Every decision references
-architecture.md / projects/{Project}.md / the relevant capability pack. No new architecture —
-this realizes the design, it does not redesign it.
+architecture.md / projects/{Project}.md / the ADR or rule it follows / the relevant capability pack.
+No new architecture — this realizes the design, it does not redesign it.
 
 ## Implementation Sequence
 Ordered build steps for this project, honoring impact-analysis.md → Sequencing & Dependencies
@@ -114,9 +130,11 @@ Migrations / entities / read models referencing database-design.md. If the proje
 (e.g. a stateless validator or a pure UI client), state "None — {reason}" explicitly.
 
 ## API / Contract Changes
-Endpoints produced or consumed, referencing api-contract.md / contracts/api-spec.json. For a
-consumer (frontend/mobile), list the endpoints/claims consumed and confirm each exists in the
-contract — never invent one. If none, state "None — {reason}".
+Operations produced or consumed, referencing contract-changes.md rows and the canonical operation
+(`specs/openapi/{audience}.yaml` method path / `specs/asyncapi/{module}.yaml` channel). Carry each
+row's compatibility class. For a consumer (frontend/mobile), list the operations/claims consumed and
+confirm each exists in the canonical spec on this branch — never invent one. If none, state
+"None — {reason}".
 
 ## Dependencies
 - On other projects in this unit (and the direction).
@@ -124,7 +142,7 @@ contract — never invent one. If none, state "None — {reason}".
 - On shared infrastructure called out in impact-analysis.md / planning-brief.md.
 
 ## Test Plan
-What will be tested and how, anchored to contracts/test-plan.md and the unit's
+What will be tested and how, anchored to contract-changes.md → Test plan and the unit's
 acceptance-criteria.md: unit, integration, contract (provider/consumer), e2e/UAT as applicable
 to {ProjectType}. Map tests to acceptance criteria IDs where possible.
 
@@ -160,22 +178,28 @@ Affected and every story this project covers — no orphan files, no uncovered A
 
 **Bootstrap tasks for a project with no existing code.** Before writing the feature tasks, check
 whether `{CodeRoot}` already contains an implementation of this project (not just scaffolding). If it
-does not — this unit is the first work in that project — prepend these to the first (setup) phase,
-using the concrete mechanism from the project's tech-stack.md and the loaded capability packs:
-- `- [ ] T01 — Structured logging with trace_id/span_id propagation` (per observability-standards.md → Logging)
-- `- [ ] T02 — GET /health returning 200 ok / 503 degraded` (Backend projects only)
-- `- [ ] T03 — RED metrics on every endpoint: requests_total, errors_total, request_duration_seconds` (Backend projects only)
-These satisfy the constitution's Observability Contract, which `sk.verify` gates on. Skip any item the
-project already has and log which ones were skipped and why. For a Frontend/Mobile project, T01 becomes
-the equivalent client telemetry hookup named in that project's tech-stack.md; T02/T03 do not apply.
+does not — this unit is the first work in that project — prepend to the first (setup) phase one task for
+each baseline capability that `.specify/memory/constitution.md`, the routed ADRs or the project's
+`.claude/rules/{stack}/` require every project of this type to have. Each such task names its source:
+```
+- [ ] T01 — {capability}
+      source: {constitution § | ADR-NNNN | .claude/rules/{stack}/<topic>.md}
+```
+The framework adds no bootstrap task of its own. When none of those sources requires one, log
+`No bootstrap tasks — no baseline required by constitution, ADRs or rules`. Skip any item the project
+already has and log which ones were skipped and why.
+
+Every task that exists to satisfy an ADR or rule (not only bootstrap tasks) carries a `source:` line
+citing it.
 
 ### 4. checklist.md — readiness / definition-of-done
 A reviewable DoD checklist for the project before it can ship:
 - Pre-conditions met (design approved, dependencies/infra config available).
-- Standards compliance (coding-standards.md, the relevant capability packs, api/data standards).
+- Compliance with the constitution, the routed ADRs and the project's `.claude/rules/{stack}/`
+  (cite each by name; do not restate them), plus the relevant capability packs.
 - Security items from projects/{Project}.md → Security (auth/RBAC/ABAC, PII handling).
 - Tests written and green per Test Plan; acceptance criteria mapped.
-- Observability / error-contract items if applicable.
+- Contract changes match contract-changes.md (operations and compatibility class), if any.
 - No design contradiction; no scope creep into another project.
 Use `- [ ]` items grouped under headings.
 
@@ -193,17 +217,21 @@ contingency line for the open questions/risks in plan.md, and a total. Note any 
 blocked/uncertain pending an open question.
 
 ## Quality Bar
-- Plans exactly ONE project; never writes outside `03-plan/{Project}/`.
+- Plans exactly ONE project; never writes outside `03-plan/{Project}/`, except the tech-stack.md
+  version refresh of Step 0b.
 - Stays inside the project's design slice (projects/{Project}.md / impact-analysis.md row) — no
   work belonging to another project, no redesign.
 - Explicit references to architecture.md, projects/{Project}.md, and the relevant design artifacts.
 - Implementation Sequence honors impact-analysis.md → Sequencing & Dependencies and planning-brief.md.
 - Files Affected, tasks.md, and estimation.md are mutually consistent — every affected file has a
   task and an estimate; every task maps to files and an acceptance signal.
-- Frontend/Mobile plans follow ui-model.md; consumed endpoints/claims all exist in the API contract.
-- Tech-stack choices justified against the project's tech-stack.md; file layout follows coding-standards.md.
+- Frontend/Mobile plans follow ui-model.md; consumed operations/claims all exist in the canonical spec.
+- Tech-stack choices justified against the project's tech-stack.md (current within 90 days); file
+  layout follows the project's `.claude/rules/{stack}/`.
 - All five artifacts written (plan.md, tasks.md, checklist.md, jira-subtask.md, estimation.md).
 - Every task line carries `files:` and `acceptance:`; `[P]` appears only on tasks with no shared write
   target and no intra-phase dependency; every blocking relationship is an explicit `depends:`.
-- A project with no existing code carries the observability bootstrap tasks, or logs why each was skipped.
+- A project with no existing code carries the bootstrap tasks its constitution, routed ADRs and rules
+  require (each citing its source), or logs that none are required; every ADR- or rule-driven task
+  cites its source.
 - Packs loaded in Step 0 are listed in the log; their rules shaped the plan without adding behaviour.

@@ -12,9 +12,10 @@ updated: {date}
 # Project Design: {project-name}
 
 Per-project slice of this unit's design. Synthesises the project-relevant parts of
-`architecture.md`, `database-design.md`, and `api-contract.md` into a single page the
+`architecture.md`, `database-design.md`, and `contract-changes.md` into a single page the
 implementing team can work from. This is a VIEW over the canonical design docs — it
-references them, it does not redefine boundaries, schema, or endpoint ownership.
+references them and the canonical spec operations; it does not redefine boundaries, schema, or
+operation ownership.
 
 Source: `unit-brief.md` → Impacted Projects (this project's row).
 
@@ -25,18 +26,19 @@ Source: `unit-brief.md` → Impacted Projects (this project's row).
 <!-- new project work | modify existing | config-only. What this project must build for the unit. -->
 
 ## Design Slice
-<!-- Backend: endpoints owned, handlers/commands/queries, entities touched, security (auth/RBAC/ABAC),
-     consistency + outbox per write path, external dependencies + failure modes.
-     Frontend/Mobile: routes/screens, components, state homes, consumed endpoints (from api-contract.md),
+<!-- Backend: operations owned, handlers/commands/queries, entities touched, security (auth/RBAC/ABAC),
+     consistency per write path, external dependencies + failure modes.
+     Frontend/Mobile: routes/screens, components, state homes, consumed operations (from contract-changes.md),
      fetch strategy, accessibility targets, loading/empty/error states.
-     Reference the canonical doc for each item (architecture.md §, database-design.md §, api-contract.md §). -->
+     Reference the source for each item (architecture.md §, database-design.md §, the canonical spec operation). -->
 
 ## Contracts This Project Touches
-<!-- Endpoints/events this project produces or consumes. Link to api-contract.md rows.
-     Frontend/Mobile: every consumed field must exist in contracts/api-spec.json. -->
+<!-- Operations/channels this project produces or consumes, as listed in 02-design/contract-changes.md,
+     each with its canonical file (specs/openapi/{audience}.yaml, specs/asyncapi/{module}.yaml).
+     Frontend/Mobile: every consumed field must exist in the canonical spec. -->
 
 ## Stories Covered
 <!-- - [{story-id}] {title}: {what this project delivers for the story} -->
 
 ## Open Questions
-<!-- Project-specific unknowns. Missing-contract items must name the endpoint and flag the architect. -->
+<!-- Project-specific unknowns. Missing-contract items must name the operation and flag the architect. -->

@@ -7,26 +7,31 @@ Role: po | Level: intent → unit → story
 - `sk.story_sub_specify` (no flag) → [FEATURE MODE] user story interview framing
 Declare mode at start of execution.
 
-**Jira-seeded capture:** When the orchestrator passes Jira seed data (from `sk.story --jira {Jira_Id}`), use it to PRE-FILL the interview matrix (Actor, Action, Value, Trigger, Input, Output, Happy Path, Error Cases) and the acceptance criteria. Only ask the PO about dimensions Jira left genuinely empty or ambiguous — do not re-ask what the Jira task already answers. Set `jira_id: {Jira_Id}` in story frontmatter.
+**Jira-seeded capture:** When the orchestrator passes tracker seed data (from `sk.story --jira {Jira_Id}`), use it to PRE-FILL the interview matrix (Actor, Action, Value, Trigger, Input, Output, Happy Path, Error Cases) and the acceptance criteria. Only ask the PO about dimensions the issue left genuinely empty or ambiguous — do not re-ask what the issue already answers. Do not write `jira_id` or `jira.md`: sk.story links the issue afterwards through `story-status.sh` (its Phase 5b).
 
 Resolve `TEMPLATES_DIR` per `.claude/skills/governance/framework-paths.md` before reading any template.
 
 ## Input Artifacts
-.specify/memory/system-context.md
+specs/knowledge-base.md (system overview — already in context through CLAUDE.md)
 .specify/memory/projects/index.md (project router)
-.specify/memory/skill-routing.md (`## By signal` — the tag vocabulary; optional)
-session.yaml (active_intent_id, active_unit_id)
-{TEMPLATES_DIR}/artifacts/story-template.md
+specs/adr/adr-index.md (router → the ADRs it routes, per `.claude/skills/governance/profile.md` Loading rules)
+specs/domain/bounded-contexts.md (+ `specs/domain/{module}.md` for the contexts the story touches)
+.claude/skills/README.md → `## Registry` (Signals column — the tag vocabulary; optional)
+.specify/state/session.yaml (active_intent_id, active_unit_id)
+{TEMPLATES_DIR}/artifacts/intent-template.md, unit-brief-template.md, story-template.md
+
+A missing knowledge home is logged `{home} not present — skipped`; this skill never creates one.
+Never read a path matched by `knowledge.never_autoload` in `.specify/profile.yaml`, or a shipped unit.
 
 ## Steps
 
 ### Step 1 — Resolve Intent
-Read active_intent_id from session.yaml.
+Read active_intent_id from `.specify/state/session.yaml`.
 NULL → ask user for intent title and code (e.g. CHK)
-Create specs/intents/{NNN}-{name}/intent.md if new.
+Create specs/intents/{NNN}-{name}/intent.md if new, from `{TEMPLATES_DIR}/artifacts/intent-template.md`.
 
 ### Step 2 — Resolve Unit
-Read active_unit_id from session.yaml.
+Read active_unit_id from `.specify/state/session.yaml`.
 NULL → ask user for unit title and code (e.g. PAY)
 Create specs/intents/{intent}/units/{unit}/unit-brief.md if new, from
 `{TEMPLATES_DIR}/artifacts/unit-brief-template.md`. Leave the Impacted Projects table empty here —
@@ -38,25 +43,29 @@ A genuinely separate story belongs in a new unit; ask the PO to name one.
 If creating a new intent (active_intent_id was NULL before step 1):
   Ask: "Would you like to validate this idea against existing intents and constraints first? (y/n)"
   If yes:
-    - Load .specify/memory/system-context.md and list existing intents from specs/intents/
-    - Load .specify/memory/architecture-decisions.md and .specify/memory/domain-model.md
-    - Evaluate: does this idea duplicate an existing intent? does it conflict with any ADR?
+    - Use the system overview in `specs/knowledge-base.md` and list existing intents from `specs/intents/*/intent.md`
+      (intent files only — never open a shipped unit's folder)
+    - Read `specs/adr/adr-index.md`: load the ALWAYS block's ADRs and the ADRs of every signal block the
+      idea's words match. Read `specs/domain/bounded-contexts.md` for the contexts it lands in.
+    - Evaluate: does this idea duplicate an existing intent? does it conflict with any routed ADR or with a context's ownership?
     - Report findings. If major concerns: suggest resolving before proceeding.
     - If no concerns: confirm "No conflicts found. Proceeding to story capture."
 
 ### Step 3b — Context-Aware Probing (optional)
 Before asking questions, load:
-- Existing stories in the same intent (`specs/intents/{intent}/units/*/01-story/story.md`) to avoid duplication.
-- `.specify/memory/domain-model.md` to probe for entity relationships.
-- `.specify/memory/system-context.md` to check if the story touches integration points.
-Use this to generate 1-2 proactive questions (e.g. "This story involves the Order entity. Does it need to handle state transitions?").
+- Existing stories in the same intent (`specs/intents/{intent}/units/*/01-story/story.md`) to avoid duplication —
+  frontmatter and title only for shipped units.
+- `specs/domain/bounded-contexts.md`, then the `specs/domain/{module}.md` of each context the story touches,
+  to probe for invariants, ownership and the domain language.
+- `specs/knowledge-base.md` (actors, cross-domain constraints) to check if the story touches integration points.
+Use this to generate 1-2 proactive questions (e.g. "This story involves the Order context. Does it need to handle state transitions?").
 
 ### Step 3c — Load Project Router
 Before capturing the story, load `.specify/memory/projects/index.md` as the project router.
 Use it to ground the requirement in the actual workspace:
 - **Available projects:** enumerate the projects and their types (Backend / Frontend / Mobile) so story capture is aware of which surfaces exist.
 - **Existing features:** scan the listed project folders for overlapping capabilities to avoid duplicating an existing feature.
-- **Domain context:** cross-reference `.specify/memory/domain-model.md` for the entities the story touches.
+- **Domain context:** cross-reference `specs/domain/bounded-contexts.md` for the contexts the story touches (entities themselves live in the code).
 - **Business rules:** carry any project-level constraints into the interview.
 The story is NOT split per project. Project impact is resolved later in `sk.story_sub_architect-probe`, which records the **impacted projects** into `unit-brief.md`. This step only ensures the captured requirement is project-router-aware.
 
@@ -101,7 +110,7 @@ Write the story into the unit's fixed phase folder (the story is NOT split per p
 Story ID format stays `{INTENT}-{UNIT}-{NNN}` and is recorded in `story.md` frontmatter.
 
 Write these files into that folder:
-  - `story.md` — from `{TEMPLATES_DIR}/artifacts/story-template.md`: frontmatter (`id`, `intent`, `unit`, nested `status.current` / `status.entered_at`, `story_type`, `tags`, `checkpoint_mode`; plus `jira_id` when Jira-seeded) + the As-a/I-want/So-that user story + in/out-of-scope.
+  - `story.md` — from `{TEMPLATES_DIR}/artifacts/story-template.md`: frontmatter (`id`, `intent`, `unit`, `story_type`, `tags`, `checkpoint_mode`; `status.current` stays as `skill-start.sh` set it — `draft` — and `jira_id` stays `null`) + the As-a/I-want/So-that user story + in/out-of-scope.
   - `requirement.md` — the functional + non-functional business requirements derived from the interview.
   - `acceptance-criteria.md` — the testable acceptance criteria (GWT or condition-based).
 
@@ -111,17 +120,19 @@ In [BUG MODE]: set `story_type: bug` in `story.md` frontmatter and populate (in 
   - `reproduction_steps`
   - `related_story` (if provided)
 
-When Jira-seeded: also write `jira.md` in the folder recording the source `{Jira_Id}`, issue summary, and a link back. In manual mode `jira.md` is not created.
+`jira.md` is not written here; sk.story writes it when it seeds the tracker.
 
-Update session.yaml: `active_unit_id`, `active_story_id`, `active_intent_id`.
+Update `.specify/state/session.yaml`: `active_unit_id`, `active_story_id`, `active_intent_id`.
 
 ### Step 5b — Tag Story with Domain Keywords
 Tags let `.claude/skills/governance/pack-resolution.md` load the right capability packs later.
-1. Read `.specify/memory/skill-routing.md` → `## By signal`. The tag vocabulary is the union of all Signals.
-2. Scan the story title, requirement and acceptance criteria for those keywords (whole word, case-insensitive).
+1. Read `.claude/skills/README.md` → `## Registry`. The tag vocabulary is the union of the Signals column
+   (comma-separated, lower case; `—` contributes nothing).
+2. Scan the story title, requirement and acceptance criteria for those keywords (whole word or phrase,
+   case-insensitive). A negated mention ("no cache", "without auth") does not count.
 3. Set `tags` in `story.md` frontmatter to the matched keywords, e.g. `tags: [cache, auth]`.
-   Empty array if none match or no manifest exists: `tags: []`.
-Never invent tags outside the manifest vocabulary; note unmatched but important concepts in requirement.md instead.
+   Empty array if none match or the registry is missing: `tags: []`.
+Never invent tags outside the registry vocabulary; note unmatched but important concepts in requirement.md instead.
 
 ### Step 6 — Classify Checkpoint
 Read `.claude/skills/governance/checkpoint-rules.md` → set `checkpoint_mode` in `story.md` frontmatter
@@ -134,7 +145,6 @@ specs/intents/{intent}/units/{unit}/unit-brief.md (if new)
 specs/intents/{intent}/units/{unit}/01-story/story.md
 specs/intents/{intent}/units/{unit}/01-story/requirement.md
 specs/intents/{intent}/units/{unit}/01-story/acceptance-criteria.md
-specs/intents/{intent}/units/{unit}/01-story/jira.md (only when Jira-seeded)
 
 ## Quality Bar
 

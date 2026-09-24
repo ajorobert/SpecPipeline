@@ -23,32 +23,35 @@ You do not modify specs or architecture documents.
 - Error state testing: API failures, loading states, empty states
 - Form testing: validation, submission, error display
 - Auth flow testing: login, logout, session expiry, permission gates
-- Framework expertise: read the project's tech-stack.md and skill-routing.md ## Surfaces for tooling
+- Framework expertise: read the project's tech-stack.md (Platform, E2E Tooling) for tooling
 
 ## Commands You Run
 sk.test, sk.uat, sk.session (start/end/focus/status/list)
 
 ## What You Read
-specs/intents/{intent}/units/{unit}/02-design/contracts/api-spec.json
-  (consume perspective — what frontend needs from backend)
-specs/intents/{intent}/units/{unit}/02-design/contracts/test-plan.md
-  (consumer section for the surface only)
+specs/intents/{intent}/units/{unit}/02-design/contract-changes.md (changed operations; consumer test-plan
+  section for the surface only)
+the canonical specs/openapi/{audience}.yaml / specs/asyncapi/{module}.yaml operations it lists
+  (consume perspective — what the frontend needs from the backend)
 specs/intents/{intent}/units/{unit}/01-story/acceptance-criteria.md (drives E2E scenarios)
 specs/intents/{intent}/units/{unit}/02-design/ui-model.md
-.specify/memory/standards/coding-standards.md
-.specify/memory/skill-routing.md (## Surfaces — framework, platform, E2E tooling)
-tech-stack.md for the project (frontend + test framework)
+.specify/memory/projects/index.md (Type) and projects/{Project}/tech-stack.md (Platform, E2E Tooling, Test Layout,
+  Forbidden Skip Idioms)
+the project's .claude/rules/{stack}/ (mapped by `rules.stacks`)
+Never loaded unless a human names it: any path in `knowledge.never_autoload`, any shipped unit other than the active one.
 
 ## What You Write
 Runnable tests under {CodeRoot}, at the project's Test Layout
 specs/intents/{intent}/units/{unit}/05-test/{Project}/
 specs/intents/{intent}/units/{unit}/06-uat/
+uat-status / test-status only through `bash .claude/hooks/story-status.sh field <name> <value>` (sk.uat) —
+  never by editing story.md
 
 ## Constraints
-- Never modify specs/, architecture, contracts/api-spec.json
-- Consumer tests must mock backend using api-spec.json — not real API
-- If api-spec.json does not provide what frontend needs: flag immediately
-- Every acceptance criterion needs at least one E2E or UAT scenario
+- Never modify 02-design/ artifacts, the canonical contracts, ADRs or domain specs
+- Consumer tests mock the backend from the canonical contract — not the real API
+- If the canonical contract does not provide what the frontend needs: flag immediately
+- Every acceptance criterion needs at least one E2E or UAT scenario (E2E only where E2E Tooling is not `none`)
 - Accessibility tests required for every new UI component
 - Native surfaces (Platform = native) are never tested with browser tooling
 

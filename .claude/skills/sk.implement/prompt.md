@@ -5,8 +5,10 @@ Role: lead (orchestrator) | Level: unit
 This skill orchestrates the per-project implementation worker. It resolves the impacted projects from
 the unit's Impacted Projects table, invokes `sk.implement_sub_implementproject` once per project (each consuming that
 project's already-approved `03-plan/{Project}/` plan), and gates the result before reporting. Each
-sub-skill runs in its own isolated context. Orchestrators do not resolve capability packs — each worker
-resolves its own (phase = implement).
+sub-skill runs in its own isolated context and is invoked with the **Skill tool**
+(`Skill(sk.implement_sub_implementproject)`), never by reading its prompt.md, so `skill-start.sh` runs its
+preconditions and sets its role (`.claude/skills/governance/status-model.md` → How a skill starts).
+Orchestrators do not resolve capability packs — each worker resolves its own (phase = implement).
 
 ## Implementation Output Layout
 All implementation tracking artifacts for the unit live under
@@ -60,10 +62,13 @@ Projects in the Impacted Projects table with NO approved plan are skipped and lo
 (`no plan — run sk.plan --projects {key}` or `plan not approved`).
 
 ## Status Transitions
-Per `.claude/skills/governance/status-model.md`. Before invoking the first project worker, update
-`01-story/story.md` frontmatter:
-- set `status.current` → in-progress
-- set `status.entered_at` → now (ISO 8601)
+Per `.claude/skills/governance/status-model.md`. Before invoking the first project worker, run:
+```
+bash .claude/hooks/story-status.sh set in-progress --by sk.implement
+```
+It validates the value, writes `status.current` and `entered_at`, logs the transition and queues the
+tracker mirror. Never edit `status.current` in `01-story/story.md` with Edit/Write. If the command
+fails, STOP and report its output — do not start a worker.
 
 Do NOT write any later status here. `status.current` → `testing` is owned by the Stop hook and fires
 only when this skill emits `SK_RESULT: PASS`, so a run that is cancelled at the gate correctly leaves
@@ -74,16 +79,17 @@ the story at `in-progress`.
 ### Phase 1 — Per-Project Implementation
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
-Invoke skill: `sk.implement_sub_implementproject`
-- Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`
+Invoke with the Skill tool: `Skill(sk.implement_sub_implementproject)`, one call per project.
+- Pass (as the skill's args): `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`
   (backend for Backend, frontend for Frontend, mobile for Mobile), `checkpoint_mode`, and the execution
   mode (NORMAL or REFINE).
-- Context injected: `03-plan/{Project}/plan.md`, `03-plan/{Project}/tasks.md`,
+- The worker reads: `03-plan/{Project}/plan.md`, `03-plan/{Project}/tasks.md`,
   `03-plan/{Project}/checklist.md`, `02-design/projects/{Project}.md` (if exists),
-  `02-design/architecture.md`, `02-design/contracts/api-spec.json` (if exists),
-  `02-design/database-design.md` (if exists), `02-design/ui-model.md` (if exists — Frontend/Mobile),
-  the unit's story under `01-story/`, the project's coding-standards.md, and
-  `04-implementation/{Project}/review-{story-id}.md` (if REFINE mode).
+  `02-design/architecture.md`, `02-design/contract-changes.md` (if exists) and the canonical
+  `specs/openapi|asyncapi` operations it lists, `02-design/database-design.md` (if exists),
+  `02-design/ui-model.md` (if exists — Frontend/Mobile), the unit's story under `01-story/`, the
+  project's `.claude/rules/{stack}/` folders, and `04-implementation/{Project}/review-{story-id}.md`
+  (if REFINE mode).
 - Waits for: `04-implementation/{Project}/` containing implementation.md, progress.md, validation.md,
   and the actual source written within `{CodeRoot}`.
 - Subagents are isolated from each other. Honor cross-project sequencing from
@@ -100,7 +106,7 @@ Check for:
   - Existing functionality was not modified beyond the planned change set
   - progress.md tasks match 03-plan/{Project}/tasks.md (every task accounted for)
   - validation.md reports build + tests + acceptance-criteria status honestly (failures surfaced, not hidden)
-  - No project contradicts architecture.md or the API contract
+  - No project contradicts architecture.md or the canonical contract operations in contract-changes.md
 Approval effect: set `04-implementation/{Project}/implementation.md` front-matter `status: approved`
 for each approved project.
 
