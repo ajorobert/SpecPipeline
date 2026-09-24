@@ -1,7 +1,7 @@
 # Plan: Separate the SpecKit-SSD-SDLC framework from project skills, then deploy into tagin-platform
 
 **Date:** 2026-09-15
-**Status:** **Step 1 complete** (this repo, `feat/skills-separation`, commit 52e1452). **Step 2 complete** (`tagin-platform`, branch `feat/skills-integration`, 2026-09-17) — executed as a **rewrite, not a copy**; see §3.1 for what actually landed and what was deliberately dropped. **Step 3 not started.**
+**Status:** **Step 1 complete and verified** — merged to `main` (PR #32, `2a7c2aa`) and tagged **`v1.0.0`** (2026-09-21). All §6 step-1 checks pass; see §6.1 for the recorded run. **Step 2 complete** (`tagin-platform`, branch `feat/skills-integration`, 2026-09-17) — executed as a **rewrite, not a copy**; see §3.1 for what actually landed and what was deliberately dropped. **Step 3 ready to start** — handover issued 2026-09-21; carry the §3.1 amendments and the §4.1 corrections.
 **Supersedes:** the proposal on branch `origin/claude/framework-project-skills-separation-j5rc2e` (2026-08-23), which put project skills in a separate marketplace repo. This plan puts them directly in the project repo.
 **Related analyses (reuse, do not redo):** `ai_reports/skills-archive-defects.md` (defects found while executing step 2), `ai_reports/frontend-skills-audit.md`, `ai_reports/monorepo-adaptation-analysis.md`, `ai_reports/ai-native-sdlc-playbook-gap-analysis.md`, `.archive/**/SKILL_AUDIT.md`
 
@@ -215,7 +215,7 @@ are rewrites owned by the project, not copies of these packs.
 
 ## 4. Step 3 — Integrate the framework into tagin-platform and init
 
-1. In `tagin-platform`: `git remote add framework git@github.com:ajorobert/SpecKit-SSD-SDLC.git`; `git subtree add --prefix=.speckit framework main --squash` (after step 1 is merged and tagged).
+1. In `tagin-platform`: `git remote add framework git@github.com:ajorobert/SpecPipeline.git`; `git subtree add --prefix=.speckit framework main --squash`. Step 1 is merged and tagged `v1.0.0`, so this is unblocked. **The framework repo was renamed** `SpecKit-SSD-SDLC` → `SpecPipeline` (discovered on the tag push, 2026-09-21); the old URL still redirects but must not be baked into the subtree remote.
 2. `bash .speckit/setup.sh` — verify it creates `.claude/skills/sk.*`, agents, hooks, `.claude/.speckit-manifest`, merges hooks/deny into the existing `settings.json`, splices the managed block into a new `CLAUDE.md`, creates `specs/intents/`, `specs/knowledge-base.md`, `specs/guide.yaml`, `history/`, `.specify/` — and leaves `.claude/commands/`, the packs, and the `settings.json` allow list intact.
 3. `/sk.init` in **WORKSPACE INIT** mode with four projects: `Backend.API` (`src/backend`, Backend), `Console` (`src/frontend/apps/tagin-console`, Frontend), `CustomerPortal` (`src/frontend/apps/customer-portal`, Frontend), `VendorApp` (`src/frontend/apps/vendor-app`, Mobile). Feed the interview from `docs/architecture/00-overview/tech-stack.md` and `specs/adr/adr-index.md`.
 4. Reconcile with the project's existing knowledge layer:
@@ -225,6 +225,33 @@ are rewrites owned by the project, not copies of these packs.
 5. Write the project-owned section of `CLAUDE.md` below the managed block: existing self-review workflow, the three-layer knowledge model, and the pack registry pointer.
 6. Smoke run: `/sk.session start --role po`, `/sk.story` on a small intent, `/sk.session focus`, `/sk.design` to the first gate, confirm the pack-resolution log lists `backend-architecture` etc. from the project's own `.claude/skills`.
 7. Commit on the branch; PR to `dev`.
+
+### 4.1 Corrections carried into step 3 (recorded 2026-09-21)
+
+These override the bullets in §4 where they conflict. They come from §3.1 plus what was found while
+verifying step 1 and tagging `v1.0.0`.
+
+1. **Subtree remote is `git@github.com:ajorobert/SpecPipeline.git`.** The framework repo was renamed from
+   `SpecKit-SSD-SDLC`. The old URL redirects, so the rename is invisible until a push prints the warning —
+   do not bake the old name into `tagin-platform`'s `framework` remote.
+2. **`skill-routing.md` is generated from `tagin-platform/.claude/skills/README.md`**, not hand-written and
+   not seeded from `skills_archive/skill-routing.example.md`. That README is the registry of the 20 skills
+   step 2 landed; a second hand-maintained router drifts from it. Every path in the generated manifest must
+   resolve to a file that exists — verify with a loop, not by eye.
+3. **`adr_dir: specs/adr/`** — and note the framework gap it exposes: `[WORKSPACE INIT]` explicitly does not
+   create `.specify/project-config.md`, yet that file is the only place `adr_dir` is read from
+   (`sk.adr/prompt.md:11`, `sk.knowledge-base/prompt.md:7`, `agents/architect.md:46`), defaulting to
+   `history/adr`. Step 3 works around it by writing a minimal `project-config.md`; the framework needs a
+   real workspace-mode home for path overrides. **Open framework defect.**
+4. **No packs are copied from `skills_archive/`.** The 20 skills in `tagin-platform` are rewrites against
+   that repo's own `docs/architecture` and ADRs, and `react-admin-patterns` / `search-patterns` were
+   rejected on the evidence. Re-importing any of them reintroduces the third contradicting voice that §3.1
+   exists to prevent.
+5. **`setup.sh` is confirmed non-destructive to project assets** by the fixture run in §6.1 — including
+   `.claude/skills/README.md`, which is exactly where `tagin-platform` keeps its registry. Step 3 should
+   still falsify this with `git status` rather than trust it; a failure there is a framework bug affecting
+   every future consumer, not a local problem to patch around.
+
 
 ---
 
@@ -249,7 +276,7 @@ Step 1, run from this repo:
 - `ls .claude/skills` shows only `sk.*`, `governance`, and the 5 pointer stubs; `skills_archive/` holds 24 packs + `memory/` + example manifest.
 - `bash -n setup.sh .claude/hooks/*.sh`; `shellcheck` if installed.
 - Install test in a scratch dir: create a fake project with a pre-existing `.claude/skills/my-pack/SKILL.md`, `.claude/commands/x.md`, `settings.json` with a custom allow entry, a `CLAUDE.md` with text outside markers, and an existing `specs/adr/`. Run `setup.sh` twice. Assert: all four survive byte-identical; hooks merged once (idempotent); `specs/intents/` and `specs/knowledge-base.md` created; `.claude/.speckit-manifest` present with VERSION; no `skills_archive` content copied. Then add a stray `.claude/skills/sk.obsolete/` and re-run: it is removed (framework namespace), while `my-pack` is still untouched.
-- Hook test: scaffold `specs/intents/t/units/u/01-story/story.md` from the template with `status.current: shipped`, set `session.yaml` `active_unit_id`, run `echo '{"tool_name":"Skill","tool_input":{"skill":"sk.rollback"}}' | bash .claude/hooks/check-skill-preconditions.sh` → exit 0; with `status.current: draft` → exit 2. Run `post-skill.sh` for `sk.implement` and confirm nested `status.current` updated without corrupting frontmatter.
+- Hook test: scaffold `specs/intents/t/units/u/01-story/story.md` from the template with `status.current: shipped`, set `session.yaml` `active_unit_id`, run `echo '{"tool_name":"Skill","tool_input":{"skill":"sk.rollback"}}' | bash .claude/hooks/check-skill-preconditions.sh` → exit 0; with `status.current: draft` → exit 2. Confirm the nested `status.current` writer does not corrupt frontmatter. Note: `post-skill.sh` deliberately does **not** transition on `sk.implement` — per `governance/status-model.md` the conditional skills (`sk.test|sk.review|sk.verify|sk.implement|sk.ship|sk.security-audit`) defer to the Stop hook via `SK_RESULT:`. Test the writer through `sk_set_status` in `.claude/hooks/lib-story.sh` instead.
 - Open Claude Code in this repo: `/sk.design` on a fixture unit reaches Step 0 and reports "no skill-routing.md — no packs loaded" cleanly instead of failing.
 
 Steps 2–3, run from tagin-platform:
@@ -261,8 +288,39 @@ Steps 2–3, run from tagin-platform:
 
 ---
 
+### 6.1 Step 1 verification — recorded run (2026-09-21)
+
+All checks below were executed and passed. Fixture: a scratch project seeded with a project-owned
+`.claude/skills/my-pack/`, `.claude/skills/README.md`, `.claude/commands/x.md`, a `settings.json` carrying a
+custom `permissions.allow` entry, a `CLAUDE.md` with prose above and below the managed markers, and an
+existing `specs/adr/`; framework delivered via `git archive HEAD` into `.speckit/`.
+
+| Check | Result |
+|---|---|
+| Stack-leak grep (§6 line 1), excluding `skills_archive/` and `ai_reports/` | 0 hits |
+| Legacy-ref grep (§6 line 2) over `.claude templates docs` | 0 hits |
+| `bash -n setup.sh` + all `.claude/hooks/*.sh` | clean |
+| `.claude/skills` contents | `sk.*`, `governance`, 5 pointer stubs, `README.md` only |
+| `skills_archive/` | 23 packs (§1.3's "24" was a miscount; the listed groups sum to 23) + `memory/` + example manifest |
+| Install run 1 — project assets | `my-pack`, `skills/README.md`, `commands/x.md`, `specs/adr/` all byte-identical |
+| Install run 1 — `settings.json` | hooks added, `deny` unioned, `allow` untouched |
+| Install run 1 — `CLAUDE.md` | managed region replaced; prose above and below preserved |
+| Install run 2 | byte-identical across `.claude specs history .specify CLAUDE.md GEMINI.md` |
+| Stray `.claude/skills/sk.obsolete/` + edited `my-pack` | `sk.obsolete` pruned, `my-pack` edit kept |
+| `skills_archive/` content copied into project | no |
+| `check-skill-preconditions.sh` / `sk.rollback`, story `status.current: shipped` | exit 0 |
+| same, `status.current: draft` | exit 2 with the unmet rule named |
+| `sk_set_status` nested write `draft → in-progress` | `current` + `entered_at` updated, frontmatter and body intact |
+
+Not executed: `/sk.design` on a fixture unit (needs an interactive session). `pack-resolution.md:24-25`
+specifies the missing-manifest path — log and continue, never STOP — by inspection.
+
+
 ## 7. Out of scope (follow-ups)
 
+- **Workspace-mode path overrides** (framework defect, found 2026-09-21): `[WORKSPACE INIT]` creates no
+  `.specify/project-config.md`, so `adr_dir` and any future path override have nowhere to live in a
+  multi-project repo. See §4.1 item 3. Step 3 works around it; the framework should own the fix.
 - Packaging the framework as a Claude Code plugin / private marketplace (layout is ready after 1.8).
 - Evals in CI for the framework, PR-side review (`REVIEW.md`), flow metrics, production→spec loop — per the playbook gap analysis.
 - Moving packs to a separate stack-skills repo (the Aug-23 proposal) — only needed if a second project on the same stack appears.

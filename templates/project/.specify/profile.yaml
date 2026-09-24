@@ -1,0 +1,50 @@
+# .specify/profile.yaml — PROJECT-OWNED. Written by /sk.init, then edited by the team; setup.sh reads it and
+# never writes it. It holds project facts only: every knowledge home has one fixed path
+# (.claude/skills/governance/profile.md), so nothing here relocates a home.
+# Every key is optional. An absent key, `null` or `~` means the default shown.
+version: 1
+
+knowledge:
+  # Paths no AI loads on its own. A matching file is read only when a human names it in the conversation.
+  # Shipped (frozen) units are always excluded except while they are the active unit.
+  never_autoload: []            # e.g. ["docs/architecture/**"]
+  adr:
+    exemplar: null              # an existing ADR whose shape new ADRs copy; null = the framework ADR template
+    guard: true                 # run check-adr-index.sh after sk.adr writes and in sk.verify
+  domain:
+    template: default           # default | none | <path>. Used only when a NEW specs/domain/{module}.md is created;
+                                # an existing file is always written into its own sections.
+
+contracts:
+  verify: null                  # command that proves code and specs/openapi|asyncapi agree; null = sk.test's contract tests
+  compat_rules: null            # file defining compatibility classes (often an ADR); null = additive | deprecating | breaking
+  codegen: null                 # command that regenerates clients from the specs; null or none = no codegen
+
+rules:
+  # Stack folder under .claude/rules/ → the projects (names or types from projects/index.md) it covers.
+  stacks:
+    backend: [Backend]
+    web: [Frontend]
+    mobile: [Mobile]
+
+skills:
+  max_packs: 8                  # per phase, shared across the projects in scope
+
+vcs:
+  base_branch: dev
+  hotfix_base: null             # null = base_branch
+  create_branch: on-request     # on-request | always. on-request: sk.session records the current branch.
+  branch: "{kind}/{topic}"      # {kind} = feature | fix; {topic} = kebab title; {ticket} and {story} also available
+  commit: conventional          # conventional | free
+  pr_title: "[{ticket}] {Kind} / {title}"
+  no_ticket: "NO TICKET"        # what {ticket} becomes when the story has no tracker issue
+
+tracker:
+  kind: none                    # none | jira
+  project: null                 # tracker project key, e.g. SHOP
+  mode: mirror                  # the framework owns ID and status; the tracker follows every transition
+  transitions: {}               # optional framework status → tracker transition name, e.g. { in-progress: "Start work" }
+
+install:
+  scaffold_skip: []             # homes /sk.init must never create, e.g. [specs/knowledge-base.md]
+  gemini: false                 # true = also maintain GEMINI.md

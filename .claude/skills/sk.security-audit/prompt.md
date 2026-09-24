@@ -14,7 +14,7 @@ one folder per project), splitting the audit into four artifacts.
 
 ## Pre-flight
 1. Run the unit pre-flight in `.claude/skills/governance/preflight.md` (session focus, UNIT_DIR/DESIGN_DIR,
-   Impacted Projects, `checkpoint_mode` from `01-story/story.md`, knowledge bases).
+   Impacted Projects, `checkpoint_mode` from `01-story/story.md`, knowledge, `.specify/profile.yaml`).
 2. Resolve `AUDIT_DIR = UNIT_DIR/07-security-audit/`.
 3. From the Impacted Projects table collect each project's `{CodeRoot}` — these code roots (plus their
    tests) are the in-scope source for the audit. `--projects {key}` resolves per
@@ -23,12 +23,17 @@ one folder per project), splitting the audit into four artifacts.
 ## Input Artifacts
 - UNIT_DIR/unit-brief.md                              (Impacted Projects → the {CodeRoot} set to scan)
 - {CodeRoot}/** for each impacted project             (implementation + tests under audit)
-- DESIGN_DIR/contracts/api-spec.json                  (endpoints + error contract; input-validation surface)
-- DESIGN_DIR/architecture.md                          (trust boundaries, IdP, data flows)
+- DESIGN_DIR/contract-changes.md                       (operations this unit added/changed/removed)
+- The canonical `specs/openapi/{audience}.yaml` / `specs/asyncapi/{module}.yaml` operations that
+  contract-changes.md lists                           (inputs, auth requirements, error contract)
+- DESIGN_DIR/architecture.md                          (trust boundaries, {IdP}, data flows)
 - DESIGN_DIR/projects/{Project}.md                    (per-project Security sections, if present)
-- .specify/memory/architecture-decisions.md           (auth ADR + security-relevant constraints)
-- UNIT_DIR/knowledge-base.md                          (non-derivable invariants — e.g. PII deny-list,
-                                                        mandatory tenant claim, no-enumeration rules)
+- specs/adr/adr-index.md → the ADRs it routes for this work (ALWAYS block + blocks whose signals match —
+  auth, security, data exposure), per `governance/profile.md` → Loading rules
+- .specify/memory/constitution.md                     (fixed principles that bear on security)
+- specs/domain/{module}.md of each touched context    (domain invariants: ownership, isolation, sensitive data)
+- UNIT_DIR/knowledge-base.md                          (non-derivable unit invariants)
+- The project's `.claude/rules/{stack}/` folders       (security-relevant coding rules the project has written)
 - UNIT_DIR/01-story/ acceptance-criteria.md           (security-relevant acceptance criteria)
 
 ## Audit Scope
@@ -41,18 +46,23 @@ roots only), audit the design slice and record code-level checks as "pending imp
 1. Build the in-scope file set: every impacted project's `{CodeRoot}` (and tests), filtered to what
    this unit changed. Note any project still at planned-root stage.
 2. Evaluate each **OWASP Top 10** category against the implementation → `owasp-report.md`.
-3. Verify **authentication** boundaries against the auth ADR in architecture-decisions.md and the
-   IdP model in architecture.md (token validation, issuer/audience, signature, claim mapping).
-4. Verify **authorization** boundaries: RBAC/ABAC policies, the mandatory-claim / tenant-isolation
-   invariant from knowledge-base.md, and that 403 paths reject rather than leak.
+3. Verify **authentication** boundaries against the routed auth ADRs and the {IdP} model in
+   architecture.md (token validation, issuer/audience, signature, claim mapping — as those sources define them).
+4. Verify **authorization** boundaries: the access-control model the ADRs and architecture.md define,
+   the authorization and isolation invariants recorded in the domain specs and knowledge-base.md, and
+   that rejected requests reject rather than leak.
 5. Scan for **secrets and hardcoded credentials** across the in-scope file set → record in
    `dependency-scan.md` (Secrets section).
-6. Review the **dependency list** for known CVEs (name the scan tool used) → `dependency-scan.md`.
-7. Check **API input validation** coverage against api-spec.json (every input validated; error
-   contract does not over-disclose).
-8. Review **logging / telemetry** for sensitive-data exposure (honor the knowledge-base PII deny-list).
+6. Review the **dependency list** for known CVEs (name the scan tool used; if none is available, record
+   `not run — no scanner available` and review the manifests by hand — never invent a result) →
+   `dependency-scan.md`.
+7. Check **API input validation** coverage against the changed canonical operations (every input
+   validated; error responses do not over-disclose).
+8. Review **logging / telemetry** for sensitive-data exposure (honor any sensitive-data rules in the
+   routed ADRs, domain specs, rules and knowledge-base.md).
 9. Perform **STRIDE** threat modeling → `stride-review.md`.
-10. Write `security-signoff.md` with the rolled-up verdict and set the unit story `security-status`.
+10. Write `security-signoff.md` with the rolled-up verdict and record `security-status` through
+    `story-status.sh` (Status Roll-up below).
 
 ## Output Artifacts
 Write the flat unit-level audit folder `UNIT_DIR/07-security-audit/`. Every file starts with
@@ -69,8 +79,8 @@ OWASP Top 10 evaluation for the unit.
 … all 10 categories …
 
 ## Auth Verification
-- Authentication: {how verified against the auth ADR} — verdict + evidence.
-- Authorization: {RBAC/ABAC + tenant-isolation invariant} — verdict + evidence.
+- Authentication: {how verified against the routed auth ADRs} — verdict + evidence.
+- Authorization: {access-control model + recorded isolation invariants} — verdict + evidence.
 
 ## Summary
 Findings by severity; categories PASS/FAIL/NA count.
@@ -107,7 +117,7 @@ State "no unaddressed critical CVEs" explicitly when clean.
 
 ## Secrets
 Scan tool/method used. Findings: hardcoded secrets/credentials/tokens in the in-scope file set —
-or "CLEAN — no hardcoded secrets in scope". Honor the knowledge-base PII deny-list.
+or "CLEAN — no hardcoded secrets in scope". Honor any sensitive-data rules the project records.
 ```
 
 ### security-signoff.md
@@ -138,7 +148,11 @@ Tracking references for accepted HIGH findings; required fixes before ship for a
 ```
 
 ## Status Roll-up
-Set `security-status` in the unit's `01-story/story.md` frontmatter:
+Record `security-status` with the status command — never by editing `01-story/story.md` frontmatter
+(`.claude/skills/governance/status-model.md`):
+```
+bash .claude/hooks/story-status.sh field security-status <clear|conditional|blocked>
+```
 - `blocked` if any CRITICAL finding is open (OWASP or STRIDE).
 - `conditional` if HIGH findings exist but are acknowledged/tracked and no CRITICAL is open.
 - `clear` if no CRITICAL or HIGH findings.
@@ -154,12 +168,13 @@ If `autopilot`: roll up automatically per the rules above and log it. A BLOCKED 
 - STRIDE table present with all 6 threat categories evaluated, each with evidence.
 - Every CRITICAL and HIGH finding (OWASP + STRIDE) has a `project / file:line` reference and specific
   remediation.
-- Authentication and authorization boundaries explicitly verified against the auth ADR and the
-  tenant-isolation / mandatory-claim invariant.
+- Authentication and authorization boundaries explicitly verified against the routed ADRs and the
+  isolation invariants the project records.
 - Secrets scan run (CLEAN or findings listed); dependency scan names the tool and flags CVEs.
 - The four flat artifacts written under `07-security-audit/` (owasp-report.md, stride-review.md,
   dependency-scan.md, security-signoff.md).
-- Overall verdict CLEAR | CONDITIONAL | BLOCKED, and `security-status` rolled up to match.
+- Overall verdict CLEAR | CONDITIONAL | BLOCKED, and `security-status` recorded to match via
+  `story-status.sh field security-status`.
 - The audit reports findings only — it does not modify implementation code to resolve them.
 
 ## Completion Signal

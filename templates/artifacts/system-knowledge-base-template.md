@@ -16,12 +16,7 @@ last-updated: {date}
 -->
 
 ## Domain Map
-<!--
-### {Domain}
-- Owns:
-- Does not own:
-- Depends on:
--->
+The bounded contexts and how they relate: `specs/domain/bounded-contexts.md`.
 
 ## System-Wide Invariants
 

@@ -16,14 +16,22 @@ in-scope project = `{Project}` (`{ProjectType}`), signals = story tags + `03-pla
 If no project was passed, fall back to session.yaml `role`.
 
 ## Context Loading — cacheable (load first, in order)
-1. specs/domains/{relevant-domain}/knowledge-base.md (if exists)
-2. specs/intents/{intent}/units/{unit}/knowledge-base.md (if exists)
-3. specs/intents/{intent}/units/{unit}/02-design/contracts/api-spec.json (if exists)
-4. specs/intents/{intent}/units/{unit}/02-design/architecture.md (if exists)
-5. specs/intents/{intent}/units/{unit}/02-design/projects/{Project}.md (if exists)
-6. specs/intents/{intent}/units/{unit}/02-design/database-design.md (if exists)
-7. specs/intents/{intent}/units/{unit}/02-design/ui-model.md (if exists — Frontend/Mobile)
-8. The project's coding-standards.md and tech-stack.md (`.claude/skills/governance/project-resolution.md`)
+Knowledge homes are loaded per the loading rules in `.claude/skills/governance/profile.md`.
+1. .specify/memory/constitution.md, then the ADRs routed by specs/adr/adr-index.md for this work
+   (the ALWAYS block + every signal block matching the story tags, the plan and the files in scope)
+2. specs/domain/{module}.md of each bounded context the unit touches (from unit-brief.md /
+   architecture.md; see specs/domain/bounded-contexts.md) — read-only here
+3. specs/intents/{intent}/units/{unit}/knowledge-base.md (if exists)
+4. specs/intents/{intent}/units/{unit}/02-design/contract-changes.md (if exists), then only the
+   operations it lists in specs/openapi/{audience}.yaml / specs/asyncapi/{module}.yaml
+5. specs/intents/{intent}/units/{unit}/02-design/architecture.md (if exists)
+6. specs/intents/{intent}/units/{unit}/02-design/projects/{Project}.md (if exists)
+7. specs/intents/{intent}/units/{unit}/02-design/database-design.md (if exists)
+8. specs/intents/{intent}/units/{unit}/02-design/ui-model.md (if exists — Frontend/Mobile)
+9. .specify/memory/projects/{Project}/tech-stack.md (`.claude/skills/governance/project-resolution.md`)
+10. The project's coding rules: every `.claude/rules/{stack}/` folder mapped to `{Project}` (or its
+    `{ProjectType}`) by `rules.stacks` in `.specify/profile.yaml`. These are the coding rules for this
+    step; a missing folder is logged `{folder} not present — skipped`.
 
 ## Project context (tail — load LAST)
 Emit at end of user-input block, after all cacheable context:
@@ -34,6 +42,16 @@ Emit at end of user-input block, after all cacheable context:
   <story>…UNIT_DIR/01-story/ story.md, requirement.md, acceptance-criteria.md…</story>
 </project>
 ```
+
+## Contract Codegen
+Read `contracts.codegen` from `.specify/profile.yaml`.
+- Set (a command): when contract-changes.md lists at least one operation this project produces or
+  consumes, run the command from the repo root before generating the structure, and use its generated
+  types/clients instead of hand-writing them. Log `contracts.codegen: ran "{command}" — exit {code}`.
+  A non-zero exit: mark the dependent tasks `blocked` in progress.md with the output, and report.
+  Never edit generated files by hand.
+- `null`, absent or `none`: log `contracts.codegen: none — skipped; request/response types written by hand`.
+- No contract change for this project: log `contracts.codegen: skipped — no contract change for {Project}`.
 
 ## Pre-generation Protocol
 Before writing any code in an existing module:
@@ -51,17 +69,20 @@ This phase is a **pure mechanical translation** of the contracts, data models, a
 
 ### Generate the structure:
 Read `03-plan/{Project}/tasks.md` to understand *what* needs to be built (build order + Files Affected),
-and use `api-spec.json`, `database-design.md`, and `ui-model.md` to know *how* it should be shaped. All
+and use the canonical operations listed in `contract-changes.md`, `database-design.md`, and
+`ui-model.md` to know *how* it should be shaped. All
 output goes inside `{CodeRoot}`.
 1. Create directories and empty files.
 2. Create the project's structural units (types, entities, enums, endpoints/routes, services, components)
    as stubbed boundaries.
-3. Wire up dependencies using the project's composition mechanism (per the loaded packs / coding standards).
-4. Implement request/response types to match API specifications exactly.
+3. Wire up dependencies using the project's composition mechanism (per the project's
+   `.claude/rules/{stack}/` and the loaded packs).
+4. Implement request/response types to match the canonical operations exactly (or use the types
+   produced by Contract Codegen).
 5. Create test files at the project's Test Layout (tech-stack.md) with empty, named test cases matching
    the acceptance criteria, in the project's test framework.
 
 **Success Criteria:**
-- The file structure exactly matches the plan and architecture.
+- The file structure exactly matches the plan and architecture, and follows the project's `.claude/rules/{stack}/`.
 - Everything compiles / type-checks.
 - Nothing has logic yet.

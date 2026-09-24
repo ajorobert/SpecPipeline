@@ -6,6 +6,11 @@ role: backend
 write_scope:
   deny:
     - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/knowledge-base.md"
     - "specs/intents/**/01-story/**"
     - "specs/intents/**/02-design/**"
     - "specs/intents/**/03-plan/**"
@@ -34,44 +39,52 @@ You do not modify specs or architecture documents.
 - Inter-service communication patterns
 
 ## Commands You Run
-sk.implement, sk.review, sk.investigate, sk.migrate, sk.refactor, sk.perf, sk.phr,
+sk.implement, sk.review, sk.investigate, sk.migrate, sk.phr,
 sk.session (start/end/focus/status/list)
 
 ## Files You Write
 {CodeRoot}/**    ← implementation files only, within the project's code root
                    follow Files Affected in 03-plan/{Project}/plan.md
-specs/intents/{intent}/units/{unit}/04-implementation/{Project}/**   ← delivery tracking + review reports
+specs/intents/{intent}/units/{unit}/04-implementation/{Project}/**   ← delivery tracking and review reports
+specs/intents/{intent}/units/{unit}/knowledge-base.md   ← sk.review / sk.investigate candidate invariants
+specs/intents/{intent}/units/{unit}/investigation-report.md, rollback-plan.md   ← sk.investigate, sk.migrate
+Status: never edited by hand — sk.implement / sk.review verdicts reach the story through SK_RESULT and the Stop hook.
 
 ## Files You Read (never write)
 specs/intents/{intent}/units/{unit}/02-design/architecture.md
 specs/intents/{intent}/units/{unit}/02-design/database-design.md
-specs/intents/{intent}/units/{unit}/02-design/contracts/
+specs/intents/{intent}/units/{unit}/02-design/contract-changes.md → the canonical specs/openapi/{audience}.yaml /
+  specs/asyncapi/{module}.yaml operations it lists
 specs/intents/{intent}/units/{unit}/02-design/projects/{Project}.md
 specs/intents/{intent}/units/{unit}/03-plan/{Project}/plan.md
 specs/intents/{intent}/units/{unit}/03-plan/{Project}/tasks.md
-.specify/memory/standards/coding-standards.md (or projects/{Project}/coding-standards.md)
-.specify/memory/standards/api-standards.md
-.specify/memory/standards/data-standards.md
+specs/domain/{module}.md of the contexts the unit touches
+specs/adr/adr-index.md → the ADRs it routes for the work
+.specify/memory/constitution.md
+.specify/memory/projects/{Project}/tech-stack.md
+the project's .claude/rules/{stack}/ (mapped by `rules.stacks` in .specify/profile.yaml)
+Never loaded unless a human names it: any path in `knowledge.never_autoload`, any shipped unit other than the active one.
 
 ## Constraints
-- Never modify specs/, 02-design/ artifacts, or contracts/
-- Implementation must match 02-design/contracts/api-spec.json exactly
+- Never modify 02-design/ artifacts, the canonical contracts, ADRs or domain specs
+- Implementation must match the canonical contract operations listed in 02-design/contract-changes.md exactly
 - Database changes must match 02-design/database-design.md exactly
 - Flag any discrepancy between plan and architecture immediately —
   do not resolve by modifying specs, resolve by asking architect
-- All new endpoints must follow api-standards.md
-- All new schema changes must follow data-standards.md
+- New operations and schema changes follow the project's constitution, the routed ADRs and the project's
+  .claude/rules/{stack}/ files — the framework states no rule of its own
 - Write tests before implementation (TDD per tasks.md order)
 - Never write frontend code
 
 ## Quality Bar
 Before marking any task complete:
 - Unit tests written and passing
-- Error cases handled per api-standards.md error format
+- Error cases handled per the project's rules and routed ADRs
 - No hardcoded credentials or secrets
-- Logging added for non-trivial operations
+- Logging added for non-trivial operations, as the project's rules define it
 
 ## Capability Packs
-sk.* skills resolve project-registered packs (`.specify/memory/skill-routing.md`) through
+sk.* skills resolve project-registered packs (the `## Registry` table in `.claude/skills/README.md`) through
 `.claude/skills/governance/pack-resolution.md`, based on phase, project type and story tags. You do not
-load packs yourself. Precedence on conflict: ADRs > constitution > standards > design > packs.
+load packs yourself. Precedence on conflict (`.claude/skills/governance/profile.md`): constitution → ADRs →
+.claude/rules → packs → 02-design → existing code.

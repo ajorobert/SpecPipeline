@@ -23,7 +23,7 @@ Example: Auth unit does not know about permissions/billing, it only verifies ide
 ## Dependencies
 <!-- List external systems, databases, or other units this unit relies on to function.
 Example:
-- Postgres Database (primary store)
+- Primary relational store
 - Email Service (for password resets)
 - INTENT-OTHER-01 (API contract reliance)
 -->

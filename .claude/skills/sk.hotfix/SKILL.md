@@ -1,12 +1,11 @@
 ---
 name: sk.hotfix
-description: "Invoke when: P0 incident fast path — emergency fix to production. Role: lead. Reads: session.yaml, 01-story/story.md, 02-design/architecture.md. Writes: 03-plan/{Project}/hotfix-plan.md, source within {CodeRoot}. 3-gate: plan → implement → ship (no full spec cycle)."
+description: "Invoke when: P0 incident fast path — emergency fix to production. Role: lead. Reads: .specify/state/session.yaml, .specify/profile.yaml (vcs.*), 01-story/, 02-design/architecture.md, specs/adr/adr-index.md → routed ADRs, .specify/memory/constitution.md, the project's .claude/rules/{stack}/, .specify/memory/projects/{Project}/tech-stack.md. Writes: 03-plan/{Project}/hotfix-plan.md (also in a frozen unit), source within {CodeRoot}, fix branch and PR per vcs.*. 3-gate: plan → implement → ship (no full spec cycle)."
 subagent_type: SpecKit Lead Agent
 disable-model-invocation: true
 inject_files:
-  - .specify/memory/standards/coding-standards.md
-  - .specify/memory/standards/observability-standards.md
-  - .specify/memory/architecture-decisions.md
+  - .specify/profile.yaml
+  - specs/adr/adr-index.md
 ---
 
 P0 incident fast path. Bypasses sk.design (architecture / data model / contracts).

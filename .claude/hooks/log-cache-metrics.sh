@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stop hook — logs prompt-cache metrics per assistant turn.
-# Appends one JSONL row to .claude/cache-metrics.jsonl for the most recent
+# Appends one JSONL row to .specify/state/cache-metrics.jsonl for the most recent
 # assistant turn in the transcript. Captures every turn (sk.* or direct chat).
 # Exit 0 always — bookkeeping only, must never block Claude.
 
@@ -15,8 +15,11 @@ fi
 STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)
 [[ "$STOP_HOOK_ACTIVE" == "true" ]] && exit 0
 
-PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-METRICS_LOG="${PROJECT_ROOT}/.claude/cache-metrics.jsonl"
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib-story.sh
+source "${HOOK_DIR}/lib-story.sh"
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "${HOOK_DIR}/../.." && pwd)}"
+METRICS_LOG="$(sk_state_dir "$PROJECT_ROOT")/cache-metrics.jsonl"
 
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
 [[ -z "$TRANSCRIPT_PATH" || ! -f "$TRANSCRIPT_PATH" ]] && exit 0
@@ -35,18 +38,8 @@ SKILL_NAME=$(tac "$TRANSCRIPT_PATH" \
       | (.[0].input.skill // "")
     ' 2>/dev/null || true)
 
-# Read session.yaml for story/role context
-SESSION_YAML="${PROJECT_ROOT}/.claude/session.yaml"
-ACTIVE_STORY_ID=""
-ROLE=""
-if [[ -f "$SESSION_YAML" ]]; then
-  ACTIVE_STORY_ID=$(grep -E '^active_story_id:' "$SESSION_YAML" 2>/dev/null \
-    | sed 's/^active_story_id:[[:space:]]*//;s/[[:space:]]*#.*//;s/"//g' \
-    | xargs || true)
-  ROLE=$(grep -E '^role:' "$SESSION_YAML" 2>/dev/null \
-    | sed 's/^role:[[:space:]]*//;s/[[:space:]]*#.*//;s/"//g' \
-    | xargs || true)
-fi
+ACTIVE_STORY_ID=$(sk_session_value "$PROJECT_ROOT" active_story_id)
+ROLE=$(sk_session_value "$PROJECT_ROOT" role)
 
 # Emit one JSONL row. Use jq -c to produce compact, valid JSON.
 echo "$LAST_LINE" | jq -c \

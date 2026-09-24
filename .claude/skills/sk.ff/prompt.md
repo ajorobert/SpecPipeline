@@ -2,8 +2,10 @@
 Runs the SDLC pipeline from story capture through planning in one invocation.
 Role: lead (orchestrator) | Level: story
 
-This skill orchestrates other skills in sequence. Each sub-skill runs with its own
-isolated context — state is passed via the file system (session.yaml + spec artifacts).
+This skill orchestrates other skills in sequence, invoking each with the **Skill tool**
+(`Skill(sk.story)`, `Skill(sk.design)`, `Skill(sk.plan)`) so `skill-start.sh` runs their preconditions
+and sets the active role (`.claude/skills/governance/status-model.md`). Each runs with its own
+isolated context — state is passed via the file system (`.specify/state/session.yaml` + spec artifacts).
 
 ## Mode Detection
 - `sk.ff` → [FEATURE MODE] full pipeline: sk.story → design → plan
@@ -13,24 +15,22 @@ isolated context — state is passed via the file system (session.yaml + spec ar
   `sk.design --datamodel` or `sk.design --contracts` manually.
 
 ## Pre-flight
-1. Verify the system-tier memory is populated — not merely present. `setup.sh` scaffolds these as
-   commented skeletons, so "the file exists" is not the check; "it has real content outside the
-   template comments" is.
-   - `.specify/memory/system-context.md`
-   - `.specify/memory/standards/tech-stack.md` (or, in a workspace, the impacted projects'
-     `.specify/memory/projects/{Project}/tech-stack.md`)
-   - `.specify/memory/projects/index.md` — the project router, required by sk.story
-   Any of them missing or still a bare skeleton: STOP with
-   `Run /sk.init first — {file} is still a template skeleton.` Name every file that failed, so one
-   sk.init run can fix them all.
+1. Verify the system context is not empty — "the file exists" is not the check, real content is:
+   - `specs/knowledge-base.md` has at least one non-comment line of content under
+     `## Why This System Exists` (HTML comments and blank lines do not count).
+   - `.specify/memory/projects/index.md` has at least one project row in its table (a row whose Type
+     is Backend, Frontend or Mobile — the header, separator and placeholder rows do not count).
+   Any check failing: STOP with `Run /sk.init first — {file} {what is missing}.` Name every file that
+   failed, so one sk.init run can fix them all.
+2. Read `.specify/profile.yaml` once (defaults in `.claude/skills/governance/profile.md`).
 
 ## Orchestration: [FEATURE MODE]
 
 ### Phase 1 — Story Capture
-Invoke skill: sk.story
-- Context injected: session.yaml, system-context.md, architecture-decisions.md, domain-model.md
+`Skill(sk.story)`
+- sk.story loads its own knowledge (system knowledge base, ADR index, bounded contexts, project router)
 - Waits for: `01-story/` written and clarified, with checkpoint_mode set in `story.md` frontmatter
-- Reads back: active_unit_id / active_story_id from session.yaml (updated by sk.story → sk.story_sub_specify)
+- Reads back: active_unit_id / active_story_id from `.specify/state/session.yaml` (updated by sk.story → sk.story_sub_specify)
 - Reads back: checkpoint_mode from `01-story/story.md` frontmatter
 
 ### Phase 2 — Design [FEATURE MODE only]
@@ -39,7 +39,7 @@ Condition: checkpoint_mode = validate or confirm → invoke sk.design
            otherwise skip to Phase 3
 
 If invoked:
-- Invoke skill: sk.design
+- `Skill(sk.design)`
 - sk.design auto-detects FRESH or RESUME mode and runs only phases needed for this unit
   (architecture always; data model and contracts only if the story signals the need)
 - Gates inside sk.design are governed by checkpoint_mode per its own gate schedule
@@ -47,23 +47,23 @@ If invoked:
 - On sk.design completion: set `01-story/story.md` frontmatter checkpoint_status: approved
 
 ### Phase 3 — Implementation Plan
-Invoke skill: sk.plan
-- Context injected: session.yaml, tech-stack.md
+`Skill(sk.plan)`
+- sk.plan reads each impacted project's `.specify/memory/projects/{Project}/tech-stack.md` itself
 - Waits for: sk.plan to complete (it manages its own checkpoint gate internally).
 
 ## Orchestration: [BUG MODE]
 
 ### Phase 1 — Bug Report Capture
-Invoke skill: sk.story --bug
+`Skill(sk.story)` with args `--bug`
 - This will run the specify phase --bug and then clarify the buggy behavior conditions.
 
 ### Phase 2 — Implementation Plan (no architecture step)
-Invoke skill: sk.plan
+`Skill(sk.plan)`
 - Waits for: sk.plan to complete (it manages its own checkpoint gate).
 - Verify story_type: bug in `01-story/story.md` frontmatter before proceeding
 
 ## Checkpoint Pause Protocol
-Pauses follow `.claude/skills/governance/review-gate.md`. Before pausing, make sure session.yaml holds the
+Pauses follow `.claude/skills/governance/review-gate.md`. Before pausing, make sure `.specify/state/session.yaml` holds the
 active focus so the pipeline can resume.
 
 ## Completion Report
@@ -87,6 +87,6 @@ All artifacts from each invoked sub-skill.
 ## Quality Bar
 - Checkpoint pauses respected — never skip an approval gate
 - All artifacts created in correct locations
-- Story frontmatter updated throughout (status, checkpoint_status)
+- Story frontmatter updated throughout (`status.current` only through `story-status.sh` / the hooks; checkpoint_status)
 - Bug mode: story_type: bug confirmed in frontmatter before plan proceeds
 - Each sub-skill invocation is self-contained — no state leaks between phases

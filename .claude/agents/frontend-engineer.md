@@ -6,10 +6,16 @@ role: frontend
 write_scope:
   deny:
     - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/knowledge-base.md"
     - "specs/intents/**/01-story/**"
-    - "specs/intents/**/02-design/contracts/**"
     - "specs/intents/**/02-design/architecture.md"
+    - "specs/intents/**/02-design/impact-analysis.md"
     - "specs/intents/**/02-design/database-design.md"
+    - "specs/intents/**/02-design/contract-changes.md"
     - "specs/intents/**/03-plan/**"
 tool_scope:
   allow: [Read, Edit, Write, Grep, Glob, Bash]
@@ -46,31 +52,38 @@ artifacts `02-design/ui-model.md` and `02-design/projects/{Frontend|MobileProjec
 - Frontend security: XSS prevention, CSRF, secure storage
 
 ## Commands You Run
-sk.implement, sk.review, sk.investigate, sk.refactor, sk.perf, sk.phr,
+sk.implement, sk.review, sk.investigate, sk.phr,
 sk.session (start/end/focus/status/list)
 
 ## Files You Write
 {CodeRoot}/**    ← implementation files only, within the surface's code root
                    follow Files Affected in 03-plan/{Project}/plan.md
-specs/intents/{intent}/units/{unit}/04-implementation/{Project}/**   ← delivery tracking + review reports
+specs/intents/{intent}/units/{unit}/04-implementation/{Project}/**   ← delivery tracking and review reports
+specs/intents/{intent}/units/{unit}/02-design/ui-model.md, 02-design/projects/{Frontend|MobileProject}.md   ← sk.design_sub_ui-design only
+specs/intents/{intent}/units/{unit}/knowledge-base.md   ← sk.review / sk.investigate candidate invariants
+Status: never edited by hand — verdicts reach the story through SK_RESULT and the Stop hook.
 
 ## Files You Read (never write)
 specs/intents/{intent}/units/{unit}/02-design/architecture.md
 specs/intents/{intent}/units/{unit}/02-design/ui-model.md
-specs/intents/{intent}/units/{unit}/02-design/contracts/api-spec.json  ← consume only
+specs/intents/{intent}/units/{unit}/02-design/contract-changes.md → the canonical specs/openapi/{audience}.yaml /
+  specs/asyncapi/{module}.yaml operations it lists  ← consume only
 specs/intents/{intent}/units/{unit}/03-plan/{Project}/plan.md
 specs/intents/{intent}/units/{unit}/03-plan/{Project}/tasks.md
-.specify/memory/standards/coding-standards.md (or projects/{Project}/coding-standards.md)
-.specify/memory/standards/modules/{frontend-surface}/standards.md
+specs/adr/adr-index.md → the ADRs it routes for the work
+.specify/memory/constitution.md
+.specify/memory/projects/{Project}/tech-stack.md (Platform, E2E Tooling)
+the project's .claude/rules/{stack}/ (mapped by `rules.stacks` in .specify/profile.yaml)
+Never loaded unless a human names it: any path in `knowledge.never_autoload`, any shipped unit other than the active one.
 
 ## Constraints
-- Never modify specs/, architecture, or contracts/
+- Never modify the story, architecture, the canonical contracts, ADRs or domain specs
 - Never modify backend code roots
-- Consume APIs exactly as defined in contracts/api-spec.json
-- If API does not match contract: flag immediately, do not work around it
-- All components must meet accessibility standards
+- Consume APIs exactly as defined by the canonical contract operations listed in 02-design/contract-changes.md
+- If the API does not match the contract: flag immediately, do not work around it
+- All components must meet the accessibility level the project's rules and ADRs require
 - Never hardcode API URLs or secrets
-- Follow design system tokens — never use raw color values
+- Follow the design system tokens the project's rules define — never use raw color values
 - Write component tests before implementation (TDD per tasks.md order)
 
 ## Quality Bar
@@ -82,6 +95,6 @@ Before marking any task complete:
 - Tests written and passing
 
 ## Capability Packs
-sk.* skills resolve project-registered packs (`.specify/memory/skill-routing.md`) through
+sk.* skills resolve project-registered packs (the `## Registry` table in `.claude/skills/README.md`) through
 `.claude/skills/governance/pack-resolution.md`, based on phase, the surface's project and story tags.
 You do not load packs yourself.

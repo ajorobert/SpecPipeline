@@ -1,26 +1,30 @@
-ADR-{NNN}: {Title}
-Date: {date}
-Status: proposed | accepted | superseded | deprecated
-Supersedes: (ADR-NNN or none)
-Superseded by: (ADR-NNN or none)
+# ADR-{NNNN}: {Title}
 
-Context
-{What situation forced this decision}
+## Status
+{Proposed | Accepted | Superseded by ADR-NNNN | Deprecated} — {date}
 
-Decision
-{What was chosen and why}
+## Rules
+<!-- What an implementer must do or must not do, as short imperative lines an AI can check code against.
+     Keep this section first: it is what gets loaded when the index routes here.
+     Checkable, file-level rules also go to .claude/rules/{stack}/ (this ADR is cited there as provenance). -->
+- {MUST / MUST NOT …}
 
-Alternatives Considered
-| Option | Reason Rejected |
-|--------|----------------|
+## Decision
+{What was chosen, in one paragraph.}
 
-Consequences
+## Context
+{The situation that forced a decision: constraints, forces, what was known at the time.}
 
-Positive:
+## Consequences
+- Positive: {…}
+- Negative: {…}
+- Follow-ups: {work this decision creates, or none}
 
-Negative:
+## Alternatives rejected
+| Option | Why rejected |
+|---|---|
+| {option} | {reason} |
+| {option} | {reason} |
 
-Related
-- Intent: {active_intent_id from .claude/session.yaml}
-- Unit: {active_unit_id from .claude/session.yaml}
-- Stories: {affected story IDs}
+## Provenance
+Intent {intent-id} · Unit {unit-id} · Stories {story ids} · Supersedes {ADR-NNNN or none}

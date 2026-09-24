@@ -13,34 +13,35 @@ per-surface design page under `02-design/projects/` for every impacted Frontend/
 project named in `unit-brief.md` (tree: `.claude/skills/governance/phase-layout.md`).
 
 ## Boundary with sk.design_sub_contracts (read first)
-The architect's `sk.design_sub_contracts` already declared WHICH endpoints exist and which this frontend consumes
-(see `02-design/contracts/test-plan.md` → consumer section, and `02-design/api-contract.md`). This skill
-does NOT redefine endpoints, URLs, or response field ownership. It defines HOW the frontend types, fetches,
-and renders those responses. If a needed endpoint is missing from the contract, do not invent it — record it
-under Open Questions and flag it for the architect (sk.design --contracts).
+The architect's `sk.design_sub_contracts` already edited the canonical `specs/openapi/{audience}.yaml` /
+`specs/asyncapi/{module}.yaml` and listed in `02-design/contract-changes.md` WHICH operations changed and
+which each frontend consumes (the Operations table and the consumer test-plan sections). This skill does
+NOT redefine operations, URLs, or response field ownership. It defines HOW the frontend types, fetches,
+and renders those responses. If a needed operation is missing from the canonical spec, do not invent it —
+record it under Open Questions and flag it for the architect (sk.design --contracts).
 
 ## Step 0: Surfaces and Capability Packs
 1. Resolve the target surfaces: every row of `unit-brief.md` → Impacted Projects with Type = Frontend or
-   Type = Mobile. For each, read its framework and platform from `.specify/memory/skill-routing.md` →
-   `## Surfaces` (match on Project) and its stack from the project's tech-stack.md
+   Type = Mobile (the Type recorded in `.specify/memory/projects/index.md`). For each, read its framework
+   and **Platform** from the project's `.specify/memory/projects/{Project}/tech-stack.md`
    (`.claude/skills/governance/project-resolution.md`). Log: `UI surfaces: {Project} ({Framework}, {Platform})`.
-   A surface with no Surfaces row: use its tech-stack.md and log `surface not registered in skill-routing.md`.
+   A surface whose tech-stack.md is missing or has Platform `none`: log it and continue from the
+   projects/index.md row alone.
 2. Resolve capability packs per `.claude/skills/governance/pack-resolution.md`; phase = `design`,
-   in-scope projects = the surfaces above. The loaded frontend packs are the authority for
+   in-scope projects = the surfaces above. The loaded frontend packs, together with the project's
+   `.claude/rules/{stack}/` folders (`rules.stacks` in `.specify/profile.yaml`), are the authority for
    framework-specific rules (render boundaries, data fetching, routing, styling, forms).
 
 ## Input Artifacts
 specs/intents/{intent}/units/{unit}/unit-brief.md                         (Impacted Projects table — Frontend/Mobile rows)
 specs/intents/{intent}/units/{unit}/01-story/                             (story.md, requirement.md, acceptance-criteria.md)
 specs/intents/{intent}/units/{unit}/02-design/architecture.md            (route/page intent, data flow, security)
-specs/intents/{intent}/units/{unit}/02-design/contracts/api-spec.json    (endpoints this UI consumes — if it exists)
-specs/intents/{intent}/units/{unit}/02-design/contracts/test-plan.md     (consumer section for each surface — if it exists)
-specs/intents/{intent}/units/{unit}/02-design/api-contract.md            (human-readable contract — if it exists)
+specs/intents/{intent}/units/{unit}/02-design/contract-changes.md        (operations this UI consumes + consumer test-plan section per surface — if it exists)
+The canonical operations it lists, in specs/openapi/{audience}.yaml / specs/asyncapi/{module}.yaml (read only those operations)
 specs/intents/{intent}/units/{unit}/02-design/database-design.md         (entity shapes, optional — read only if present)
-.specify/memory/domain-model.md
-.specify/memory/standards/coding-standards.md
-.specify/memory/skill-routing.md                                          (## Surfaces)
-.specify/project-config.md                                                (Design References / Design Direction, if present)
+specs/domain/bounded-contexts.md and the `specs/domain/{module}.md` of the contexts the unit touches (domain language)
+.specify/memory/projects/index.md and each surface's tech-stack.md       (Type, Platform, framework)
+The surface's `.claude/rules/{stack}/` folder                            (design system and UI conventions, if present)
 
 ## Steps
 1. [REFINE MODE] if ui-model.md exists, [CREATE MODE] if not.
@@ -54,7 +55,7 @@ specs/intents/{intent}/units/{unit}/02-design/database-design.md         (entity
    - render boundary, using the categories the surface's framework and packs define
      (for example server | client, or container | presentational)
    - single responsibility (one visual concern or one interaction)
-   - shared vs unit-local (shared only if reused in 3+ places, unless a loaded pack sets another rule)
+   - shared vs unit-local, per the project's rules and loaded packs
 5. **State Architecture** — classify every piece of state into exactly one home and justify it:
    - server cache — server-owned data, held by the surface's data-fetching layer
    - global client store — cross-component UI state only
@@ -62,18 +63,17 @@ specs/intents/{intent}/units/{unit}/02-design/database-design.md         (entity
    - URL / navigation state — shareable, bookmarkable view state
    Rule: server-owned data never lives in the global client store.
 6. **Data Consumption Contracts** — define the typed interfaces (in the surface's language) that map the
-   consumed API responses (from api-spec.json) into frontend types. Reference the contract; never restate
-   endpoint ownership. Declare the fetch/rendering strategy per route using the rendering modes the
-   surface's framework supports, with rationale.
+   consumed operations' responses (from the canonical spec, as listed in contract-changes.md) into frontend
+   types. Reference the operation; never restate its ownership. Declare the fetch/rendering strategy per
+   route using the rendering modes the surface's framework supports, with rationale.
 7. **Design System Usage** — list the component-library primitives used, any custom components required
-   (and why), and any feature-specific token decisions, per the project's design system and design
-   direction. Reuse existing tokens; do not introduce a new visual style.
+   (and why), and any feature-specific token decisions, per the project's design system as its rules and
+   packs describe it. Reuse existing tokens; do not introduce a new visual style.
 8. **Performance Strategy** — rendering mode per route, bundle/code split points for heavy components,
-   image and asset strategy, and performance targets (e.g. Core Web Vitals for browser surfaces, startup
-   and frame-rate targets for native surfaces).
-9. **Accessibility Requirements** — WCAG 2.2 AA targets for this unit (platform accessibility guidelines
-   for native surfaces), keyboard/switch navigation paths, focus management, and accessibility-API
-   decisions for any non-native interactive component.
+   image and asset strategy, and performance targets appropriate to the surface's Platform.
+9. **Accessibility Requirements** — the accessibility target the project sets in its constitution, ADRs or
+   rules (when it sets none, ask the user for one and record the answer as an open question), keyboard/switch navigation paths, focus
+   management, and accessibility-API decisions for any non-native interactive component.
 10. **Error & Loading States** — for every async surface: loading UI, empty state, and error fallback.
 11. Write the UI model document to `02-design/ui-model.md` using `{TEMPLATES_DIR}/artifacts/ui-model-template.md`
     as the structure. This is the canonical, multi-surface frontend model for the unit.
@@ -82,22 +82,23 @@ specs/intents/{intent}/units/{unit}/02-design/database-design.md         (entity
       `02-design/projects/{Project}.md` using `{TEMPLATES_DIR}/artifacts/project-design-template.md`.
     - File name = the exact project name from unit-brief.md (`{Project}.md`) — dynamic, not fixed.
     - The page is a VIEW that extracts this project's slice of ui-model.md (its routes/screens, components,
-      state homes, consumed endpoints from api-contract.md, fetch strategy, a11y, loading/empty/error states).
-      It references the canonical ui-model.md and api-contract.md; it does not redefine them.
+      state homes, consumed operations from contract-changes.md, fetch strategy, a11y, loading/empty/error
+      states). It references ui-model.md and the canonical spec operations; it does not redefine them.
     - Backend project pages are NOT written here — sk.design_sub_contracts owns those. Do not overwrite them.
 
 ## Frontend Engineering Review (mandatory — runs after steps 11–12)
 Validate the written UI model and per-surface project pages against:
 - the design-phase packs loaded in Step 0 — including any design principles pack (UI consumes contracts, does not invent them)
+- the surface's `.claude/rules/{stack}/` folder — no design that forces code to break a rule
 - `02-design/architecture.md` — every route/page the architecture implies has a home; no surface is orphaned
-- `02-design/contracts/api-spec.json` / `test-plan.md` — every consumed field exists in the contract; no invented endpoints
-- the loaded frontend packs — render boundaries, data fetching, state placement, and form patterns follow the packs
+- the canonical spec operations listed in `02-design/contract-changes.md` and its consumer sections —
+  every consumed field exists in the spec; no invented operations
 - `unit-brief.md` — one `02-design/projects/{Project}.md` exists for every impacted Frontend/Mobile project
 
 Flag findings as:
-- BLOCKING: consumes an endpoint or field absent from the contract; server-owned data placed in global store;
+- BLOCKING: consumes an operation or field absent from the canonical spec; server-owned data placed in global store;
   a story's UI surface is missing entirely; a render-boundary choice that breaks a rule of the surface's
-  framework as stated in a loaded pack (e.g. forcing a whole subtree onto the client when the pack forbids it)
+  framework as stated in a loaded pack or the project's rules
   → fix the UI model before proceeding.
 - MEDIUM: state placed in the wrong home without justification; missing loading/error/empty state for an
   async surface; missing accessibility target on an interactive component; heavy component not split
@@ -122,7 +123,7 @@ specs/intents/{intent}/units/{unit}/knowledge-base.md
     "KB update skipped — no non-derivable UI content."
 
 ## Quality Bar
-- Surfaces resolved from unit-brief.md and skill-routing.md ## Surfaces, and logged
+- Surfaces resolved from unit-brief.md, projects/index.md Type and each surface's tech-stack.md Platform, and logged
 - ui-model.md written to `02-design/ui-model.md`
 - One `02-design/projects/{Project}.md` written for every impacted Frontend/Mobile project, named from unit-brief.md
 - Backend project pages under `02-design/projects/` are left untouched (owned by sk.design_sub_contracts)
@@ -130,10 +131,10 @@ specs/intents/{intent}/units/{unit}/knowledge-base.md
 - Every component declares its render boundary and single responsibility
 - Every piece of state has exactly one declared home with a justification
 - Server-owned data is never placed in the global client store
-- Every consumed field traces to an endpoint in api-spec.json — no invented endpoints or fields
+- Every consumed field traces to an operation in the canonical spec — no invented operations or fields
 - Fetch/rendering strategy declared per route with rationale
 - Every async surface has loading, empty, and error states defined
-- Accessibility target (WCAG 2.2 AA or platform equivalent) declared for every interactive component
+- Accessibility target declared for every interactive component
 - No new visual style introduced — existing design tokens reused
-- Open questions listed, not hidden; missing contract endpoints flagged to the architect
+- Open questions listed, not hidden; missing contract operations flagged to the architect
 - Revision note appended if REFINE MODE

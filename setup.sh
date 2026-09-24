@@ -3,21 +3,25 @@
 # Run after: git subtree add|pull --prefix=.speckit <framework-url> main --squash
 #
 # Usage:
-#   bash .speckit/setup.sh          # interactive (asks before changing CLAUDE.md / GEMINI.md managed regions)
+#   bash .speckit/setup.sh          # interactive (asks before changing managed regions)
 #   bash .speckit/setup.sh --yes    # non-interactive: apply managed-region updates without asking
 #                                   # (also the behaviour when stdin is not a terminal)
+#   bash .speckit/setup.sh --gemini # also maintain GEMINI.md (same as install.gemini: true in the profile)
 #
 # Ownership contract — setup.sh touches ONLY these paths:
 #   Synced (rsync --delete scoped to each path; the sk.* namespace is framework-reserved):
 #     .claude/skills/sk.*   .claude/skills/governance
-#     .claude/skills/{system-context,service-registry,domain-model,architecture-decisions,standards}
 #     .claude/agents/<framework agent files, by name>   .claude/hooks/*.sh
 #   Written:  .claude/.speckit-manifest (version + owned paths)
-#   Merged:   .claude/settings.json (hooks added if absent, deny unioned, allow never touched)
-#   Spliced:  CLAUDE.md, GEMINI.md — only between the SPECKIT-SSD-SDLC MANAGED markers
-#   Created if absent, per file: .specify/**, specs/**, history/**, .claude/session.yaml, .gitignore entries
-# Everything else under .claude/ (settings.local.json, commands/, non-sk.* skills, other agents, …)
-# is project-owned and is never read, written, archived, or listed.
+#   Merged:   .claude/settings.json (hooks added if absent, deny unioned; allow and defaultMode never touched)
+#   Spliced:  CLAUDE.md (and GEMINI.md when opted in) — only between the SPECKIT-SSD-SDLC MANAGED markers,
+#             rendered from .specify/profile.yaml
+#   Created:  .specify/state/ (per-developer runtime state) and its .gitignore entry
+# It creates no project knowledge files: /sk.init writes .specify/profile.yaml, .specify/memory/projects/**
+# and .specify/memory/constitution.md, and each knowledge home is created by its writer on first use
+# (.claude/skills/governance/profile.md). .specify/profile.yaml is read, never written.
+# Everything else under .claude/ (settings.local.json, commands/, rules/, non-sk.* skills and the skills
+# README registry, other agents, …) is project-owned and is never read, written, archived, or listed.
 # skills_archive/ is never copied — project owners copy the packs they want (see skills_archive/README.md).
 
 set -euo pipefail
@@ -25,20 +29,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${SPECKIT_PROJECT_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 TEMPLATES_ROOT="$SCRIPT_DIR/templates/root"
-TEMPLATES_PROJECT="$SCRIPT_DIR/templates/project"
 VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/VERSION")"
 
 ASSUME_YES=false
+WANT_GEMINI=false
 for arg in "$@"; do
   case "$arg" in
     -y|--yes) ASSUME_YES=true ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    --gemini) WANT_GEMINI=true ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
 [ -t 0 ] || ASSUME_YES=true
 
-FRAMEWORK_SKILL_DIRS=(governance system-context service-registry domain-model architecture-decisions standards)
+FRAMEWORK_SKILL_DIRS=(governance)
 FRAMEWORK_AGENTS=(architect.md backend-engineer.md backend-qa.md frontend-engineer.md frontend-qa.md lead.md po.md security.md)
 MANAGED_START="<!-- SPECKIT-SSD-SDLC MANAGED -->"
 MANAGED_END="<!-- END SPECKIT-SSD-SDLC MANAGED -->"
@@ -96,7 +101,7 @@ for src in "$SRC_SKILLS"/sk.*; do
   [ -d "$src" ] || continue
   sync_dir "$src" "$DST_SKILLS/$(basename "$src")"
 done
-# sk.* is the framework namespace: a sk.* directory that no longer exists upstream is removed.
+# sk.* is the framework namespace: a sk.* directory that the framework does not ship is removed.
 for dst in "$DST_SKILLS"/sk.*; do
   [ -d "$dst" ] || continue
   if [ ! -d "$SRC_SKILLS/$(basename "$dst")" ]; then
@@ -115,7 +120,7 @@ for hook in "$SCRIPT_DIR/.claude/hooks"/*.sh; do
   chmod +x "$PROJECT_ROOT/.claude/hooks/$(basename "$hook")"
 done
 shopt -u nullglob
-echo "  ✓ skills (sk.*, governance, memory pointers), agents, hooks"
+echo "  ✓ skills (sk.*, governance), agents, hooks"
 
 case "$SCRIPT_DIR/" in
   "$PROJECT_ROOT"/*) FRAMEWORK_REL="${SCRIPT_DIR#"$PROJECT_ROOT"/}" ;;
@@ -149,8 +154,7 @@ MERGE_FILTER='
   | .permissions = (($p.permissions // {})
       | .deny = (reduce ($f.permissions.deny // [])[] as $x
                    ((.deny // []); if any(.[]; . == $x) then . else . + [$x] end))
-      | if has("defaultMode") then . else .defaultMode = $f.permissions.defaultMode end)
-  | if has("disableBypassPermissionsMode") then . else .disableBypassPermissionsMode = $f.disableBypassPermissionsMode end
+      | if has("disableBypassPermissionsMode") then . else .disableBypassPermissionsMode = $f.permissions.disableBypassPermissionsMode end)
   | reduce ($f.hooks | to_entries[]) as $ev (.;
       reduce $ev.value[] as $g (.;
         reduce $g.hooks[] as $h (.;
@@ -176,37 +180,43 @@ else
     echo "  ✓ .claude/settings.json already contains the SpecKit hooks and deny policy"
   else
     printf '%s\n' "$MERGED" > "$SETTINGS"
-    echo "  ✓ .claude/settings.json merged (hooks added if absent, deny unioned, allow untouched)"
+    echo "  ✓ .claude/settings.json merged (hooks added if absent, deny unioned; allow and defaultMode untouched)"
   fi
 fi
 
-# session.yaml is gitignored runtime state — create it if absent
-if [ ! -f "$PROJECT_ROOT/.claude/session.yaml" ]; then
-  cat > "$PROJECT_ROOT/.claude/session.yaml" << 'EOF'
-# SpecKit-SSD-SDLC Session State
-# Gitignored — never commit
-# Managed by sk.session commands
+# Per-developer runtime state (.specify/state/, gitignored) — session.yaml is created if absent
+STATE_DIR="$PROJECT_ROOT/.specify/state"
+mkdir -p "$STATE_DIR"
+if [ ! -f "$STATE_DIR/session.yaml" ]; then
+  cat > "$STATE_DIR/session.yaml" << 'EOF'
+# SpecKit-SSD-SDLC session state — per developer, gitignored, managed by /sk.session
 
 role: null              # po|architect|lead|backend|frontend|backend-qa|frontend-qa|security
 session_id: null        # e.g. po-20260409
-branch: null            # e.g. feature/CHK-PAY-001-PROJ-12-checkout-20260409
+branch: null            # the working branch (recorded, or created on request)
 story_id: null          # story being worked on at session start (sk.session start)
-jira_id: null           # linked Jira issue key, if any
+jira_id: null           # linked tracker issue key, if any
 active_intent_id: null  # e.g. CHK
 active_unit_id: null    # e.g. CHK-PAY
 active_story_id: null   # e.g. CHK-PAY-001
 stories_touched: []     # list of story IDs worked on this session
 units_touched: []       # list of unit IDs worked on this session
 EOF
-  echo "  ✓ .claude/session.yaml created"
+  echo "  ✓ .specify/state/session.yaml created"
 fi
 echo ""
 
 # ─────────────────────────────────────────────
 # PHASE 3: Managed regions in CLAUDE.md / GEMINI.md
 # ─────────────────────────────────────────────
+# shellcheck source=.claude/hooks/lib-profile.sh
+source "$SCRIPT_DIR/.claude/hooks/lib-profile.sh"
+
+NEVER_AUTOLOAD="$(sk_profile_list "$PROJECT_ROOT" knowledge.never_autoload | sed 's/.*/`&`/' | paste -sd, - | sed 's/,/, /g')"
+[ -n "$NEVER_AUTOLOAD" ] || NEVER_AUTOLOAD="(no humans-only paths declared)"
+
 render_template() {
-  sed "s/{{SPECKIT_VERSION}}/$VERSION/g" "$1"
+  awk -v v="$VERSION" -v na="$NEVER_AUTOLOAD" '{ gsub(/\{\{SPECKIT_VERSION\}\}/, v); gsub(/\{\{NEVER_AUTOLOAD\}\}/, na); print }' "$1"
 }
 
 current_region() {
@@ -254,7 +264,9 @@ splice_managed() {
 }
 
 splice_managed "$PROJECT_ROOT/CLAUDE.md" "$TEMPLATES_ROOT/CLAUDE.md"
-splice_managed "$PROJECT_ROOT/GEMINI.md" "$TEMPLATES_ROOT/GEMINI.md"
+if [ "$WANT_GEMINI" = true ] || [ "$(sk_profile_get "$PROJECT_ROOT" install.gemini false)" = "true" ]; then
+  splice_managed "$PROJECT_ROOT/GEMINI.md" "$TEMPLATES_ROOT/GEMINI.md"
+fi
 
 # .gitignore — append any missing SpecKit entries (line-level, idempotent)
 GITIGNORE="$PROJECT_ROOT/.gitignore"
@@ -276,42 +288,15 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────
-# PHASE 4: Project scaffold — create if absent, per file
-# ─────────────────────────────────────────────
-# project-config.md is intentionally excluded: its absence is how /sk.init detects a new project.
-scaffold_tree() {
-  local src_root="$1" dst_root="$2" label="$3"
-  [ -d "$src_root" ] || return 0
-  (cd "$src_root" && find . -type f | sort) | while IFS= read -r rel; do
-    rel="${rel#./}"
-    [ "$label/$rel" = ".specify/project-config.md" ] && continue
-    if [ ! -e "$dst_root/$rel" ]; then
-      mkdir -p "$(dirname "$dst_root/$rel")"
-      cp "$src_root/$rel" "$dst_root/$rel"
-      echo "  + $label/$rel"
-    fi
-  done
-}
-
-echo "→ Project scaffold (existing files are never overwritten) ..."
-scaffold_tree "$TEMPLATES_PROJECT/.specify" "$PROJECT_ROOT/.specify" ".specify"
-scaffold_tree "$TEMPLATES_PROJECT/specs"    "$PROJECT_ROOT/specs"    "specs"
-scaffold_tree "$TEMPLATES_PROJECT/history"  "$PROJECT_ROOT/history"  "history"
-if [ ! -e "$PROJECT_ROOT/specs/guide.yaml" ] && [ -f "$SCRIPT_DIR/templates/artifacts/guide-template.yaml" ]; then
-  { echo "tier: system"; echo "last-updated: null"; echo ""; sed 's/^/# /' "$SCRIPT_DIR/templates/artifacts/guide-template.yaml"; } > "$PROJECT_ROOT/specs/guide.yaml"
-  echo "  + specs/guide.yaml"
-fi
-echo ""
-
-# ─────────────────────────────────────────────
 # Done
 # ─────────────────────────────────────────────
 echo "✓ SpecKit setup complete (v$VERSION)."
 echo ""
-if [ ! -f "$PROJECT_ROOT/.specify/project-config.md" ] && [ ! -f "$PROJECT_ROOT/.specify/memory/projects/index.md" ]; then
+if [ ! -f "$PROJECT_ROOT/.specify/profile.yaml" ]; then
   echo "Next steps:"
-  echo "  1. Run /sk.init in Claude Code to generate .specify/project-config.md and your memory files."
-  echo "  2. Add capability packs: copy what you need from $FRAMEWORK_REL/skills_archive/ (or write your own)"
-  echo "     into .claude/skills/<pack>/ and register them in .specify/memory/skill-routing.md."
+  echo "  1. Run /sk.init in Claude Code. It detects your existing homes (ADRs, domain specs, contracts,"
+  echo "     skills registry, rules, branch conventions), proposes .specify/profile.yaml and confirms it with you."
+  echo "  2. Project skills: register them in the Registry table of .claude/skills/README.md"
+  echo "     (starting points: $FRAMEWORK_REL/skills_archive/)."
 fi
 echo ""

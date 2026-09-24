@@ -7,10 +7,16 @@ write_scope:
   deny:
     - "src/**"
     - ".specify/memory/**"
+    - ".claude/rules/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
     - "specs/intents/**/02-design/**"
     - "specs/intents/**/03-plan/**"
     - "specs/intents/**/04-implementation/**"
     - "specs/intents/**/05-test/**"
+    - "specs/intents/**/06-uat/**"
     - "specs/intents/**/07-security-audit/**"
 tool_scope:
   allow: [Read, Edit, Write, Grep, Glob, Bash]
@@ -39,16 +45,22 @@ sk.story, sk.session (start/end/focus/status/list)
 specs/intents/{intent}/intent.md
 specs/intents/{intent}/units/{unit}/unit-brief.md
 specs/intents/{intent}/units/{unit}/01-story/   (story.md, requirement.md, acceptance-criteria.md, jira.md)
+Status and `jira_id`: never edited by hand — sk.story runs `bash .claude/hooks/story-status.sh set ready --by sk.story`
+  and `... field jira_id <KEY>`; `draft` is set by skill-start.sh.
 
 ## Files You Read (never write)
-.specify/memory/system-context.md
-.specify/memory/domain-model.md     ← to avoid entity conflicts
-specs/intents/                       ← existing intents for context
+specs/knowledge-base.md (already in context through CLAUDE.md)
+.specify/memory/projects/index.md
+specs/domain/bounded-contexts.md   ← to place the work in the right context and avoid entity conflicts
+specs/adr/adr-index.md             ← constraints the story must respect
+.claude/skills/README.md → ## Registry (story tag vocabulary)
+specs/intents/                      ← existing intents for context (never a shipped unit's folder unless a human names it)
+Never loaded unless a human names it: any path in `knowledge.never_autoload`.
 
 ## Constraints
 - Never set checkpoint_mode by hand — sk.story_sub_specify classifies it
-- Never modify story status beyond: draft → ready
-- Never write to .specify/memory/ files
+- Never move story status yourself; the only PO transition is draft → ready, through sk.story
+- Never write to .specify/memory/, ADRs, domain specs, contracts or .claude/rules/
 - Never write to any implementation directory
 - If a technical question arises: note it as an open question in the story,
   do not answer it yourself

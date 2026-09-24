@@ -2,14 +2,20 @@
 Runs the complete unit design pipeline — architecture, data model, and API contracts — in one invocation.
 Role: architect (orchestrator) | Level: unit
 
-This skill orchestrates sub-skills in strict sequence. Each sub-skill runs with its own
-isolated context — state is passed via the file system (session.yaml + spec artifacts).
+This skill orchestrates sub-skills in strict sequence. Each sub-skill is invoked with the **Skill
+tool** — `Skill(sk.design_sub_architecture)` and so on — never by reading its prompt.md, so that
+`skill-start.sh` runs its preconditions and sets the active role (`governance/status-model.md`).
+Each sub-skill runs with its own isolated context — state is passed via the file system
+(`.specify/state/session.yaml`, the unit's artifacts, and the canonical contract files on the branch).
 Orchestrators do not resolve capability packs; each sub-skill resolves its own (phase = design).
 
 ## Design Output Layout
-All design artifacts live under `specs/intents/{intent}/units/{unit}/02-design/`
+All unit design artifacts live under `specs/intents/{intent}/units/{unit}/02-design/`
 (full tree: `.claude/skills/governance/phase-layout.md`). Per-project page names come from
 `unit-brief.md` → Impacted Projects. Unit-tier `knowledge-base.md` and `guide.yaml` stay at the unit root.
+Contracts are edited in place in `specs/openapi/` and `specs/asyncapi/`; the unit holds only the change
+list `02-design/contract-changes.md`. Domain knowledge lives in `specs/domain/`, decisions in
+`specs/adr/` (`.claude/skills/governance/profile.md`).
 
 ## Invocation Forms
 - `sk.design`                        — auto-detect mode, run all needed phases
@@ -35,7 +41,7 @@ Evaluate in this order — first match wins:
 
 **RESUME** — no flag, no description, some artifacts exist but pipeline is incomplete
   Incomplete means: 02-design/architecture.md exists but 02-design/database-design.md or
-  02-design/contracts/ are missing
+  02-design/contract-changes.md is missing
   → start from first missing artifact, skip completed phases
 
 **FRESH** — no flag, no description, 02-design/architecture.md does not exist
@@ -58,7 +64,7 @@ Triggered when: `sk.design "<change description>"` is called.
 
 1. Read the change description
 2. Determine affected phases:
-   - Mentions endpoints, routes, request/response, versioning → Phase 3 (contracts)
+   - Mentions endpoints, routes, operations, channels, request/response, versioning → Phase 3 (contracts)
    - Mentions tables, columns, entities, schema, indexes, migrations → Phase 2 (data model)
    - Mentions services, boundaries, components, patterns, dependencies → Phase 1 (architecture)
    - Ambiguous: default to all three phases and log reasoning
@@ -69,9 +75,9 @@ Triggered when: `sk.design "<change description>"` is called.
    **Affected phases:** {list}
    **Rationale:** recorded by sk.design REFRESH — governs future regeneration of these artifacts
    ```
-4. If the change has domain-wide implications (new entity type, new service boundary,
+4. If the change has domain-wide implications (new entity type, new bounded context,
    cross-unit contract change): flag as ADVISORY after recording
-   → "This change may warrant sk.knowledge-base --tier domain. Proceeding with unit-level recording."
+   → "This change may warrant sk.knowledge-base --tier domain (specs/domain/{module}.md). Proceeding with unit-level recording."
 5. Run only the affected phases in sequence (Phase 1 → 2 → 3 order enforced even if subset)
 6. Gates apply per normal gate schedule for the active checkpoint_mode
 
@@ -96,8 +102,9 @@ In TARGETED and REFRESH modes: gates apply only to phases that actually run.
 ### Phase 1 — Architecture
 Condition: run if FRESH, or RESUME with 02-design/architecture.md missing, or TARGETED --architecture,
            or REFRESH with architecture in affected phases
-Invoke skill: sk.design_sub_architecture
-- Context injected: session.yaml, domain-model.md, service-registry.md, architecture-decisions.md
+Invoke with the Skill tool: `Skill(sk.design_sub_architecture)`
+- The sub-skill loads its own context: `specs/domain/bounded-contexts.md` and the relevant domain files,
+  `specs/adr/adr-index.md` and the ADRs it routes, `.specify/memory/projects/index.md`, the constitution
   (design-phase capability packs are resolved inside the sub-skill)
 - Waits for: 02-design/architecture.md and 02-design/impact-analysis.md written and engineering review passed
 
@@ -106,55 +113,61 @@ Phase 2 per review-gate.md ("Fix the architecture and re-run sk.design, or escal
 'confirm'"). ADVISORY-only findings are logged and the pipeline proceeds.
 
 GATE 1 — Architecture Review (validate only)
-Review: 02-design/architecture.md, 02-design/impact-analysis.md, knowledge-base.md (if updated)
+Review: 02-design/architecture.md, 02-design/impact-analysis.md, knowledge-base.md (if updated),
+the diff of `specs/domain/` (if a bounded context was added), any ADR raised in this run
 Check for:
   - Bounded context is correct and scoped to this unit only
+  - A new bounded context has its row in `specs/domain/bounded-contexts.md` and its own `specs/domain/{module}.md`
   - impact-analysis.md covers every project in unit-brief.md with a change type
   - No unresolved BLOCKING or MEDIUM findings from the engineering review
-  - Any ADVISORY findings (new cross-service decisions) have an ADR planned
+  - Every decision marked "ADR required" was raised via sk.adr or is listed for the architect
   - Open questions are acceptable to carry into data model design
 On cancel: remaining phases skipped.
 
 ### Phase 2 — Data Model
 Condition: run if needed per phase need detection, or RESUME with 02-design/database-design.md missing,
            or TARGETED --datamodel, or REFRESH with datamodel in affected phases
-Invoke skill: sk.design_sub_datamodel
-- Context injected: session.yaml, domain-model.md, data-standards.md
-- Reads from disk: 02-design/architecture.md
-- Waits for: 02-design/database-design.md written and domain-model.md updated
+Invoke with the Skill tool: `Skill(sk.design_sub_datamodel)`
+- Reads from disk: 02-design/architecture.md, `specs/domain/bounded-contexts.md`, the owning
+  `specs/domain/{module}.md` files, the existing entity code
+- Waits for: 02-design/database-design.md written, and domain invariants/rationale (when any arose)
+  written into the owning `specs/domain/{module}.md`
 
 GATE 2 — Data Model Review (confirm, validate)
-Review: 02-design/database-design.md, .specify/memory/domain-model.md (if updated)
+Review: 02-design/database-design.md, the diff of every `specs/domain/{module}.md` changed in this run
 Check for:
-  - No entity conflicts with other units in domain-model.md
-  - Breaking schema changes are intentional and migration strategy is defined
-  - Index strategy covers all query patterns
+  - No entity conflicts with another context's ownership (bounded-contexts.md, domain files, code)
+  - Breaking schema changes are intentional and a migration strategy is defined
+  - Every query pattern has an access strategy
   - Transaction boundaries are declared for every write path
+  - Nothing contradicts the constitution or the routed ADRs
 On cancel: contracts skipped.
 
 ### Phase 3 — API Contracts
-Condition: run if needed per phase need detection, or RESUME with 02-design/contracts/ missing,
+Condition: run if needed per phase need detection, or RESUME with 02-design/contract-changes.md missing,
            or TARGETED --contracts, or REFRESH with contracts in affected phases
-Invoke skill: sk.design_sub_contracts
-- Context injected: session.yaml, service-registry.md, api-standards.md, tech-stack.md
-- Reads from disk: 02-design/architecture.md, 02-design/database-design.md, unit-brief.md
-- Waits for: 02-design/contracts/api-spec.json, 02-design/contracts/test-plan.md,
-  02-design/api-contract.md, 02-design/projects/{BackendProject}.md, provider tests written,
-  service-registry.md updated
+Invoke with the Skill tool: `Skill(sk.design_sub_contracts)`
+- Reads from disk: 02-design/architecture.md, 02-design/database-design.md, unit-brief.md, and the
+  canonical `specs/openapi/{audience}.yaml` / `specs/asyncapi/{module}.yaml` files it edits
+- Waits for: the canonical spec files edited on the feature branch, 02-design/contract-changes.md and
+  02-design/projects/{BackendProject}.md written, verification result recorded
 
 GATE 3 — API Contract Review (confirm, validate)
-Review: 02-design/contracts/api-spec.json, 02-design/contracts/test-plan.md, 02-design/api-contract.md,
-02-design/projects/{BackendProject}.md, and the provider contract tests written under each Backend
-project's Test Layout.
+Review: the diff (`git diff`) of every canonical `specs/openapi/*.yaml` / `specs/asyncapi/*.yaml` file named
+in 02-design/contract-changes.md, the change list itself, and 02-design/projects/{BackendProject}.md.
 Check for:
-  - Every endpoint the story needs exists; no endpoint exists that no story needs
-  - api-contract.md and contracts/api-spec.json agree — no endpoint documented in one and absent in the other
-  - No breaking change to an endpoint already in service-registry.md without a versioned replacement
-  - Idempotency-Key declared on every mutation endpoint (POST/PUT/PATCH/DELETE)
-  - Error responses follow api-standards.md; auth/authz is declared per endpoint
+  - Every operation the story needs exists in the canonical spec; no operation was added that no story needs
+  - The change list and the diff agree — every changed operation is a row, every row is in the diff
+  - Every row carries a compatibility class per `contracts.compat_rules` in `.specify/profile.yaml`
+    (default: additive | deprecating | breaking)
+  - Every `breaking` row names a versioned replacement or an ADR that accepts the break
+  - Consumers are listed for every row
+  - Auth/authz is declared per operation in the spec
+  - The verification result is recorded (`contracts.verify` output, or "none — provider contract tests by sk.test")
+  - A new audience file, if any, was announced by the sub-skill and is intended
   - The test plan has a provider section plus one consumer section per impacted Frontend/Mobile project,
-    each listing only the endpoints that consumer actually calls
-On cancel: Phases 4-6 skipped; contracts written so far are preserved.
+    each listing only the operations that consumer actually calls
+On cancel: Phases 4-6 skipped; spec edits and the change list written so far are preserved.
 
 ### Phase 4 — Knowledge Base Assessment
 Condition: always runs after any phase completes (FRESH, RESUME, REFRESH, TARGETED)
@@ -163,7 +176,7 @@ Evaluate whether this design run produced non-derivable content worth capturing:
 
 **Triggers that warrant a KB update (any one is sufficient):**
 - A non-obvious architectural decision was made (pattern chosen over alternatives, tradeoff accepted)
-- An external constraint surfaced that will not be visible in code (regulatory, legacy system, SLA)
+- An external constraint surfaced that will not be visible in code (regulatory, external system, SLA)
 - A new invariant was identified that spans multiple files or services in this unit
 - REFRESH mode recorded a custom design decision in unit knowledge-base.md
 - An open question was resolved in a non-obvious way
@@ -175,23 +188,31 @@ Evaluate whether this design run produced non-derivable content worth capturing:
 - Content is fully derivable from reading the artifacts just written
 
 **Decision:**
-- If any trigger is met: invoke sk.knowledge-base --tier unit
+- If any trigger is met: invoke `Skill(sk.knowledge-base)` with `--tier unit`
   Log: "KB update triggered — {reason}"
 - If no trigger: log "KB update skipped — no non-derivable content identified" and proceed to Phase 5.
+
+**Domain-wide content** — an invariant, rule or rationale that holds for the whole bounded context, not
+only this unit — belongs in `specs/domain/{module}.md`. Never write it there silently. List it as
+ADVISORY: "Domain content for {module}: {one line} — run sk.knowledge-base --tier domain", and leave the
+decision to the architect. Content the datamodel sub-skill already wrote into a domain file in this run
+was shown at Gate 2 and needs no second write.
 
 ### Phase 5 — Guide Update
 Condition: always runs after any phase completes (all modes).
 
-Auto-generate a unit-level routing index.
+Auto-generate the unit-level routing index. It is the only guide this skill writes: the system-wide map
+of contexts is `specs/domain/bounded-contexts.md`, and there is no system or domain guide.
 1. Read `unit-brief.md`, `02-design/architecture.md`, `02-design/impact-analysis.md`,
-   `02-design/database-design.md`, `02-design/api-contract.md`, and `02-design/contracts/`
-   to understand unit components and impacted projects.
+   `02-design/database-design.md` and `02-design/contract-changes.md` to understand unit components
+   and impacted projects.
 2. Read the actual directory structure under each impacted project's `{CodeRoot}` to identify where
    modules and files live.
-3. Generate or overwrite `specs/intents/{intent}/units/{unit}/guide.yaml`. Use `{TEMPLATES_DIR}/artifacts/guide-template.yaml` as reference. It must contain the non-obvious cross-cutting constraints in the `also-check:` field.
-4. If missing, create/update the domain-level guide entry for this unit in `specs/domains/{domain}/guide.yaml`.
-5. If missing, create/update the system-level guide entry for this domain in `specs/guide.yaml`.
-6. Log: "Guide updated — {unit-id}".
+3. Generate or overwrite `specs/intents/{intent}/units/{unit}/guide.yaml`. Use
+   `{TEMPLATES_DIR}/artifacts/guide-template.yaml` as reference (`TEMPLATES_DIR` per
+   `.claude/skills/governance/framework-paths.md`). It must contain the non-obvious cross-cutting
+   constraints in the `also-check:` field.
+4. Log: "Guide updated — {unit-id}".
 
 ### Phase 6 — Frontend UI Design
 Condition: run ONLY if the unit has a user-facing surface. This phase is self-contained — it does its own
@@ -200,7 +221,7 @@ of Phases 1–5; for a pure backend unit it skips cleanly and the pipeline outpu
 
 **Frontend signal detection** — any of:
   - `unit-brief.md` → Impacted Projects has a row with Type = Frontend or Type = Mobile
-  - a surface or project listed in `.specify/memory/skill-routing.md` → `## Surfaces` is named in the story
+    (the Type recorded for that project in `.specify/memory/projects/index.md`)
   - story `tags` or prose mention: page, screen, route, component, UI, frontend, portal, admin, mobile
 
 If NO frontend signal is found:
@@ -208,11 +229,10 @@ If NO frontend signal is found:
   Proceed to the completion report.
 
 If a frontend signal IS found:
-  Invoke skill: sk.design_sub_ui-design
-  - Context injected: coding-standards.md, domain-model.md
-  - Reads from disk: 02-design/architecture.md, 02-design/contracts/api-spec.json,
-    02-design/contracts/test-plan.md, 02-design/api-contract.md,
-    02-design/database-design.md (if present), unit-brief.md, 01-story/
+  Invoke with the Skill tool: `Skill(sk.design_sub_ui-design)`
+  - Reads from disk: 02-design/architecture.md, 02-design/contract-changes.md (operations and consumer
+    test-plan sections) and the canonical spec operations it lists, 02-design/database-design.md
+    (if present), unit-brief.md, 01-story/
   - Waits for: 02-design/ui-model.md and one 02-design/projects/{Project}.md per impacted
     Frontend/Mobile project written, and frontend engineering review passed
 
@@ -224,7 +244,7 @@ If a frontend signal IS found:
   Check for:
     - Every story has a frontend surface (route/component) or is marked backend-only
     - State placement is correct — no server-owned data in the global client store
-    - Every consumed field exists in the API contract — no invented endpoints
+    - Every consumed field exists in the canonical spec operations — no invented operations
     - Loading, empty, and error states are defined for every async surface
     - Accessibility targets are present for interactive components
 
@@ -247,10 +267,14 @@ Phases run:
 Artifacts written:
   {list only artifacts actually written in this run}
 
+Knowledge homes changed on this branch:
+  {specs/openapi|asyncapi files, specs/domain files, ADRs — or "none"}
+
 Phases skipped:
   {list skipped phases with reason: not needed | already complete | not targeted}
 
 Knowledge base: {updated | skipped — {reason}}
+Domain advisories: {list | none}
 Guide: {updated | no changes}
 
 Next step: /sk.plan
@@ -258,13 +282,16 @@ Next step: /sk.plan
 
 ## Quality Bar
 - Mode is detected and logged at the start — never ambiguous
+- Every sub-skill is invoked with the Skill tool, never by reading its prompt.md
 - REFRESH always records the decision in unit knowledge-base.md before touching any artifact
-- Domain-wide implications in REFRESH are flagged as ADVISORY, never silently written to tier 1/2
+- Domain-wide implications are flagged as ADVISORY (sk.knowledge-base --tier domain), never silently
+  written to `specs/knowledge-base.md` or `specs/domain/`
 - Gate schedule is derived from checkpoint_mode (story frontmatter) — never overridden downward without logging
 - New bounded context always triggers validate regardless of checkpoint_mode
 - Active gates must receive explicit 'approved' before the next phase starts
 - Skipped gates are logged inline so the user can see what was bypassed
 - 'cancel' at any active gate preserves all artifacts written up to that point
 - Each sub-skill invocation is self-contained — no state leaks between phases
+- Only the unit `guide.yaml` is written — no system or domain guide
 - Completion report lists only what actually ran and what was skipped, with reasons
 - KB update is conditional — only invoked when non-derivable content was produced; reason always logged
