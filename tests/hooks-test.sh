@@ -140,6 +140,46 @@ mv "$WORK/0002-idempotent-commands.md" "$ROOT/specs/adr/"
 OUT=$(cd "$ROOT" && bash "$FRAMEWORK/scripts/create-adr.sh" "Outbox for integration events")
 check 'create-adr.sh takes the next NNNN-kebab name' test "$OUT" = "specs/adr/0004-outbox-for-integration-events.md"
 
+echo "W1 — set-worker-role.sh (Agent-dispatch role markers)"
+session null checkout
+WR="$H/set-worker-role.sh"
+bash "$WR" clear >/dev/null 2>&1
+bash "$WR" sk.plan_sub_planproject >/dev/null 2>&1
+check 'planproject resolves to lead via subagent_type' test "$(cat "$ROOT/.specify/state/active-skill-role" 2>/dev/null)" = "lead"
+check 'active-skill marker written' test "$(cat "$ROOT/.specify/state/active-skill" 2>/dev/null)" = "sk.plan_sub_planproject"
+expect 0 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/03-plan/Api/plan.md"}}')" 'lead worker may write 03-plan'
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/02-design/architecture.md"}}')" 'lead worker blocked from 02-design'
+bash "$WR" sk.implement_sub_codegen backend >/dev/null 2>&1
+check 'role override applied' test "$(cat "$ROOT/.specify/state/active-skill-role" 2>/dev/null)" = "backend"
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/adr/0009-probe.md"}}')" 'backend worker blocked from specs/adr'
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/03-plan/Api/plan.md"}}')" 'backend worker blocked from 03-plan'
+bash "$WR" clear >/dev/null 2>&1
+check 'clear removes the role marker' test ! -f "$ROOT/.specify/state/active-skill-role"
+expect 0 validate-path.sh "$(json '{tool_input:{file_path:"specs/adr/0009-probe.md"}}')" 'after clear, falls back to session role'
+bash "$WR" sk.implement_sub_codegen mobile >/dev/null 2>&1
+check 'mobile override applied' test "$(cat "$ROOT/.specify/state/active-skill-role" 2>/dev/null)" = "mobile"
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/adr/0009-probe.md"}}')" 'mobile worker blocked from specs/adr'
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/03-plan/Api/plan.md"}}')" 'mobile worker blocked from 03-plan'
+expect 0 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/02-design/ui-model.md"}}')" 'mobile worker may write ui-model'
+check 'mobile role resolves to an agent file' test -f "$ROOT/.claude/agents/mobile-engineer.md"
+bash "$WR" clear >/dev/null 2>&1
+bash "$WR" sk.nosuchskill >/dev/null 2>&1; check 'unknown skill exits non-zero' test $? -ne 0
+bash "$WR" >/dev/null 2>&1; check 'no argument exits non-zero' test $? -ne 0
+
+echo "W2 — QA write_scope (test workers dispatched as QA roles)"
+U="specs/intents/001-orders/units/checkout"
+bash "$WR" sk.test_sub_testproject backend-qa >/dev/null 2>&1
+check 'testproject accepts a backend-qa override' test "$(cat "$ROOT/.specify/state/active-skill-role" 2>/dev/null)" = "backend-qa"
+expect 0 validate-path.sh "$(json --arg p "$U/05-test/Api/contract-test.md" '{tool_input:{file_path:$p}}')" 'backend-qa may write 05-test'
+expect 0 validate-path.sh "$(json '{tool_input:{file_path:"src/Api.Tests/OrderTests.cs"}}')" 'backend-qa may write tests under a code root'
+expect 2 validate-path.sh "$(json --arg p "$U/04-implementation/Api/implementation.md" '{tool_input:{file_path:$p}}')" 'backend-qa blocked from 04-implementation'
+expect 2 validate-path.sh "$(json --arg p "$U/03-plan/Api/plan.md" '{tool_input:{file_path:$p}}')" 'backend-qa blocked from 03-plan'
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/openapi/public.yaml"}}')" 'backend-qa blocked from canonical contracts'
+bash "$WR" sk.uat frontend-qa >/dev/null 2>&1
+expect 0 validate-path.sh "$(json --arg p "$U/06-uat/signoff.md" '{tool_input:{file_path:$p}}')" 'frontend-qa may write 06-uat'
+expect 2 validate-path.sh "$(json --arg p "$U/07-security-audit/owasp-report.md" '{tool_input:{file_path:$p}}')" 'frontend-qa blocked from 07-security-audit'
+bash "$WR" clear >/dev/null 2>&1
+
 echo ""
 echo "passed: ${PASS}  failed: ${FAIL}"
 [[ "$FAIL" -eq 0 ]]

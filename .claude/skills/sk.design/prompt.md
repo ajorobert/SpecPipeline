@@ -2,12 +2,15 @@
 Runs the complete unit design pipeline — architecture, data model, and API contracts — in one invocation.
 Role: architect (orchestrator) | Level: unit
 
-This skill orchestrates sub-skills in strict sequence. Each sub-skill is invoked with the **Skill
-tool** — `Skill(sk.design_sub_architecture)` and so on — never by reading its prompt.md, so that
-`skill-start.sh` runs its preconditions and sets the active role (`governance/status-model.md`).
-Each sub-skill runs with its own isolated context — state is passed via the file system
-(`.specify/state/session.yaml`, the unit's artifacts, and the canonical contract files on the branch).
-Orchestrators do not resolve capability packs; each sub-skill resolves its own (phase = design).
+This skill orchestrates four workers in strict sequence, each dispatched with the **Agent tool**, one
+at a time, per `.claude/skills/governance/worker-dispatch.md`: set the role markers, dispatch, clear.
+Each runs in a forked context and returns only a short report, so this orchestrator's window holds the
+reports and the gates — never the workers' working sets.
+
+Every gate below runs HERE, in the main context, because a worker cannot talk to a human. A worker
+reports `ADR required: {decision}` rather than raising it; this skill runs `Skill(sk.adr)` itself, after
+the relevant gate. Orchestrators do not resolve capability packs; each worker resolves its own
+(phase = design).
 
 ## Design Output Layout
 All unit design artifacts live under `specs/intents/{intent}/units/{unit}/02-design/`
@@ -102,11 +105,15 @@ In TARGETED and REFRESH modes: gates apply only to phases that actually run.
 ### Phase 1 — Architecture
 Condition: run if FRESH, or RESUME with 02-design/architecture.md missing, or TARGETED --architecture,
            or REFRESH with architecture in affected phases
-Invoke with the Skill tool: `Skill(sk.design_sub_architecture)`
-- The sub-skill loads its own context: `specs/domain/bounded-contexts.md` and the relevant domain files,
-  `specs/adr/adr-index.md` and the ADRs it routes, `.specify/memory/projects/index.md`, the constitution
-  (design-phase capability packs are resolved inside the sub-skill)
-- Waits for: 02-design/architecture.md and 02-design/impact-analysis.md written and engineering review passed
+Dispatch per `.claude/skills/governance/worker-dispatch.md`:
+1. `bash .claude/hooks/set-worker-role.sh sk.design_sub_architecture`
+2. Dispatch `sk.design_sub_architecture` with the Agent tool, using its `subagent_type:` and the dispatch prompt in
+   worker-dispatch.md. It resolves its own inputs and its own design-phase packs from its
+   prompt.md — do not restate them here.
+3. `bash .claude/hooks/set-worker-role.sh clear`
+- Waits for: 02-design/architecture.md and 02-design/impact-analysis.md written, engineering review passed
+- The worker cannot gate or ask anything. It reports `ADR required: {decision}` and open
+  questions instead; this orchestrator raises them after the gate.
 
 Autopilot hard stop: if the engineering review reports any BLOCKING or MEDIUM finding, STOP before
 Phase 2 per review-gate.md ("Fix the architecture and re-run sk.design, or escalate checkpoint_mode to
@@ -120,18 +127,23 @@ Check for:
   - A new bounded context has its row in `specs/domain/bounded-contexts.md` and its own `specs/domain/{module}.md`
   - impact-analysis.md covers every project in unit-brief.md with a change type
   - No unresolved BLOCKING or MEDIUM findings from the engineering review
-  - Every decision marked "ADR required" was raised via sk.adr or is listed for the architect
+  - Every `ADR required:` line the worker reported has been raised here with `Skill(sk.adr)`, or is
+    listed for the architect with a reason it was deferred
   - Open questions are acceptable to carry into data model design
 On cancel: remaining phases skipped.
 
 ### Phase 2 — Data Model
 Condition: run if needed per phase need detection, or RESUME with 02-design/database-design.md missing,
            or TARGETED --datamodel, or REFRESH with datamodel in affected phases
-Invoke with the Skill tool: `Skill(sk.design_sub_datamodel)`
-- Reads from disk: 02-design/architecture.md, `specs/domain/bounded-contexts.md`, the owning
-  `specs/domain/{module}.md` files, the existing entity code
-- Waits for: 02-design/database-design.md written, and domain invariants/rationale (when any arose)
-  written into the owning `specs/domain/{module}.md`
+Dispatch per `.claude/skills/governance/worker-dispatch.md`:
+1. `bash .claude/hooks/set-worker-role.sh sk.design_sub_datamodel`
+2. Dispatch `sk.design_sub_datamodel` with the Agent tool, using its `subagent_type:` and the dispatch prompt in
+   worker-dispatch.md. It resolves its own inputs and its own design-phase packs from its
+   prompt.md — do not restate them here.
+3. `bash .claude/hooks/set-worker-role.sh clear`
+- Waits for: 02-design/database-design.md written, plus any domain invariants/rationale written into the owning `specs/domain/{module}.md`
+- The worker cannot gate or ask anything. It reports `ADR required: {decision}` and open
+  questions instead; this orchestrator raises them after the gate.
 
 GATE 2 — Data Model Review (confirm, validate)
 Review: 02-design/database-design.md, the diff of every `specs/domain/{module}.md` changed in this run
@@ -146,11 +158,15 @@ On cancel: contracts skipped.
 ### Phase 3 — API Contracts
 Condition: run if needed per phase need detection, or RESUME with 02-design/contract-changes.md missing,
            or TARGETED --contracts, or REFRESH with contracts in affected phases
-Invoke with the Skill tool: `Skill(sk.design_sub_contracts)`
-- Reads from disk: 02-design/architecture.md, 02-design/database-design.md, unit-brief.md, and the
-  canonical `specs/openapi/{audience}.yaml` / `specs/asyncapi/{module}.yaml` files it edits
-- Waits for: the canonical spec files edited on the feature branch, 02-design/contract-changes.md and
-  02-design/projects/{BackendProject}.md written, verification result recorded
+Dispatch per `.claude/skills/governance/worker-dispatch.md`:
+1. `bash .claude/hooks/set-worker-role.sh sk.design_sub_contracts`
+2. Dispatch `sk.design_sub_contracts` with the Agent tool, using its `subagent_type:` and the dispatch prompt in
+   worker-dispatch.md. It resolves its own inputs and its own design-phase packs from its
+   prompt.md — do not restate them here.
+3. `bash .claude/hooks/set-worker-role.sh clear`
+- Waits for: the canonical spec files edited on this branch, 02-design/contract-changes.md and 02-design/projects/{BackendProject}.md written, verification result recorded
+- The worker cannot gate or ask anything. It reports `ADR required: {decision}` and open
+  questions instead; this orchestrator raises them after the gate.
 
 GATE 3 — API Contract Review (confirm, validate)
 Review: the diff (`git diff`) of every canonical `specs/openapi/*.yaml` / `specs/asyncapi/*.yaml` file named
@@ -229,12 +245,15 @@ If NO frontend signal is found:
   Proceed to the completion report.
 
 If a frontend signal IS found:
-  Invoke with the Skill tool: `Skill(sk.design_sub_ui-design)`
-  - Reads from disk: 02-design/architecture.md, 02-design/contract-changes.md (operations and consumer
-    test-plan sections) and the canonical spec operations it lists, 02-design/database-design.md
-    (if present), unit-brief.md, 01-story/
-  - Waits for: 02-design/ui-model.md and one 02-design/projects/{Project}.md per impacted
-    Frontend/Mobile project written, and frontend engineering review passed
+  Dispatch per `.claude/skills/governance/worker-dispatch.md`:
+  1. `bash .claude/hooks/set-worker-role.sh sk.design_sub_ui-design`
+  2. Dispatch `sk.design_sub_ui-design` with the Agent tool, using its `subagent_type:` and the dispatch prompt in
+     worker-dispatch.md. It resolves its own inputs and its own design-phase packs from its
+     prompt.md — do not restate them here.
+  3. `bash .claude/hooks/set-worker-role.sh clear`
+  - Waits for: 02-design/ui-model.md and one 02-design/projects/{Project}.md per impacted Frontend/Mobile project written, frontend engineering review passed
+  - The worker cannot gate or ask anything. It reports `ADR required: {decision}` and open
+    questions instead; this orchestrator raises them after the gate.
 
   Autopilot hard stop: BLOCKING or MEDIUM findings in the frontend engineering review STOP the phase
   per review-gate.md; ADVISORY-only findings are logged and the phase proceeds.
@@ -278,11 +297,17 @@ Domain advisories: {list | none}
 Guide: {updated | no changes}
 
 Next step: /sk.plan
+  Recommended: start a fresh session first (`.claude/skills/governance/session-boundaries.md`).
+  The gate deliberation and worker reports in this window are spent — 02-design/ holds the result.
+  Reorient there with /sk.session status.
 ```
 
 ## Quality Bar
 - Mode is detected and logged at the start — never ambiguous
-- Every sub-skill is invoked with the Skill tool, never by reading its prompt.md
+- Every worker is dispatched with the Agent tool, one at a time, markers set then cleared — never with
+  the Skill tool, and never two in flight
+- No gate, question or ADR is delegated to a worker; all three happen in this context
+- Worker reports carry paths, decisions, `ADR required:` lines and blockers only — no file contents
 - REFRESH always records the decision in unit knowledge-base.md before touching any artifact
 - Domain-wide implications are flagged as ADVISORY (sk.knowledge-base --tier domain), never silently
   written to `specs/knowledge-base.md` or `specs/domain/`

@@ -72,7 +72,7 @@ The surface's `.claude/rules/{stack}/` folder                            (design
 8. **Performance Strategy** — rendering mode per route, bundle/code split points for heavy components,
    image and asset strategy, and performance targets appropriate to the surface's Platform.
 9. **Accessibility Requirements** — the accessibility target the project sets in its constitution, ADRs or
-   rules (when it sets none, ask the user for one and record the answer as an open question), keyboard/switch navigation paths, focus
+   rules (when it sets none, record the gap as an open question for the gate — never ask), keyboard/switch navigation paths, focus
    management, and accessibility-API decisions for any non-native interactive component.
 10. **Error & Loading States** — for every async surface: loading UI, empty state, and error fallback.
 11. Write the UI model document to `02-design/ui-model.md` using `{TEMPLATES_DIR}/artifacts/ui-model-template.md`

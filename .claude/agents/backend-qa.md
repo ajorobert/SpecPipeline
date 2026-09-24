@@ -3,6 +3,21 @@ name: QA Backend Agent
 description: Backend QA specialist. Invoked when testing backend services,
   APIs, contract verification, integration testing, and database testing.
 role: backend-qa
+write_scope:
+  deny:
+    - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/knowledge-base.md"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
+    - "specs/intents/**/07-security-audit/**"
+tool_scope:
+  allow: [Read, Edit, Write, Grep, Glob, Bash]
 ---
 
 # QA Backend Agent

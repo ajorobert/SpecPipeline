@@ -53,12 +53,14 @@ A home that does not exist is logged `{home} not present — skipped`; never cre
      headings needed; a path = that file). Fill only what the architecture establishes (purpose,
      language, relations); the datamodel phase adds invariants.
    - Both changes are made in the same step and shown at Gate 1.
-8. If validate checkpoint: pause for user approval before continuing
+8. Never pause here. sk.design owns Gate 1 and runs it in the main context. This worker runs as an isolated subagent and cannot pause, ask, or invoke an interactive skill
+   (`.claude/skills/governance/worker-dispatch.md`).
 9. **Decisions with cross-module reach** (they bind other contexts, other units, or future work that
    must not silently undo them): mark each one "ADR required" in `architecture.md` → Open Questions or
-   the relevant section. Raise it with `Skill(sk.adr)` when the decision is settled, or list it for the
-   architect when it is not. Do not record decisions in any summary or index file yourself — sk.adr
-   routes the ADR in `specs/adr/adr-index.md`.
+   the relevant section, and report one `ADR required: {decision}` line per decision. Never invoke
+   sk.adr yourself — sk.design raises it in the main context after Gate 1, where it can interact.
+   Do not record decisions in any summary or index file yourself — sk.adr routes the ADR in
+   `specs/adr/adr-index.md`.
 
 ## Engineering Review (mandatory — runs after steps 5–7)
 Validate the written architecture against the project's own sources, never against framework defaults:
@@ -80,8 +82,8 @@ Flag findings as:
   write path, missing failure mode for an external dependency, a design that breaks one of the
   project's `.claude/rules/`, or a violated `[REQUIRED]` rule from a loaded design-phase pack
   → must be resolved before proceeding; counts as a blocker in autopilot mode
-- ADVISORY: a decision with cross-module reach ("ADR required") not yet raised via sk.adr
-  → raise it with `Skill(sk.adr)` or list it for the architect before implementation begins
+- ADVISORY: a decision with cross-module reach ("ADR required") not yet recorded as an ADR
+  → report it as an `ADR required:` line; sk.design raises it before implementation begins
 
 If all checks pass: report "Engineering review passed — no findings."
 If only ADVISORY findings: report "Engineering review passed with advisories." and list them.
@@ -109,7 +111,8 @@ specs/domain/bounded-contexts.md and specs/domain/{module}.md (new bounded conte
 - Bounded context clearly defined and named as in `specs/domain/bounded-contexts.md`
 - A new bounded context has its row in bounded-contexts.md and its own `specs/domain/{module}.md`
 - No conflict with the constitution, the routed ADRs, or another context's ownership
-- Every decision with cross-module reach marked "ADR required" and raised via sk.adr or listed for the architect
+- Every decision with cross-module reach marked "ADR required" in architecture.md AND reported as an
+  `ADR required:` line — never raised by this worker
 - Security approach defined
 - Open questions listed not hidden
 - Consistency requirement declared for every write path (strong / eventual / causal)

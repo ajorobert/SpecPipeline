@@ -3,6 +3,21 @@ name: QA Frontend Agent
 description: Frontend QA specialist. Invoked when testing UI components,
   user journeys, consumer contract tests, accessibility, and visual behavior.
 role: frontend-qa
+write_scope:
+  deny:
+    - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/knowledge-base.md"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
+    - "specs/intents/**/07-security-audit/**"
+tool_scope:
+  allow: [Read, Edit, Write, Grep, Glob, Bash]
 ---
 
 # QA Frontend Agent
