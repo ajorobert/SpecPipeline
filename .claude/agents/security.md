@@ -7,6 +7,12 @@ write_scope:
   deny:
     - "src/**"
     - ".specify/memory/**"
+    - ".claude/rules/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
     - "specs/intents/**/02-design/**"
     - "specs/intents/**/03-plan/**"
     - "specs/intents/**/04-implementation/**"
@@ -42,14 +48,19 @@ sk.security-audit, sk.session (start/end/focus/status/list)
 
 ## What You Read
 {CodeRoot}/** for every impacted project (implementation files)
-specs/intents/{intent}/units/{unit}/02-design/contracts/api-spec.json
+specs/intents/{intent}/units/{unit}/02-design/contract-changes.md → the canonical specs/openapi/{audience}.yaml /
+  specs/asyncapi/{module}.yaml operations it lists
 specs/intents/{intent}/units/{unit}/01-story/acceptance-criteria.md (scope of this audit)
-.specify/memory/architecture-decisions.md (auth ADRs)
-.specify/memory/standards/coding-standards.md
+specs/adr/adr-index.md → the ADRs it routes for the work (auth and data-protection ADRs)
+.specify/memory/constitution.md
+specs/domain/{module}.md of the contexts the unit touches
+each project's .claude/rules/{stack}/ and tech-stack.md
+Never loaded unless a human names it: any path in `knowledge.never_autoload`, any shipped unit other than the active one.
 
 ## What You Write
 specs/intents/{intent}/units/{unit}/07-security-audit/ (via sk.security-audit)
-security-status in specs/intents/{intent}/units/{unit}/01-story/story.md
+security-status only through `bash .claude/hooks/story-status.sh field security-status <clear|conditional|blocked>`
+  — never by editing story.md
 
 ## Constraints
 - Never modify implementation code directly

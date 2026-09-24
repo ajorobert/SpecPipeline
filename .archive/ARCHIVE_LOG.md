@@ -186,3 +186,249 @@ approved and let a human run the cleanup.
 **Original path:** .claude/skills/sk.plan/sk.planstory
 **Archived to:** .archive/2026-09-15/sk.planstory
 **Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .claude/hooks/check-skill-preconditions.sh
+**Reason:** Replaced by skill-start.sh (preconditions + start bookkeeping on both Skill-tool and /sk.* prompt paths)
+**Original path:** .claude/hooks/check-skill-preconditions.sh
+**Archived to:** .archive/2026-09-22/check-skill-preconditions.sh
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .claude/hooks/post-skill.sh
+**Reason:** Merged into skill-start.sh: start bookkeeping must run before the skill works, on both entry paths
+**Original path:** .claude/hooks/post-skill.sh
+**Archived to:** .archive/2026-09-22/post-skill.sh
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/architecture-decisions.md
+**Reason:** One home per fact: summary copies of ADRs/domain/services/system are replaced by specs/adr/adr-index.md, specs/domain/, specs/openapi|asyncapi and specs/knowledge-base.md (governance/profile.md)
+**Original path:** templates/project/.specify/memory/architecture-decisions.md
+**Archived to:** .archive/2026-09-22/architecture-decisions.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/domain-model.md
+**Reason:** One home per fact: summary copies of ADRs/domain/services/system are replaced by specs/adr/adr-index.md, specs/domain/, specs/openapi|asyncapi and specs/knowledge-base.md (governance/profile.md)
+**Original path:** templates/project/.specify/memory/domain-model.md
+**Archived to:** .archive/2026-09-22/domain-model.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/service-registry.md
+**Reason:** One home per fact: summary copies of ADRs/domain/services/system are replaced by specs/adr/adr-index.md, specs/domain/, specs/openapi|asyncapi and specs/knowledge-base.md (governance/profile.md)
+**Original path:** templates/project/.specify/memory/service-registry.md
+**Archived to:** .archive/2026-09-22/service-registry.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/system-context.md
+**Reason:** One home per fact: summary copies of ADRs/domain/services/system are replaced by specs/adr/adr-index.md, specs/domain/, specs/openapi|asyncapi and specs/knowledge-base.md (governance/profile.md)
+**Original path:** templates/project/.specify/memory/system-context.md
+**Archived to:** .archive/2026-09-22/system-context.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/skill-routing.md
+**Reason:** Pack registry is the host's one table in .claude/skills/README.md (governance/pack-resolution.md)
+**Original path:** templates/project/.specify/memory/skill-routing.md
+**Archived to:** .archive/2026-09-22/skill-routing.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/standards
+**Reason:** Standards come from path-scoped .claude/rules/{stack}/ and per-project tech-stack.md; framework ships no architecture defaults (B1, A6)
+**Original path:** templates/project/.specify/memory/standards
+**Archived to:** .archive/2026-09-22/standards
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/auth_contract.md
+**Reason:** D2/D3: nothing reads it in project space; framework reference lives in governance, Gemini rules in the opt-in GEMINI.md template
+**Original path:** templates/project/.specify/memory/auth_contract.md
+**Archived to:** .archive/2026-09-22/auth_contract.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/observability-stack.md
+**Reason:** D2/D3: nothing reads it in project space; framework reference lives in governance, Gemini rules in the opt-in GEMINI.md template
+**Original path:** templates/project/.specify/memory/observability-stack.md
+**Archived to:** .archive/2026-09-22/observability-stack.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/command-rules.md
+**Reason:** D2/D3: nothing reads it in project space; framework reference lives in governance, Gemini rules in the opt-in GEMINI.md template
+**Original path:** templates/project/.specify/memory/command-rules.md
+**Archived to:** .archive/2026-09-22/command-rules.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/memory/gemini-command-rules.md
+**Reason:** D2/D3: nothing reads it in project space; framework reference lives in governance, Gemini rules in the opt-in GEMINI.md template
+**Original path:** templates/project/.specify/memory/gemini-command-rules.md
+**Archived to:** .archive/2026-09-22/gemini-command-rules.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/.specify/project-config.md
+**Reason:** Replaced by .specify/profile.yaml (A1)
+**Original path:** templates/project/.specify/project-config.md
+**Archived to:** .archive/2026-09-22/project-config.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/history/adr
+**Reason:** ADR home is specs/adr/ (decision 1)
+**Original path:** templates/project/history/adr
+**Archived to:** .archive/2026-09-22/adr
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/specs/domains
+**Reason:** Domain home is specs/domain/{module}.md + bounded-contexts.md (decision 2)
+**Original path:** templates/project/specs/domains
+**Archived to:** .archive/2026-09-22/domains
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/artifacts/api-contract-template.md
+**Reason:** Contracts are canonical in specs/openapi|asyncapi; unit keeps 02-design/contract-changes.md (A5)
+**Original path:** templates/artifacts/api-contract-template.md
+**Archived to:** .archive/2026-09-22/api-contract-template.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/artifacts/contracts-readme-template.md
+**Reason:** Contracts are canonical in specs/openapi|asyncapi (A5)
+**Original path:** templates/artifacts/contracts-readme-template.md
+**Archived to:** .archive/2026-09-22/contracts-readme-template.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/artifacts/domain-knowledge-base-template.md
+**Reason:** Replaced by domain-template.md for specs/domain/{module}.md (A3)
+**Original path:** templates/artifacts/domain-knowledge-base-template.md
+**Archived to:** .archive/2026-09-22/domain-knowledge-base-template.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/history/README.md
+**Reason:** Setup no longer scaffolds history/; sk.phr creates history/prompts/ on first use (§8.1: only profile, projects, constitution and CLAUDE.md region are host-side after install)
+**Original path:** templates/project/history/README.md
+**Archived to:** .archive/2026-09-22/README.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/project/specs/intents/README.md
+**Reason:** Setup no longer scaffolds specs/intents/; the canonical tree is governance/phase-layout.md (§8.1)
+**Original path:** templates/project/specs/intents/README.md
+**Archived to:** .archive/2026-09-22/README.md-193657
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — templates/artifacts/test-plan-template.md
+**Reason:** Folded into contract-changes-template.md (Test plan section) — one design record for contracts (A5)
+**Original path:** templates/artifacts/test-plan-template.md
+**Archived to:** .archive/2026-09-22/test-plan-template.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .claude/skills/system-context
+**Reason:** A4: pointer skills deleted — sk.* skills resolve knowledge homes themselves (governance/profile.md); the pointers fired globally in non-SDLC work
+**Original path:** .claude/skills/system-context
+**Archived to:** .archive/2026-09-22/system-context
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .claude/skills/service-registry
+**Reason:** A4: pointer skills deleted — sk.* skills resolve knowledge homes themselves (governance/profile.md); the pointers fired globally in non-SDLC work
+**Original path:** .claude/skills/service-registry
+**Archived to:** .archive/2026-09-22/service-registry
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .claude/skills/domain-model
+**Reason:** A4: pointer skills deleted — sk.* skills resolve knowledge homes themselves (governance/profile.md); the pointers fired globally in non-SDLC work
+**Original path:** .claude/skills/domain-model
+**Archived to:** .archive/2026-09-22/domain-model
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .claude/skills/architecture-decisions
+**Reason:** A4: pointer skills deleted — sk.* skills resolve knowledge homes themselves (governance/profile.md); the pointers fired globally in non-SDLC work
+**Original path:** .claude/skills/architecture-decisions
+**Archived to:** .archive/2026-09-22/architecture-decisions
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .claude/skills/standards
+**Reason:** A4: pointer skills deleted — sk.* skills resolve knowledge homes themselves (governance/profile.md); the pointers fired globally in non-SDLC work
+**Original path:** .claude/skills/standards
+**Archived to:** .archive/2026-09-22/standards-194424
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .specify/memory/architecture-decisions.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** .specify/memory/architecture-decisions.md
+**Archived to:** .archive/2026-09-22/architecture-decisions.md-194434
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .specify/memory/command-rules.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** .specify/memory/command-rules.md
+**Archived to:** .archive/2026-09-22/command-rules.md-194435
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .specify/memory/domain-model.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** .specify/memory/domain-model.md
+**Archived to:** .archive/2026-09-22/domain-model.md-194435
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .specify/memory/gemini-command-rules.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** .specify/memory/gemini-command-rules.md
+**Archived to:** .archive/2026-09-22/gemini-command-rules.md-194436
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .specify/memory/service-registry.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** .specify/memory/service-registry.md
+**Archived to:** .archive/2026-09-22/service-registry.md-194436
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .specify/memory/system-context.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** .specify/memory/system-context.md
+**Archived to:** .archive/2026-09-22/system-context.md-194437
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — .specify/memory/standards
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** .specify/memory/standards
+**Archived to:** .archive/2026-09-22/standards-194438
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — specs/domains
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** specs/domains
+**Archived to:** .archive/2026-09-22/domains-194438
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — specs/guide.yaml
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** specs/guide.yaml
+**Archived to:** .archive/2026-09-22/guide.yaml
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — specs/intents/README.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** specs/intents/README.md
+**Archived to:** .archive/2026-09-22/README.md-194439
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — history/README.md
+**Reason:** Framework repo instance copy of a home that no longer exists (governance/profile.md)
+**Original path:** history/README.md
+**Archived to:** .archive/2026-09-22/README.md-194440
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — GEMINI.md
+**Reason:** D3: GEMINI.md is opt-in (install.gemini / setup.sh --gemini); the framework repo does not opt in
+**Original path:** GEMINI.md
+**Archived to:** .archive/2026-09-22/GEMINI.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-22 — skills_archive/skill-routing.example.md
+**Reason:** Replaced by skills-registry.example.md (the one Registry table in .claude/skills/README.md)
+**Original path:** skills_archive/skill-routing.example.md
+**Archived to:** .archive/2026-09-22/skill-routing.example.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-24 — .claude/skills/sk.refactor
+**Reason:** Optional escape hatches outside the story lifecycle (no status, no gates, no promotion); the same work routes as a story: sk.story -> sk.investigate (diagnosis from empirical input) -> sk.plan -> sk.implement
+**Original path:** .claude/skills/sk.refactor
+**Archived to:** .archive/2026-09-24/sk.refactor
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-24 — .claude/skills/sk.perf
+**Reason:** Optional escape hatches outside the story lifecycle (no status, no gates, no promotion); the same work routes as a story: sk.story -> sk.investigate (diagnosis from empirical input) -> sk.plan -> sk.implement
+**Original path:** .claude/skills/sk.perf
+**Archived to:** .archive/2026-09-24/sk.perf
+**Review:** [ ] approved for permanent delete

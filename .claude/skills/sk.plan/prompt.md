@@ -5,6 +5,10 @@ Role: lead (orchestrator) | Level: unit
 This skill orchestrates two internal sub-skills. It prepares a planning brief, invokes
 `sk.plan_sub_planproject` once per impacted project (resolved from the unit's Impacted Projects table), and
 runs `sk.plan_sub_analyze` at the end to catch cross-project / cross-artifact conflicts before implementation.
+Every sub-skill is invoked with the **Skill tool** (`Skill(sk.plan_sub_planproject)`), never by reading its
+prompt.md, so `skill-start.sh` runs its preconditions and sets its role
+(`.claude/skills/governance/status-model.md` → How a skill starts). Orchestrators do not resolve
+capability packs — each worker resolves its own (phase = plan).
 
 ## Plan Output Layout
 All plan artifacts for the unit live under `specs/intents/{intent}/units/{unit}/03-plan/{Project}/`
@@ -32,6 +36,9 @@ When no `--projects` is given, the target set is EVERY row in the Impacted Proje
    Missing: STOP — run sk.design first.
 3. Read `DESIGN_DIR/impact-analysis.md` (per-project blast radius + sequencing). If absent, fall
    back to the unit-brief Impacted Projects table and log the degraded source.
+4. Read `DESIGN_DIR/contract-changes.md` (if exists) — the list of canonical operations this unit adds,
+   changes or removes in `specs/openapi/{audience}.yaml` / `specs/asyncapi/{module}.yaml`. If absent,
+   log `contract-changes.md not present — no contract change in this unit`.
 
 ## Mode Detection and Resume Logic
 Determine mode based on arguments and existing files. First match wins.
@@ -75,22 +82,22 @@ Condition: run in NORMAL/RESUME if missing; run in REFRESH. (Skipped in TARGETED
 ### Phase 1 — Project Planning
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
-Invoke skill: `sk.plan_sub_planproject`
-- Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, and the effective `--role`
+Invoke with the Skill tool: `Skill(sk.plan_sub_planproject)`, one call per project.
+- Pass (as the skill's args): `{Project}`, `{CodeRoot}`, `{ProjectType}`, and the effective `--role`
   (backend for Backend, frontend for Frontend, mobile for Mobile).
-- Context injected: `planning-brief.md`, `02-design/architecture.md`, `02-design/impact-analysis.md`,
+- The worker reads: `planning-brief.md`, `02-design/architecture.md`, `02-design/impact-analysis.md`,
   `02-design/projects/{Project}.md` (if exists), `02-design/database-design.md` (if exists),
-  `02-design/api-contract.md` (if exists), `02-design/contracts/api-spec.json` (if exists),
+  `02-design/contract-changes.md` (if exists) and the canonical operations it lists,
   `02-design/ui-model.md` (if exists — required for Frontend/Mobile), the unit's story under
-  `01-story/`, and the project's tech-stack.md and coding-standards.md.
+  `01-story/`, the project's `.specify/memory/projects/{Project}/tech-stack.md`, and the routed ADRs.
 - Waits for: `03-plan/{Project}/` containing plan.md, tasks.md, checklist.md, jira-subtask.md,
   estimation.md.
 - Subagents are isolated from each other; independent projects may be planned in parallel.
 
 ### Phase 2 — Cross-Artifact Analysis
 Condition: always runs (except if the pipeline aborted early before any plan exists).
-Invoke skill: `sk.plan_sub_analyze`
-- Context injected: all design artifacts under `02-design/`, all `03-plan/{Project}/plan.md` files.
+Invoke with the Skill tool: `Skill(sk.plan_sub_analyze)`.
+- The worker reads: all design artifacts under `02-design/`, all `03-plan/{Project}/plan.md` files.
 - Waits for: the Analyze report (read-only) identifying any CRITICAL / HIGH / MEDIUM findings.
 
 ### Phase 3 — Review Gate
@@ -104,7 +111,8 @@ Check for:
   - Files Affected / tasks.md / estimation.md are mutually consistent per project
   - No CRITICAL, HIGH, or MEDIUM findings in the analyze report
 Approval effect: set `03-plan/{Project}/plan.md` front-matter `status: approved` for each approved project.
-This is the approval check-skill-preconditions.sh requires before sk.implement in confirm/validate mode.
+This is the approval sk.implement's preconditions (checked by skill-start.sh) require in confirm/validate mode.
+sk.plan never moves `status.current` (`.claude/skills/governance/status-model.md`).
 
 ## Completion Report
 After the pipeline completes, display:

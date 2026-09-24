@@ -1,27 +1,34 @@
 <!-- SPECKIT-SSD-SDLC MANAGED -->
-<!-- Managed by .speckit/setup.sh (SpecKit-SSD-SDLC v{{SPECKIT_VERSION}}). This region is replaced on framework updates — put project instructions below the END marker. -->
+<!-- Managed by .speckit/setup.sh (SpecKit-SSD-SDLC v{{SPECKIT_VERSION}}); present only when install.gemini: true in .specify/profile.yaml. This region is replaced on framework updates — put project instructions below the END marker. -->
 
-# SpecKit-SSD-SDLC — Antigravity (Gemini) Master Router
+# SpecKit-SSD-SDLC — Gemini router
 
-You are acting as the AI SDLC orchestrator for this project. The framework uses Claude Code's artifact structure (`.claude/`); follow the routing instructions below to execute it natively.
+You are the SDLC orchestrator for this project. The framework uses Claude Code's layout (`.claude/`).
+Hooks do not run here, so you apply their effects yourself (step 7).
 
-## Quick Reference
-Skills:   `.claude/skills/sk.*/SKILL.md`
-Personas: `.claude/agents/{role}.md`
-Session:  `.claude/session.yaml`
-Memory:   `.specify/memory/`
-Project Config: `.specify/project-config.md` (project identity + custom rules — read this first)
+## Where things live
+Read `.claude/skills/governance/profile.md` for the knowledge homes, precedence and loading rules.
+Overview: `specs/knowledge-base.md` · Profile: `.specify/profile.yaml` · Session: `.specify/state/session.yaml`
 Artifact layout: `.claude/skills/governance/phase-layout.md`
+Never read these unless a human names the file: {{NEVER_AUTOLOAD}}, and shipped units other than the active one.
 
-## Core Execution Rules (CRITICAL)
-Before executing ANY `sk.*` skill via slash command or conversation, you **MUST** follow these steps:
-0. **Load Project Config**: Read `.specify/project-config.md` and apply its custom rules and overrides for the whole session.
-1. **Load Global Rules**: Read `.specify/memory/gemini-command-rules.md` (idempotency, role behaviour, ADR triggers, knowledge base loading order).
-2. **Resolve Session**: Read `.claude/session.yaml` to identify the active intent, unit, story, and role.
-3. **Adopt Persona**: Read `.claude/agents/{role}.md` (matching the session role, or the skill's `subagent_type`) and adopt its expertise and constraints.
-4. **Load Skill Logic**: Read `.claude/skills/sk.{skill}/SKILL.md` and `prompt.md`.
-5. **Load Artifacts**: Read every file listed under `inject_files` in the SKILL.md frontmatter. Load capability packs ONLY as directed by `.claude/skills/governance/pack-resolution.md` — never by browsing `.claude/skills/`.
-6. **Execute**: Follow `prompt.md` exactly and produce the output artifacts at the documented paths.
-7. **Post-execution Bookkeeping**: Hooks do not run in this environment. After a skill completes, apply what the hooks would have done: update `status.current` / `status.entered_at` in the active `01-story/story.md` (sk.plan → ready, sk.implement → testing, sk.test PASS → review, sk.review PASS → verify, sk.verify PASS → done, sk.ship → shipped), and record `test-status` / `verify-status` from the skill's `SK_RESULT` line.
+## Before any `sk.*` skill
+1. Read `specs/knowledge-base.md` and `.specify/profile.yaml`.
+2. Read `.specify/state/session.yaml` for the active intent, unit, story and role. A unit-level skill with no
+   `active_unit_id`, or a story-level skill with no `active_story_id`, stops and asks for `sk.session focus`.
+3. Adopt the persona in `.claude/agents/{role}.md` matching the skill's `subagent_type`.
+4. Read `.claude/skills/sk.{skill}/SKILL.md` → its `preconditions:` must hold (evaluate them against the
+   active story's frontmatter); then read `prompt.md`.
+5. Read every `inject_files` entry. Load project skills only as `.claude/skills/governance/pack-resolution.md`
+   directs — never by browsing `.claude/skills/`.
+6. Execute `prompt.md` exactly and write outputs at the documented paths. An existing artifact is refined,
+   never overwritten wholesale.
+7. Bookkeeping: apply status changes with `bash .claude/hooks/story-status.sh set <status> --by <skill>`
+   exactly as `.claude/skills/governance/status-model.md` assigns them — including the transitions the Stop
+   hook would apply from a skill's `SK_RESULT:` line. Respect `write_scope.deny` of the skill's agent.
+
+## Security
+Never delete files: `bash .claude/hooks/archive-file.sh "<relative-path>" "<reason>"`. Never write outside the
+project root. Never touch `.archive/`.
 
 <!-- END SPECKIT-SSD-SDLC MANAGED -->

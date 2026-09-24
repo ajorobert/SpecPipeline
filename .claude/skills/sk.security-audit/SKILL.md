@@ -1,10 +1,10 @@
 ---
 name: sk.security-audit
-description: "Invoke when: performing a security audit of a unit's implementation across every impacted project. Role: security. Runs at unit level. Reads: session.yaml, unit-brief.md, knowledge-base.md, each impacted project's {CodeRoot}, 02-design/contracts/api-spec.json, architecture-decisions.md, 01-story acceptance criteria. Writes: 07-security-audit/ (owasp-report.md, stride-review.md, dependency-scan.md, security-signoff.md) and the unit story security-status. Evaluates OWASP Top 10 + STRIDE."
+description: "Invoke when: performing a security audit of a unit's implementation across every impacted project. Role: security. Runs at unit level. Reads: .specify/state/session.yaml, unit-brief.md, knowledge-base.md, each impacted project's {CodeRoot}, 02-design/contract-changes.md and the canonical specs/openapi|asyncapi operations it lists, specs/adr/adr-index.md → routed ADRs, .specify/memory/constitution.md, specs/domain/{module}.md of the touched contexts, 01-story acceptance criteria. Writes: 07-security-audit/ (owasp-report.md, stride-review.md, dependency-scan.md, security-signoff.md); security-status via story-status.sh. Evaluates OWASP Top 10 + STRIDE."
 subagent_type: Security Agent
 inject_files:
   - .claude/skills/governance/checkpoint-rules.md
-  - .specify/memory/architecture-decisions.md
+  - specs/adr/adr-index.md
 rubric:
   name: security-coverage
   checks:

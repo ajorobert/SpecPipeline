@@ -4,8 +4,8 @@ This folder holds **capability packs**: stack and pattern skills that tell an ag
 in one particular technology stack. They are **not part of the framework**.
 
 - `setup.sh` never copies, reads, or lists anything in this folder.
-- The framework's `sk.*` skills never name a pack. They load whatever a project registers in
-  `.specify/memory/skill-routing.md` (see `.claude/skills/governance/pack-resolution.md`).
+- The framework's `sk.*` skills never name a pack. They load whatever a project registers in the
+  `## Registry` table of its `.claude/skills/README.md` (see `.claude/skills/governance/pack-resolution.md`).
 - Once copied into a project, a pack is owned by that project. Customise it freely; framework
   upgrades never touch it.
 
@@ -18,8 +18,8 @@ start when your stack matches.
 - **Project memory carries vocabulary**: the per-project what and where (module names, tenancy
   markers, permission catalog, schema names, cache-key prefixes, auth claim shapes).
 
-A pack references vocabulary through a placeholder plus a pointer into `.specify/memory/`. It never
-hardcodes it. When you customise a pack, keep facts in memory and patterns in the pack.
+A pack references vocabulary through a placeholder plus a pointer into the project's knowledge homes
+(`specs/domain/`, `specs/adr/`, `.claude/rules/`). It never hardcodes it. When you customise a pack, keep facts in their homes and patterns in the pack.
 
 ## Contents
 
@@ -48,8 +48,8 @@ hardcodes it. When you customise a pack, keep facts in memory and patterns in th
 | frontend | `accessibility-standards` | WCAG 2.2 AA rules and testing |
 | mobile | `react-native-patterns` | Mobile app: routing, native styling, lists, secure storage, PKCE auth |
 | design | `design-principles` | DDD bounded-context rules and DDIA access-pattern-first data modelling |
-| memory | `auth_contract.md`, `observability-stack.md` | Examples of project vocabulary files for `.specify/memory/` |
-| — | `skill-routing.example.md` | The routing manifest these packs were written for |
+| memory | `auth_contract.md`, `observability-stack.md` | Examples of project vocabulary; in a project this content belongs in an ADR, a domain file or a rule file |
+| — | `skills-registry.example.md` | The Registry table these packs were written for |
 
 ## Adopting a pack
 
@@ -58,20 +58,19 @@ hardcodes it. When you customise a pack, keep facts in memory and patterns in th
 cp -r .speckit/skills_archive/backend/backend-architecture .claude/skills/
 cp -r .speckit/skills_archive/design/design-principles    .claude/skills/
 
-# 2. Copy vocabulary examples the packs point at, then rewrite them for your project
-cp .speckit/skills_archive/memory/auth_contract.md .specify/memory/
+# 2. Rewrite the vocabulary the packs point at into your own homes
+#    (identity shapes → an ADR or specs/domain/{module}.md; telemetry wiring → .claude/rules/backend/)
 
-# 3. Register the packs
-#    Edit .specify/memory/skill-routing.md (created by /sk.init);
-#    use skill-routing.example.md as a reference.
+# 3. Register the packs: add rows to the ## Registry table of .claude/skills/README.md
+#    (skills-registry.example.md shows the table these packs were written for)
 ```
 
 Then customise:
 - Replace library names, versions and paths with your real ones.
-- Move any project fact you find in a pack into `.specify/memory/` and leave a pointer behind.
+- Move any project fact you find in a pack into its home (ADR, domain file, rule file) and leave a pointer behind.
 - Optionally add native `paths:` frontmatter so Claude Code also surfaces the pack by file context
   outside the sk.* workflow.
 
 ## Adding a pack here
 Only add packs that are reusable as a starting point. Keep project facts out of them (placeholders
-plus pointers), and add a row to the table above and to `skill-routing.example.md`.
+plus pointers), and add a row to the table above and to `skills-registry.example.md`.

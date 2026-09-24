@@ -6,7 +6,7 @@ Role: po | Level: story
 - `sk.story_sub_clarify` → Focuses on business rules, value proposition, user interaction flows, data inputs/outputs, and functional edge cases. Framing uses PO/user language.
 
 ## Pre-flight
-1. Read session.yaml active_story_id
+1. Read `.specify/state/session.yaml` active_story_id
    NULL → STOP: run sk.session focus --story {id} first
 2. Load the active story folder (`.claude/skills/governance/phase-layout.md`):
    specs/intents/{intent}/units/{unit}/01-story/
@@ -39,7 +39,8 @@ For each question:
 
 ## After loop completes
 - Final pass: confirm no business [NEEDS CLARIFICATION] markers remain in the story folder
-- If scope changed: flag to user and suggest updating `status.current` in `story.md`
+- If scope changed: flag it to the user. Never edit `status.current`; the story moves only through
+  `bash .claude/hooks/story-status.sh` (sk.story Phase 6 sets `ready`).
 
 ## Output Artifacts
 01-story/ — `requirement.md`, `acceptance-criteria.md`, and/or `story.md` updated with clarifications inline

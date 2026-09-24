@@ -24,9 +24,10 @@ this document records WHAT the design changes in each of those projects.
 
 ## Cross-Project Contracts
 <!-- Contracts that cross a project boundary (API, event, shared schema).
-     For each: producer project → consumer project(s), and the api-contract.md / api-spec.json reference.
+     For each: producer project → consumer project(s), and the canonical file and operation
+     (specs/openapi/{audience}.yaml, specs/asyncapi/{module}.yaml) listed in 02-design/contract-changes.md.
      Example:
-     - {BackendProject} exposes POST /api/v1/auth/session → consumed by {WebProject}, {AdminProject}, {MobileProject} -->
+     - {BackendProject} exposes createSession in specs/openapi/{audience}.yaml → consumed by {WebProject}, {AdminProject}, {MobileProject} -->
 
 ## Sequencing & Dependencies
 <!-- Build/deploy order implied by the design.

@@ -38,6 +38,6 @@ Validate:  stop after sk.design, wait for approval
            only then proceed to sk.implement
 
 Enforcement
-- check-skill-preconditions.sh blocks sk.implement and sk.ship when `checkpoint_mode` is unset.
+- skill-start.sh (on both the typed and the Skill-tool path) blocks sk.implement and sk.ship when `checkpoint_mode` is unset.
 - For confirm | validate it also blocks sk.implement until at least one
   `03-plan/{Project}/plan.md` carries `status: approved`.

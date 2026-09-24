@@ -6,16 +6,33 @@
       "Bash(rmdir *)",
       "Bash(del *)",
       "Bash(unlink *)",
-      "Bash(Remove-Item *)",
       "Bash(* | rm *)",
-      "Bash(* && rm *)"
+      "Bash(* && rm *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(rm *)",
+      "PowerShell(del *)",
+      "PowerShell(ri *)",
+      "PowerShell(rd *)",
+      "PowerShell(erase *)",
+      "PowerShell(rmdir *)"
     ],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "disableBypassPermissionsMode": "disable"
   },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/skill-start.sh\""
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
@@ -24,7 +41,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
@@ -33,11 +50,20 @@
         ]
       },
       {
+        "matcher": "Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-read.sh\""
+          }
+        ]
+      },
+      {
         "matcher": "Skill",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-skill-preconditions.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/skill-start.sh\""
           }
         ]
       }
@@ -49,15 +75,6 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-system-prompt-files.sh\""
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-skill.sh\""
           }
         ]
       }
@@ -76,6 +93,5 @@
         ]
       }
     ]
-  },
-  "disableBypassPermissionsMode": "disable"
+  }
 }

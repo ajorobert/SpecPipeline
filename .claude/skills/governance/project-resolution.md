@@ -24,10 +24,18 @@ The effective role for a resolved row is `backend` for Backend, `frontend` for F
 `mobile` for Mobile.
 
 ## Per-project memory
-Resolve each project's stack memory in this order (first existing file wins):
-- Tech stack: `.specify/memory/projects/{Project}/tech-stack.md` → `.specify/memory/standards/tech-stack.md`
-- Coding standards: `.specify/memory/projects/{Project}/coding-standards.md` → `.specify/memory/standards/coding-standards.md`
+The router `.specify/memory/projects/index.md` has one row per project: Project (link) · Type ·
+Code Root · Role. `unit-brief.md` → Impacted Projects copies those values for the unit.
 
-The tech stack declares the project's test framework, **Test Layout** (where runnable tests live
-under `{CodeRoot}`) and **Forbidden Skip Idioms** (the syntax that marks a test skipped or focused).
-Skills use those fields and never assume a language-specific layout.
+- **Tech stack:** `.specify/memory/projects/{Project}/tech-stack.md` — a dated snapshot. Each version
+  line cites its manifest and the date it was verified (`verified 2026-09-21 against package.json`).
+  It declares the test framework, **Test Layout** (where runnable tests live under `{CodeRoot}`),
+  **Forbidden Skip Idioms** (the syntax that marks a test skipped or focused), **Platform**,
+  **E2E Tooling**, optional **Coverage Thresholds**, and — for a project that owns a schema —
+  **Migrations** (tool, location, rollback policy). Any field may be `none`; a skill that needs a
+  `none` capability logs `SKIP — {field}: none` for that step and never invents a tool.
+  A snapshot older than 90 days is refreshed from the manifests by sk.plan before use.
+- **Coding rules:** the `.claude/rules/{stack}/` folders mapped to the project by `rules.stacks` in
+  `.specify/profile.yaml` (default: Backend → `backend`, Frontend → `web`, Mobile → `mobile`).
+
+Skills use these fields and never assume a language-specific layout.
