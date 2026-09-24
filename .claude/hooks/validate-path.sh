@@ -55,6 +55,7 @@ if [[ -n "$ROLE" && "$ROLE" != "null" ]]; then
   case "$ROLE" in
     backend)  AGENT_FILE="backend-engineer.md"  ;;
     frontend) AGENT_FILE="frontend-engineer.md" ;;
+    mobile)   AGENT_FILE="mobile-engineer.md"   ;;
     *)        AGENT_FILE="${ROLE}.md"           ;;
   esac
   AGENT_PATH="${PROJECT_ROOT}/.claude/agents/${AGENT_FILE}"

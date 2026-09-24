@@ -8,7 +8,9 @@ inject_files:
 ---
 
 Orchestrator skill — Fast Forward pipeline.
-Invokes sk.story → [sk.design] → sk.plan in sequence, each with the Skill tool.
-Each sub-skill runs in its own isolated context. Checkpoints respected between phases.
+Invokes sk.story → [sk.design] → sk.plan in sequence, each with the Skill tool, all in one window.
+Intended for small scope (few clarifications; checkpoint_mode autopilot or confirm). For a large unit
+under validate, run the three phases as separate sessions (`governance/session-boundaries.md`).
+Sub-orchestrators run in this context; each dispatches its own workers where migrated. Checkpoints respected between phases.
 
 Read and execute the full workflow in `prompt.md` in this directory.

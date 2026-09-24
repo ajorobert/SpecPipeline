@@ -4,8 +4,17 @@ Role: lead (orchestrator) | Level: story
 
 This skill orchestrates other skills in sequence, invoking each with the **Skill tool**
 (`Skill(sk.story)`, `Skill(sk.design)`, `Skill(sk.plan)`) so `skill-start.sh` runs their preconditions
-and sets the active role (`.claude/skills/governance/status-model.md`). Each runs with its own
-isolated context — state is passed via the file system (`.specify/state/session.yaml` + spec artifacts).
+and sets the active role (`.claude/skills/governance/status-model.md`). Those three orchestrators run
+in this context; sk.design and sk.plan dispatch their own workers as subagents, while sk.story stays
+interactive throughout (`.claude/skills/governance/worker-dispatch.md`). State is passed via the file
+system (`.specify/state/session.yaml` + spec artifacts), so the pipeline resumes after any phase.
+
+**Scope.** Running three phases in one window is deliberate, and it is the right trade only when the
+work is small: a contained change, few clarifications, `checkpoint_mode` of `autopilot` or `confirm`.
+For a large unit under `validate` — many clarification loops and a pause at every design gate — run
+`sk.story`, `sk.design` and `sk.plan` as separate sessions instead
+(`.claude/skills/governance/session-boundaries.md`). This skill does not refuse the large case; it
+just stops being the cheaper way to do it.
 
 ## Mode Detection
 - `sk.ff` → [FEATURE MODE] full pipeline: sk.story → design → plan
@@ -79,6 +88,9 @@ Artifacts created:
   ✓ 03-plan/{Project}/       (sk.plan)
 
 Next step: /sk.implement
+  Strongly recommended: start a fresh session first (`.claude/skills/governance/session-boundaries.md`).
+  This one window now holds all three phases — story Q&A, design gates and the plan reports.
+  Reorient there with /sk.session status.
 ```
 
 ## Output Artifacts

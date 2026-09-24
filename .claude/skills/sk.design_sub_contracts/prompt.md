@@ -49,8 +49,9 @@ Design-phase packs loaded in Step 0 (if any)
 5. Classify every added, changed or removed operation with a compatibility class. The classes come from
    the file named by `contracts.compat_rules` in `.specify/profile.yaml` (often an ADR); when it is unset,
    use `additive | deprecating | breaking`. A `breaking` row must name its versioned replacement or the
-   ADR that accepts the break — if neither exists, flag it to the user and raise it with `Skill(sk.adr)`
-   or list it for the architect. Never proceed with an unaccepted break.
+   ADR that accepts the break — if neither exists, report it as `ADR required: {break}` and record the
+   row as blocked. Never invoke sk.adr yourself; sk.design raises it in the main context after Gate 3.
+   Never proceed with an unaccepted break.
 6. List the consumers of each row: the impacted Frontend/Mobile projects from `unit-brief.md`, plus any
    other project that consumes the audience or module (projects/index.md Role, routed ADRs).
 7. Verification. If `contracts.verify` is set in `.specify/profile.yaml`, run it and record the command,

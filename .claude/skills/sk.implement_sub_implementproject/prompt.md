@@ -2,8 +2,13 @@
 Executes the implementation for ONE impacted project of a unit.
 Role: lead (default) — runs as backend | frontend | mobile depending on the project type | Level: project
 
-Internal sub-skill — invoked by the sk.implement orchestrator, once per impacted project.
-Do not invoke directly.
+Internal sub-skill — invoked by the sk.implement orchestrator with the Skill tool, once per impacted
+project. Do not invoke directly.
+
+It runs in the orchestrator's context on purpose: it owns the Scaffolding Review gate, and a gate cannot
+run inside a subagent (`.claude/skills/governance/worker-dispatch.md` → A worker can never talk to a
+human). Its own two workers — scaffolding and codegen — ARE dispatched as subagents, around that gate.
+They are where the bulk of the context goes: the plan, the design slice, the rules, and the source tree.
 
 ## What "one project" means
 A unit may impact several projects (for example one Backend API, a customer web surface, an admin web
@@ -97,9 +102,17 @@ updated: {today}
 Status values: `pending` → `scaffolded` → `done` (or `blocked` with a reason).
 
 ### 2. Structural Scaffolding
-Invoke with the Skill tool: `Skill(sk.implement_sub_scaffolding)` with this project's context.
-- Pass (as the skill's args): `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`, and the project slice
-  (`03-plan/{Project}/plan.md`, `03-plan/{Project}/tasks.md`, plus the design/contract artifacts).
+Dispatch per `.claude/skills/governance/worker-dispatch.md`:
+1. `bash .claude/hooks/set-worker-role.sh sk.implement_sub_scaffolding {role}`
+   Agent and role come from `{ProjectType}` per worker-dispatch.md → Choosing the agent and role:
+   Backend → `backend` / SpecKit Backend Engineer Agent; Frontend → `frontend` / SpecKit Frontend
+   Engineer Agent; Mobile → `mobile` / SpecKit Mobile Engineer Agent. The static `subagent_type:`
+   in the worker's SKILL.md is a default and is overridden here.
+2. Dispatch `sk.implement_sub_scaffolding` with the Agent tool, using the dispatch prompt in
+   worker-dispatch.md with this project's parameter block (`{Project}`, `{CodeRoot}`, `{ProjectType}`,
+   Role, `{UNIT_DIR}`). It resolves its own inputs and packs from its prompt.md.
+3. `bash .claude/hooks/set-worker-role.sh sk.implement_sub_implementproject {role}`
+   Re-set, not clear — this skill keeps writing after the worker returns.
 - It creates files, types, interfaces, request/response types, stubs, and test fixtures inside `{CodeRoot}`
   per the plan's Files Affected — NO business logic. It marks each scaffolded task `scaffolded` in `progress.md`.
 - Skip this step entirely in REFINE mode.
@@ -114,8 +127,13 @@ Check for:
 On cancel: scaffolding for {Project} is preserved; code generation is skipped for this project.
 
 ### 3. Code Generation
-Invoke with the Skill tool: `Skill(sk.implement_sub_codegen)` with this project's context.
-- Pass (as the skill's args): the same project context as scaffolding, plus `review-{story-id}.md` in REFINE mode.
+Dispatch per `.claude/skills/governance/worker-dispatch.md`, exactly as for scaffolding:
+1. `bash .claude/hooks/set-worker-role.sh sk.implement_sub_codegen {role}`   (same agent/role mapping)
+2. Dispatch `sk.implement_sub_codegen` with the Agent tool, same parameter block, plus
+   `review-{story-id}.md` in REFINE mode.
+3. `bash .claude/hooks/set-worker-role.sh sk.implement_sub_implementproject {role}`
+
+Keep both dispatch prompts' prefixes byte-identical across projects — only the parameter block varies.
 - It implements the business logic, rules, conditions, transformations, and validations inside the
   scaffolded structures within `{CodeRoot}`, executing `03-plan/{Project}/tasks.md` in build order.
   It marks each completed task `done` in `progress.md`.

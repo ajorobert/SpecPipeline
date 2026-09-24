@@ -3,7 +3,7 @@ Manages local development session.
 Role: any
 
 Roles (the single enum used by session.yaml, agents and every skill):
-`po | architect | lead | backend | frontend | backend-qa | frontend-qa | security`
+`po | architect | lead | backend | frontend | mobile | backend-qa | frontend-qa | security`
 
 Session file: `.specify/state/session.yaml` — per-developer runtime state, gitignored. No `git add` in
 this skill ever lists `.specify/state/`.
@@ -32,8 +32,8 @@ Placeholders: `{kind}` = `fix` when the story's `story_type` is `bug` or `hotfix
 
 2. **Role**
    - If `--role <role>` is provided (e.g. `/sk.session start --role backend`), use it.
-   - Otherwise ask the user to select one: **Product Owner | Architect | Lead | Backend Developer | Frontend Developer | Backend QA | Frontend QA | Security**.
-   - Map the selection to the role key: `po | architect | lead | backend | frontend | backend-qa | frontend-qa | security`.
+   - Otherwise ask the user to select one: **Product Owner | Architect | Lead | Backend Developer | Frontend Developer | Mobile Developer | Backend QA | Frontend QA | Security**.
+   - Map the selection to the role key: `po | architect | lead | backend | frontend | mobile | backend-qa | frontend-qa | security`.
 
 3. **Story focus**
    - The current `active_story_id` (if any) stays the session focus. Do NOT ask for story input.

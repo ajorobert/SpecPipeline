@@ -2,13 +2,15 @@
 Orchestrates technical planning for a unit, producing one execution-plan folder per impacted project.
 Role: lead (orchestrator) | Level: unit
 
-This skill orchestrates two internal sub-skills. It prepares a planning brief, invokes
+This skill orchestrates two internal workers. It prepares a planning brief, dispatches
 `sk.plan_sub_planproject` once per impacted project (resolved from the unit's Impacted Projects table), and
 runs `sk.plan_sub_analyze` at the end to catch cross-project / cross-artifact conflicts before implementation.
-Every sub-skill is invoked with the **Skill tool** (`Skill(sk.plan_sub_planproject)`), never by reading its
-prompt.md, so `skill-start.sh` runs its preconditions and sets its role
-(`.claude/skills/governance/status-model.md` → How a skill starts). Orchestrators do not resolve
-capability packs — each worker resolves its own (phase = plan).
+
+Every worker is dispatched with the **Agent tool**, one at a time, per
+`.claude/skills/governance/worker-dispatch.md`: set the role markers, dispatch, clear the markers.
+Each worker runs in its own forked context and returns only a short report, so this orchestrator's
+window holds the brief, the reports and the gate — never the workers' working sets. Orchestrators do
+not resolve capability packs — each worker resolves its own (phase = plan).
 
 ## Plan Output Layout
 All plan artifacts for the unit live under `specs/intents/{intent}/units/{unit}/03-plan/{Project}/`
@@ -82,23 +84,31 @@ Condition: run in NORMAL/RESUME if missing; run in REFRESH. (Skipped in TARGETED
 ### Phase 1 — Project Planning
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
-Invoke with the Skill tool: `Skill(sk.plan_sub_planproject)`, one call per project.
-- Pass (as the skill's args): `{Project}`, `{CodeRoot}`, `{ProjectType}`, and the effective `--role`
-  (backend for Backend, frontend for Frontend, mobile for Mobile).
-- The worker reads: `planning-brief.md`, `02-design/architecture.md`, `02-design/impact-analysis.md`,
-  `02-design/projects/{Project}.md` (if exists), `02-design/database-design.md` (if exists),
-  `02-design/contract-changes.md` (if exists) and the canonical operations it lists,
-  `02-design/ui-model.md` (if exists — required for Frontend/Mobile), the unit's story under
-  `01-story/`, the project's `.specify/memory/projects/{Project}/tech-stack.md`, and the routed ADRs.
-- Waits for: `03-plan/{Project}/` containing plan.md, tasks.md, checklist.md, jira-subtask.md,
-  estimation.md.
-- Subagents are isolated from each other; independent projects may be planned in parallel.
+Dispatch one worker per project, **one at a time**, per `.claude/skills/governance/worker-dispatch.md`:
+
+1. `bash .claude/hooks/set-worker-role.sh sk.plan_sub_planproject`
+   No role override. Planning artifacts live under `03-plan/**`, which only `lead` may write —
+   overriding to the project's type would block the worker from its own output folder.
+2. Dispatch `sk.plan_sub_planproject` with the Agent tool, using its `subagent_type:` and the dispatch
+   prompt in worker-dispatch.md, with this project's parameter block (`{Project}`, `{CodeRoot}`,
+   `{ProjectType}`, Role `lead`, `{UNIT_DIR}`). The worker resolves its own inputs from its
+   prompt.md — do not restate them here.
+3. `bash .claude/hooks/set-worker-role.sh clear`
+4. Record the report. Expect `03-plan/{Project}/` to hold plan.md, tasks.md, checklist.md,
+   jira-subtask.md and estimation.md; note any that is missing for the gate.
+
+Keep the dispatch prompt's prefix byte-identical across projects — only the parameter block changes.
+That prefix is the cache key for the second and third project of the fan-out.
 
 ### Phase 2 — Cross-Artifact Analysis
 Condition: always runs (except if the pipeline aborted early before any plan exists).
-Invoke with the Skill tool: `Skill(sk.plan_sub_analyze)`.
-- The worker reads: all design artifacts under `02-design/`, all `03-plan/{Project}/plan.md` files.
-- Waits for: the Analyze report (read-only) identifying any CRITICAL / HIGH / MEDIUM findings.
+Dispatch per `.claude/skills/governance/worker-dispatch.md`:
+1. `bash .claude/hooks/set-worker-role.sh sk.plan_sub_analyze`
+2. Dispatch `sk.plan_sub_analyze` with the Agent tool. It is READ-ONLY — it writes no file and
+   returns its findings as its report.
+3. `bash .claude/hooks/set-worker-role.sh clear`
+
+Carry the report's CRITICAL / HIGH / MEDIUM findings into the Review Gate.
 
 ### Phase 3 — Review Gate
 Protocol: `.claude/skills/governance/review-gate.md`. Active for `confirm` and `validate` when any new plan
@@ -133,6 +143,8 @@ Projects skipped:
 Analyze: {PASS | findings — {counts by severity}}
 
 Next step: /sk.implement
+  Optional: a fresh session is cheap here and keeps the implement window clean
+  (`.claude/skills/governance/session-boundaries.md`). Reorient with /sk.session status.
 ```
 
 ## Quality Bar
@@ -140,7 +152,10 @@ Next step: /sk.implement
 - The impacted-project list is sourced from `unit-brief.md`; every impacted project is either
   planned or explicitly logged as skipped with a reason.
 - `--projects` resolution is logged; `--role`/type conflicts STOP rather than guess.
-- Each sk.plan_sub_planproject invocation is self-contained — no state leaks between projects.
+- Every worker is dispatched with the Agent tool, one at a time, with its role markers set before and
+  cleared after — never with the Skill tool, and never two in flight at once.
+- Worker reports carry paths, decisions and blockers only; no file contents are pasted back into this
+  context. Each invocation is self-contained — no state leaks between projects.
 - Plans never contradict `02-design/` artifacts; the orchestrator does not redesign.
 - Active gates must receive explicit 'approved' before statuses change; skipped gates are logged.
 - 'cancel' at the gate preserves all artifacts written up to that point.

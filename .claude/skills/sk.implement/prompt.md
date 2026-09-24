@@ -4,10 +4,13 @@ Role: lead (orchestrator) | Level: unit
 
 This skill orchestrates the per-project implementation worker. It resolves the impacted projects from
 the unit's Impacted Projects table, invokes `sk.implement_sub_implementproject` once per project (each consuming that
-project's already-approved `03-plan/{Project}/` plan), and gates the result before reporting. Each
-sub-skill runs in its own isolated context and is invoked with the **Skill tool**
-(`Skill(sk.implement_sub_implementproject)`), never by reading its prompt.md, so `skill-start.sh` runs its
-preconditions and sets its role (`.claude/skills/governance/status-model.md` → How a skill starts).
+project's already-approved `03-plan/{Project}/` plan), and gates the result before reporting. Each worker is
+invoked with the **Skill tool** (`Skill(sk.implement_sub_implementproject)`), never by reading its
+prompt.md, so `skill-start.sh` runs its preconditions and sets its role
+(`.claude/skills/governance/status-model.md` → How a skill starts).
+This pipeline is NOT yet migrated to Agent dispatch, so its workers still run with the Skill tool
+inside this orchestrator's context (`.claude/skills/governance/worker-dispatch.md` is the target
+shape). State is passed via the file system either way, so resume is unaffected.
 Orchestrators do not resolve capability packs — each worker resolves its own (phase = implement).
 
 ## Implementation Output Layout
@@ -80,6 +83,10 @@ the story at `in-progress`.
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
 Invoke with the Skill tool: `Skill(sk.implement_sub_implementproject)`, one call per project.
+This one stays on the Skill tool deliberately — it owns the Scaffolding Review gate, and a gate cannot
+run inside a subagent. It dispatches scaffolding and codegen as subagents itself, so the heavy context
+(plan, design slice, rules, source tree) never reaches this window
+(`.claude/skills/governance/worker-dispatch.md`).
 - Pass (as the skill's args): `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`
   (backend for Backend, frontend for Frontend, mobile for Mobile), `checkpoint_mode`, and the execution
   mode (NORMAL or REFINE).
@@ -133,6 +140,9 @@ Projects skipped:
 Validation: {per project — build PASS/FAIL, tests PASS/FAIL/n, AC covered/total}
 
 Next step: /sk.test or /sk.review
+  Recommended: start a fresh session first (`.claude/skills/governance/session-boundaries.md`).
+  This window holds one implementproject run per project plus their gates; 04-implementation/ holds the result.
+  Reorient there with /sk.session status.
 ```
 
 ## Quality Bar

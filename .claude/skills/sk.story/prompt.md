@@ -5,6 +5,12 @@ Role: po (orchestrator) | Level: story
 This skill orchestrates `sk.story_sub_specify`, `sk.story_sub_clarify`, and `sk.story_sub_architect-probe` in sequence, running completeness checks and looping clarification as needed for both business and technical aspects.
 Every sub-skill is invoked with the **Skill tool** (`Skill(sk.story_sub_specify)`, with any flags as its args), never by reading its prompt.md — that is how `skill-start.sh` runs preconditions and sets the active role (`.claude/skills/governance/status-model.md`).
 
+This pipeline is deliberately NOT dispatched as subagents, and must not be. Every sub-skill here
+converses with a human — the clarify and architect-probe loops present one question at a time and
+wait for the answer — and a subagent has no channel to the user
+(`.claude/skills/governance/worker-dispatch.md` → A worker can never talk to a human). Story capture
+is cheap in context anyway: it reads the routers and the story folder, not a source tree.
+
 ## Mode Detection
 Evaluate in this order:
 **TARGETED**
@@ -201,7 +207,10 @@ Checklist Summary:
 Story folder: 01-story/ (story.md, requirement.md, acceptance-criteria.md{, jira.md if tracker-seeded})
 Impacted projects (in unit-brief.md): {Backend/Frontend/Mobile list}
 
-Next step: /sk.design (or /sk.ff if continuing the pipeline)
+Next step: /sk.design (or /sk.ff if the remaining scope is small)
+  Strongly recommended: start a fresh session first (`.claude/skills/governance/session-boundaries.md`).
+  The clarification Q&A in this window is already recorded in requirement.md, and no later phase reads it.
+  Reorient there with /sk.session status.
 ```
 
 ## Final Validation (before reporting complete)

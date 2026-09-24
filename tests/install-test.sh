@@ -38,7 +38,7 @@ bash .speckit/setup.sh --yes > "$WORK/run1.log" 2>&1
 check 'setup.sh exits 0' test $? -eq 0
 
 CHANGED=$(git status --porcelain --untracked-files=all | sed 's/^...//' | sed 's/^"\(.*\)"$/\1/')
-UNEXPECTED=$(printf '%s\n' "$CHANGED" | grep -vE '^(\.claude/skills/sk\.[^/]+/|\.claude/skills/governance/|\.claude/agents/(architect|backend-engineer|backend-qa|frontend-engineer|frontend-qa|lead|po|security)\.md$|\.claude/hooks/[^/]+\.sh$|\.claude/\.speckit-manifest$|\.claude/settings\.json$|CLAUDE\.md$|\.gitignore$)' | sed '/^$/d')
+UNEXPECTED=$(printf '%s\n' "$CHANGED" | grep -vE '^(\.claude/skills/sk\.[^/]+/|\.claude/skills/governance/|\.claude/agents/(architect|backend-engineer|backend-qa|frontend-engineer|frontend-qa|lead|mobile-engineer|po|security)\.md$|\.claude/hooks/[^/]+\.sh$|\.claude/\.speckit-manifest$|\.claude/settings\.json$|CLAUDE\.md$|\.gitignore$)' | sed '/^$/d')
 check '§8.2 git status shows only framework-owned paths, CLAUDE.md, settings, .gitignore' test -z "$UNEXPECTED"
 [[ -n "$UNEXPECTED" ]] && printf '        unexpected: %s\n' $UNEXPECTED
 

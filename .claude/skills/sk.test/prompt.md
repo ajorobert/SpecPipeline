@@ -3,11 +3,12 @@ Orchestrates the testing phase for a unit, producing one test folder per impacte
 Role: lead (orchestrator) | Level: unit
 
 This skill orchestrates the per-project test worker. It resolves the impacted projects from the
-unit's Impacted Projects table, invokes `sk.test_sub_testproject` with the **Skill tool** once per
-project (each consuming that project's design slice plus the unit's `02-design/contract-changes.md`
-and the canonical contract operations it lists), and gates the result before reporting. Each sub-skill
-runs in its own isolated context. Orchestrators do not resolve capability packs — each worker resolves
-its own (phase = test).
+unit's Impacted Projects table, dispatches `sk.test_sub_testproject` with the **Agent tool** once per
+project — one at a time, per `.claude/skills/governance/worker-dispatch.md` — and gates the result
+before reporting. Each worker runs in a forked context and returns only a short report, so this
+window holds the reports and the gate, never the workers' working sets. The gate runs HERE: a worker
+cannot talk to a human.
+Orchestrators do not resolve capability packs — each worker resolves its own (phase = test).
 
 ## Test Output Layout
 All test-design / test-tracking artifacts for the unit live under
@@ -83,11 +84,19 @@ logged with a reason (`no implementation — run sk.implement --projects {key}`)
 ### Phase 1 — Per-Project Testing
 Condition: run for the project(s) determined by Mode Detection.
 For each target project `{Project}` (with `{CodeRoot}`, `{ProjectType}` from the resolved row):
-Invoke with the Skill tool: `Skill(sk.test_sub_testproject)` — one call per project, so `skill-start.sh`
-runs its preconditions and sets the worker's role.
-- Pass: `{Project}`, `{CodeRoot}`, `{ProjectType}`, the effective `--role`
-  (backend for Backend, frontend for Frontend, mobile for Mobile), the execution mode
-  (NORMAL or REFINE), and whether `contracts.verify` is set.
+Dispatch one worker per project, **one at a time**, per `.claude/skills/governance/worker-dispatch.md`:
+
+1. `bash .claude/hooks/set-worker-role.sh sk.test_sub_testproject {qa-role}`
+   Testing runs as QA, not as the engineer role: Backend → `backend-qa` / QA Backend Agent;
+   Frontend and Mobile → `frontend-qa` / QA Frontend Agent. The static `subagent_type:` in the
+   worker's SKILL.md is a default and is overridden here.
+2. Dispatch `sk.test_sub_testproject` with the Agent tool and that agent, using the dispatch prompt in
+   worker-dispatch.md with this project's parameter block (`{Project}`, `{CodeRoot}`, `{ProjectType}`,
+   Role, `{UNIT_DIR}`), plus the execution mode (NORMAL or REFINE) and whether `contracts.verify` is
+   set. The worker resolves its own inputs and packs from its prompt.md.
+3. `bash .claude/hooks/set-worker-role.sh clear`
+
+Keep the dispatch prompt's prefix byte-identical across projects — only the parameter block varies.
 - Context the worker reads: `02-design/contract-changes.md` (operations + its Provider / Consumer test
   plan section), the canonical `specs/openapi|asyncapi` operations it lists,
   `02-design/projects/{Project}.md` (if exists), `02-design/architecture.md`,
@@ -150,6 +159,8 @@ Results: {per project — suite PASS/FAIL/n green, AC covered/total, operations 
 Roll-up: test-status = {pass | fail} (written by the Stop hook from SK_RESULT)
 
 Next step: /sk.uat (user-facing surfaces) or /sk.security-audit
+  Optional: a fresh session is cheap here (`.claude/skills/governance/session-boundaries.md`).
+  Reorient with /sk.session status.
 ```
 
 ## Quality Bar
@@ -157,7 +168,10 @@ Next step: /sk.uat (user-facing surfaces) or /sk.security-audit
 - The impacted-project list is sourced from `unit-brief.md`; every impacted project is either tested
   or explicitly logged as skipped with a reason.
 - `--projects` resolution is logged; `--role`/type conflicts STOP rather than guess.
-- Each worker is started with the Skill tool and is self-contained — no state leaks between projects.
+- Every worker is dispatched with the Agent tool, one at a time, as the QA role for its project type,
+  markers set then cleared — never with the Skill tool, and never two in flight.
+- The gate runs in this context; no gate or question is delegated to a worker.
+- Worker reports carry paths, counts, failures and blockers only — no test source pasted back.
 - Tests realize the canonical contract operations listed in `contract-changes.md` and the unit's
   acceptance criteria — the orchestrator does not redesign contracts or invent operations.
 - A tech-stack field set to `none` is a logged SKIP, not a failure; no tool is ever invented.

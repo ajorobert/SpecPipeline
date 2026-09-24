@@ -44,7 +44,7 @@ done
 [ -t 0 ] || ASSUME_YES=true
 
 FRAMEWORK_SKILL_DIRS=(governance)
-FRAMEWORK_AGENTS=(architect.md backend-engineer.md backend-qa.md frontend-engineer.md frontend-qa.md lead.md po.md security.md)
+FRAMEWORK_AGENTS=(architect.md backend-engineer.md backend-qa.md frontend-engineer.md frontend-qa.md lead.md mobile-engineer.md po.md security.md)
 MANAGED_START="<!-- SPECKIT-SSD-SDLC MANAGED -->"
 MANAGED_END="<!-- END SPECKIT-SSD-SDLC MANAGED -->"
 

@@ -432,3 +432,9 @@ approved and let a human run the cleanup.
 **Original path:** .claude/skills/sk.perf
 **Archived to:** .archive/2026-09-24/sk.perf
 **Review:** [ ] approved for permanent delete
+
+## 2026-09-24 — hook-probe.txt
+**Reason:** diagnostic probe file from subagent hook-firing test
+**Original path:** hook-probe.txt
+**Archived to:** .archive/2026-09-24/hook-probe.txt
+**Review:** [ ] approved for permanent delete
