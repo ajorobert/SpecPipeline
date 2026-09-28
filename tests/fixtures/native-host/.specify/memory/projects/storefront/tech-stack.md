@@ -1,9 +1,4 @@
-# storefront — tech stack
-
-## Versions
-| Component | Version | Verified |
-|---|---|---|
-| React | 19.1.0 | 2026-09-21 against `src/frontend/apps/storefront/package.json` |
+# storefront — commands and layout
 
 ## Platform
 browser

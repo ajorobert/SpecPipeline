@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Stop hook — fires after every Claude response.
-# 1. Clears the per-turn active-skill marker.
-# 2. Applies the SK_RESULT verdict of a conditional skill (marker .specify/state/last-skill) through the
-#    one transition in lib-story.sh — see governance/status-model.md.
-# 3. Tracker mirror: while outbox entries are pending, blocks the stop once and tells the model to push
+# 1. Applies the SK_RESULT verdict of a conditional skill (marker .specify/state/last-skill) through the
+#    one transition in lib-story.sh — see governance/status-model.md. A turn without an SK_RESULT line
+#    (a gate waiting for the human) leaves the marker for the turn that finishes the skill.
+# 2. Tracker mirror: while outbox entries are pending, blocks the stop once and tells the model to push
 #    them through its tracker connector — see governance/tracker-mirror.md.
 # Never exits non-zero; blocking uses the JSON decision on stdout.
 
@@ -14,10 +14,6 @@ source "${HOOK_DIR}/lib-story.sh"
 INPUT=$(cat)
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "${HOOK_DIR}/../.." && pwd)}"
 
-# The active-skill marker lives for one turn only. Clear it first, whatever else happens,
-# so a crashed or aborted skill cannot leave validate-path.sh evaluating a stale role.
-sk_clear_active_skill "$PROJECT_ROOT"
-
 command -v jq >/dev/null 2>&1 || exit 0
 
 STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)
@@ -27,7 +23,6 @@ apply_verdict() {
   marker="$(sk_state_dir "$PROJECT_ROOT")/last-skill"
   [[ -f "$marker" ]] || return 0
   skill=$(tr -d '[:space:]' < "$marker")
-  find "$marker" -delete 2>/dev/null || true
 
   case "$skill" in
     sk.implement)      pass_status="testing"         ;;
@@ -51,10 +46,13 @@ apply_verdict() {
 
   if echo "$last_text" | grep -qE "^SK_RESULT:[[:space:]]*PASS"; then verdict="PASS"
   elif echo "$last_text" | grep -qE "^SK_RESULT:[[:space:]]*FAIL"; then verdict="FAIL"
+  elif echo "$last_text" | grep -qE "^SK_RESULT:[[:space:]]*PARTIAL"; then verdict="PARTIAL"
   else
-    echo "post-response.sh: ${skill} ended without an SK_RESULT line — story status unchanged" >&2
     return 0
   fi
+  find "$marker" -delete 2>/dev/null || true
+  # PARTIAL: this run finished its project, other impacted projects are still open — no unit transition.
+  [[ "$verdict" == "PARTIAL" ]] && return 0
 
   story=$(sk_find_story_file "$PROJECT_ROOT")
   if [[ -z "$story" ]]; then

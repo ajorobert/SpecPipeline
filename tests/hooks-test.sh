@@ -16,7 +16,7 @@ cp -R "$FRAMEWORK/tests/fixtures/native-host/." "$ROOT/"
 mkdir -p "$ROOT/.claude/hooks" "$ROOT/.claude/agents" "$ROOT/.claude/skills"
 cp "$FRAMEWORK"/.claude/hooks/*.sh "$ROOT/.claude/hooks/"
 cp "$FRAMEWORK"/.claude/agents/*.md "$ROOT/.claude/agents/"
-for d in "$FRAMEWORK"/.claude/skills/sk.*; do cp -R "$d" "$ROOT/.claude/skills/"; done
+for d in "$FRAMEWORK"/.claude/skills/sk.* "$FRAMEWORK"/.claude/skills/governance; do [[ -f "$d/SKILL.md" || "$d" == */governance ]] && cp -R "$d" "$ROOT/.claude/skills/"; done
 export CLAUDE_PROJECT_DIR="$ROOT"
 
 PASS=0; FAIL=0
@@ -68,7 +68,9 @@ expect 2 validate-path.sh "$(json --arg p "$(winpath "$ROOT")\\specs\\intents\\0
 printf '{"prompt":"/sk.design"}' | bash "$H/skill-start.sh" >/dev/null 2>&1
 expect 0 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/02-design/architecture.md"}}')" 'po session, typed /sk.design → architect may write 02-design'
 printf '{"stop_hook_active":false}' | bash "$H/post-response.sh" >/dev/null 2>&1
-expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/02-design/architecture.md"}}')" 'role marker cleared at Stop → po blocked again'
+expect 0 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/02-design/architecture.md"}}')" 'role survives Stop (a gate waits across turns) → architect still writes 02-design'
+printf '{}' | bash "$H/session-start.sh" >/dev/null 2>&1
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/02-design/architecture.md"}}')" 'new session clears the role → po blocked again'
 
 echo "E1 — skill-start.sh on both entry paths"
 session lead checkout
@@ -79,8 +81,8 @@ expect 2 skill-start.sh '{"prompt":"/sk.design"}' 'typed /sk.design with no Impa
 expect 2 skill-start.sh '{"tool_name":"Skill","tool_input":{"skill":"sk.design"}}' 'Skill(sk.design) with no Impacted Projects → blocked'
 expect 0 skill-start.sh '{"prompt":"please run the design"}' 'plain prompt → ignored'
 session lead checkout
-expect 0 skill-start.sh '{"tool_name":"Skill","tool_input":{"skill":"sk.story_sub_specify"}}' 'Skill(sk.story_sub_specify) → allowed'
-check 'sk.story_sub_specify → status draft' test "$(status_of checkout)" = "draft"
+expect 0 skill-start.sh '{"tool_name":"Skill","tool_input":{"skill":"sk.story"}}' 'Skill(sk.story) → allowed'
+check 'sk.story → status draft' test "$(status_of checkout)" = "draft"
 
 echo "E1 — conditional precondition (sk.implement: confirm mode needs an approved plan)"
 PLAN="$ROOT/specs/intents/001-orders/units/checkout/03-plan/api/plan.md"
@@ -107,6 +109,70 @@ bash "$H/story-status.sh" mirror-retry >/dev/null
 for id in $(bash "$H/story-status.sh" mirror-pending | awk '{print $1}'); do bash "$H/story-status.sh" mirror-ack "$id" >/dev/null; done
 OUT=$(printf '{"stop_hook_active":false}' | bash "$H/post-response.sh")
 check 'retried + acked → Stop does not block' test -z "$OUT"
+
+echo "Run model — verdicts across gate pauses, PARTIAL, roles by project"
+say() { jq -cn --arg t "$1" '{type:"assistant",message:{content:[{type:"text",text:$t}]}}' > "$WORK/turn.jsonl"; }
+stop() { jq -cn --arg t "$WORK/turn.jsonl" '{stop_hook_active:false,transcript_path:$t}' | bash "$H/post-response.sh" >/dev/null 2>&1; }
+field_of() { sed -n "s/^$1: *//p" "$ROOT/specs/intents/001-orders/units/checkout/01-story/story.md" | head -1; }
+session lead checkout
+bash "$H/story-status.sh" set testing --by test >/dev/null
+printf '{"prompt":"/sk.test --projects api"}' | bash "$H/skill-start.sh" >/dev/null 2>&1
+check '/sk.test --projects api → role backend-qa' test "$(cat "$ROOT/.specify/state/active-skill-role")" = "backend-qa"
+say $'sk.test | Gate — Tests\nType approved to continue.'; stop
+check 'gate pause (no SK_RESULT) keeps the verdict marker' test "$(cat "$ROOT/.specify/state/last-skill" 2>/dev/null)" = "sk.test"
+check 'gate pause leaves the status alone' test "$(status_of checkout)" = "testing"
+say $'api suite green; storefront still to test.\nSK_RESULT: PARTIAL'; stop
+check 'PARTIAL consumes the marker' test ! -f "$ROOT/.specify/state/last-skill"
+check 'PARTIAL moves no status' test "$(status_of checkout)" = "testing"
+check 'PARTIAL writes no test-status' test -z "$(field_of test-status)"
+printf '{"prompt":"/sk.test --projects storefront"}' | bash "$H/skill-start.sh" >/dev/null 2>&1
+check '/sk.test --projects storefront → role frontend-qa' test "$(cat "$ROOT/.specify/state/active-skill-role")" = "frontend-qa"
+say $'sk.test | Gate — Tests\nType approved to continue.'; stop
+say $'All suites green.\nSK_RESULT: PASS'; stop
+check 'PASS after a gate pause → status review' test "$(status_of checkout)" = "review"
+check 'PASS after a gate pause → test-status pass' test "$(field_of test-status)" = "pass"
+printf '{"prompt":"/sk.implement --projects storefront"}' | bash "$H/skill-start.sh" >/dev/null 2>&1
+check '/sk.implement --projects storefront → role frontend' test "$(cat "$ROOT/.specify/state/active-skill-role")" = "frontend"
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/03-plan/storefront/plan.md"}}')" 'frontend blocked from 03-plan'
+expect 0 validate-path.sh "$(json '{tool_input:{file_path:"src/frontend/apps/storefront/app/page.tsx"}}')" 'frontend writes its code root'
+printf '{"tool_name":"Skill","tool_input":{"skill":"sk.implement","args":"--projects web"}}' | bash "$H/skill-start.sh" >/dev/null 2>&1
+check 'Skill(sk.implement, --projects web) → the one Frontend project → frontend' test "$(cat "$ROOT/.specify/state/active-skill-role")" = "frontend"
+printf '{"prompt":"/sk.implement"}' | bash "$H/skill-start.sh" >/dev/null 2>&1
+check '/sk.implement with two projects and no --projects → lead' test "$(cat "$ROOT/.specify/state/active-skill-role")" = "lead"
+printf '{}' | bash "$H/session-start.sh" >/dev/null 2>&1
+session po checkout
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"src/backend/Orders/Checkout.cs"}}')" 'po blocked inside a code root (code_roots: deny)'
+expect 0 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/01-story/requirement.md"}}')" 'po writes its story'
+session backend checkout
+expect 2 validate-path.sh "$(json '{tool_input:{file_path:"specs/intents/001-orders/units/checkout/02-design/ui-model.md"}}')" 'engineers blocked from all of 02-design'
+
+echo "context.sh / verify-evidence.sh — deterministic loading"
+session lead checkout
+has()   { printf '%s
+' "$OUT" | grep -qF -- "$1"; }
+lacks() { ! printf '%s
+' "$OUT" | grep -qF -- "$1"; }
+has_re() { printf '%s
+' "$OUT" | grep -qE -- "$1"; }
+OUT=$(bash "$H/context.sh" design)
+check 'design lists its missing outputs' has '[missing] specs/intents/001-orders/units/checkout/02-design/architecture.md'
+check 'design lists ui-model for a unit with a Frontend project' has '02-design/ui-model.md'
+check 'packs: Always row for the Backend project' has 'load  .claude/skills/backend-architecture/SKILL.md  (Always: Backend)'
+check 'packs: story tag selects payments-patterns' has 'load  .claude/skills/payments-patterns/SKILL.md  (score'
+OUT=$(bash "$H/context.sh" implement --projects web)
+check '--projects web selects the one Frontend project' has '  storefront | Frontend'
+check '--projects web leaves the Backend project out' lacks '  api | Backend'
+check 'implement lists no rule files (they load by path)' lacks '.claude/rules/'
+check 'an ambiguous --projects key fails' bash -c "! bash '$H/context.sh' implement --projects nope >/dev/null 2>&1"
+( cd "$ROOT" && git init -q -b dev . && git -c user.email=t@t -c user.name=t add -A && git -c user.email=t@t -c user.name=t commit -qm base \
+  && git checkout -q -b feature/pay && mkdir -p src/backend/Orders/Endpoints && echo x > src/backend/Orders/Endpoints/Pay.cs \
+  && git -c user.email=t@t -c user.name=t add -A && git -c user.email=t@t -c user.name=t commit -qm pay )
+OUT=$(bash "$H/context.sh" review --projects api)
+check 'review lists the rule whose paths match the diff' has '.claude/rules/backend/endpoints.md'
+check 'review does not list a rule for untouched files' lacks '.claude/rules/web/components.md'
+OUT=$(bash "$H/verify-evidence.sh" --no-run)
+check 'verify-evidence reports a summary' has_re '^evidence: [0-9]+ pass, [0-9]+ fail, [0-9]+ skip$'
+check 'verify-evidence flags a missing delivery' has 'FAIL  Implementation api validation — missing'
 
 echo "E5 — intercept-delete.sh (Bash and PowerShell)"
 expect 2 intercept-delete.sh '{"tool_name":"PowerShell","tool_input":{"command":"Remove-Item -Recurse foo"}}' 'PowerShell Remove-Item blocked'

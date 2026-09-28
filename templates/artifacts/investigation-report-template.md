@@ -32,11 +32,11 @@ session_count: 1
 | Finding-001 | Implementation Bug \| Spec/Contract Mismatch | {artifact} |
 
 **Verdict for this session**:
-- [ ] All Implementation Bugs → run /sk.phr, fix in the project's code root, run /sk.test
+- [ ] All Implementation Bugs → fix in the project's code root, run /sk.test
 - [ ] Spec/Contract Mismatch present → update AC in 01-story/acceptance-criteria.md, run /sk.design --contracts if contract shape changed
 
 ### Candidate Invariants (this session)
-<!-- Unreviewed staging entries, also appended to the unit knowledge-base.md. Promotion at ship (governance/promotion.md) moves each surviving one to its home: specs/domain/{module}.md, an ADR, or a .claude/rules/{stack}/ file -->
+<!-- Unreviewed staging entries, also appended to the unit knowledge-base.md. Promotion at ship (governance/promotion.md) moves each surviving one to its home: specs/domain/{module}.md, an ADR, or a .claude/rules/{area}/ file -->
 <!-- Skip and note reason for obvious invariants (null checks, input validation, etc.) -->
 - [INV-001] {rule that must hold, not obvious from reading code} — story {story-id} ({date})
 

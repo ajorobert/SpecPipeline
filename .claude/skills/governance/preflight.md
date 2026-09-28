@@ -1,33 +1,42 @@
-# Pre-flight
-Framework-owned block, referenced by path. A prompt says "Run the unit pre-flight" or "Run the story
-pre-flight" and then lists only its own extra checks.
+# Pre-flight and run model
+Framework-owned. Every sk.* command runs this first, then its own steps.
 
-## Unit pre-flight
-0. Resolve `TEMPLATES_DIR` / `SCRIPTS_DIR` per `.claude/skills/governance/framework-paths.md`.
-1. Read `.specify/state/session.yaml`. Verify `active_unit_id` and `active_intent_id` are set.
-   If either is missing: STOP. Run `sk.session focus --unit {unit-id}` first.
-2. Resolve directories per `.claude/skills/governance/phase-layout.md`:
-   `UNIT_DIR = specs/intents/{intent}/units/{unit}/`, `STORY_DIR = UNIT_DIR/01-story/`,
-   `DESIGN_DIR = UNIT_DIR/02-design/`, `PLAN_DIR = UNIT_DIR/03-plan/`,
-   `IMPL_DIR = UNIT_DIR/04-implementation/`, `TEST_DIR = UNIT_DIR/05-test/`.
-3. Read `UNIT_DIR/unit-brief.md` → Impacted Projects.
-   If it is missing or empty: STOP. Run sk.story (sk.story_sub_specify / sk.story_sub_architect-probe) first.
-4. Read **`checkpoint_mode` from `STORY_DIR/story.md` frontmatter**. That frontmatter is the single
-   source of truth, written by sk.story_sub_specify; session.yaml does not hold it.
-   If it is missing: use `validate` and log `checkpoint_mode missing in story.md — defaulting to validate`.
-5. Knowledge (non-derivable context), per the loading rules in `.claude/skills/governance/profile.md`:
-   `specs/knowledge-base.md` (tier 1, already in context through CLAUDE.md), then
-   `specs/domain/bounded-contexts.md` and the `specs/domain/{module}.md` file of each context the unit
-   touches (tier 2), then `UNIT_DIR/knowledge-base.md` (tier 3, if one exists).
-6. Read `.specify/profile.yaml` once (every key optional; defaults in `governance/profile.md`).
-   Never read a path matched by `knowledge.never_autoload`, or a shipped unit other than this one.
+## Run model
+- **One command per session.** A command reads the previous phase's artifacts from disk and writes its
+  own; nothing downstream reads a conversation. Start each command in a fresh session. Implement, test
+  and review run once per project (`--projects <name>`) on a unit with several projects.
+- **The command does its own work.** Its steps (`steps/*.md` in the command's folder) run in this session,
+  in order, and are read when reached. Gates, questions and ADRs happen inline, with the human.
+- **Subagents only read.** Use one for a narrow, read-only job that returns a short summary: code
+  reconnaissance (the built-in Explore agent) or a fresh-eyes check (`sk-reviewer`). A subagent never
+  writes a file and never asks the human anything.
+- **Re-running a command resumes it.** A step whose output is listed `[missing]` by `context.sh` runs; an
+  output that is present is kept (a gated output also needs `status: approved`). `sk.implement` resumes
+  from the first open task in `progress.md`. A command re-runs a finished step only when `--refresh
+  "<change>"` names it.
 
-## Story pre-flight
-1. Read `.specify/state/session.yaml`. Verify `active_story_id` is set.
-   If it is missing: STOP. Run `sk.session focus --story {story-id}` first.
-2. Locate the story file per the phase-layout rules. Derive `{intent}` and `{unit}` from its path.
-3. Continue with unit pre-flight steps 2–6.
+## Steps
+1. Run `bash .claude/hooks/context.sh <command> [--projects <name>]`. It prints the unit, the story's
+   status and `checkpoint_mode`, the projects in scope, `templates_dir` / `scripts_dir`, the files to read
+   (each `[present]`, `[missing]` or its `status:`), the capability packs to load and — for review and
+   verify — the rule files that match the diff. It exits non-zero when there is no active unit: STOP and
+   show its message.
+2. Read `specs/adr/adr-index.md`, then the ADRs its ALWAYS block lists and those of every block whose
+   signals match the story's `tags` and text. Follow the index's own loading rules; never glob `specs/adr/`.
+3. Read the files `context.sh` lists as present, in order, and the packs it lists.
+4. Before writing code in an area, open an existing file there: that read is what loads the path-scoped
+   rules in `.claude/rules/` for it. Never read a rules folder wholesale, except the files `context.sh`
+   lists for review and verify.
+5. `checkpoint_mode` missing from the story: use `validate` and say so.
 
-## Role
-Pre-flight never prompts for a role. Skills that branch on backend/frontend use the resolved
-`{ProjectType}` first; session.yaml `role` is used only when no project is resolvable.
+## Always
+- Precedence on conflict: ADRs → `.claude/rules/` (the principles file first) → capability packs → the
+  unit's design → existing code. Report every conflict with the winning source.
+- A home that does not exist is skipped with a one-line note; a command never creates a placeholder.
+- Never read a path in `knowledge.never_autoload` (`.specify/profile.yaml`), or a shipped unit other than
+  the active one, unless the human names it.
+- Write only the outputs of this command. Status changes go through `bash .claude/hooks/story-status.sh`.
+- Templates: `{templates_dir}/artifacts/<name>`. A missing template is not a stop: write the artifact from
+  the structure the step describes.
+- End with the completion report the command defines. Its last line names the next command, to run in a
+  fresh session.

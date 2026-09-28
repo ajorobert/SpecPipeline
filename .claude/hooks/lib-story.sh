@@ -17,7 +17,7 @@ _SK_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib-profile.sh
 source "${_SK_LIB_DIR}/lib-profile.sh"
 
-SK_STATUSES="draft ready in-progress testing review verify security-review done shipped review-rejected rolled-back"
+SK_STATUSES="draft ready in-progress testing review verify security-review done shipped review-rejected"
 
 sk_state_dir() {
   local d="${1}/.specify/state"
@@ -267,27 +267,99 @@ sk_tracker_count() {
   printf '%s' "$n"
 }
 
-# ── Active skill ──────────────────────────────────────────────────────────────
-# write_scope.deny in .claude/agents/*.md is evaluated against the role of the skill that is running,
-# not the session role. The skill-start hooks record the skill and its role; validate-path.sh prefers
-# them; post-response.sh clears them at the end of the turn.
+# ── Projects (the router .specify/memory/projects/index.md) ──────────────────
+# Print "name<TAB>type<TAB>code-root" for every row of the projects router.
+sk_projects() { sk_projects_table "${1}/.specify/memory/projects/index.md"; }
 
-# Print the framework role for a skill name, or nothing.
-# SKILL.md `subagent_type:` → the agent file whose `name:` matches → that agent's `role:`.
+# The same, for any file holding a `| Project | Type | Code Root | … |` table (the router, unit-brief.md).
+sk_projects_table() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+  awk -F'|' '
+    { sub(/\r$/, "") }
+    /^\|/ && NF >= 5 {
+      name = $2; type = $3; root = $4
+      gsub(/^[ \t]+|[ \t]+$/, "", name); gsub(/^[ \t]+|[ \t]+$/, "", type); gsub(/^[ \t]+|[ \t]+$/, "", root)
+      sub(/^\[/, "", name); sub(/\].*$/, "", name)
+      gsub(/`/, "", root); sub(/\/+$/, "", root)
+      if (name == "" || name == "Project" || name ~ /^-+$/) next
+      if (type != "Backend" && type != "Frontend" && type != "Mobile") next
+      print name "\t" type "\t" root
+    }
+  ' "$file"
+}
+
+# sk_project_type <root> <key> — the Type of the in-scope project a --projects key selects: an exact name, or the
+# type aliases `api|backend`, `web|frontend`, `mobile` (only when exactly one row has that Type). Empty when none or
+# ambiguous (governance/profile.md → Projects).
+sk_project_type() {
+  local root="$1" key="$2" rows want=""
+  rows=$(sk_scope_projects "$root")
+  [[ -n "$rows" && -n "$key" ]] || return 0
+  printf '%s\n' "$rows" | awk -F'\t' -v k="$key" '$1 == k { print $2; found = 1; exit } END { exit !found }' && return 0
+  case "$key" in api|backend) want="Backend" ;; web|frontend) want="Frontend" ;; mobile) want="Mobile" ;; *) return 0 ;; esac
+  [[ "$(printf '%s\n' "$rows" | awk -F'\t' -v t="$want" '$2 == t' | wc -l | tr -d ' ')" == "1" ]] && printf '%s' "$want"
+  return 0
+}
+
+# The projects in scope: the active unit's Impacted Projects, else the router.
+sk_scope_projects() {
+  local unit rows=""
+  unit=$(sk_active_unit_dir "$1")
+  [[ -n "$unit" ]] && rows=$(sk_projects_table "${1}/${unit}/unit-brief.md")
+  [[ -n "$rows" ]] || rows=$(sk_projects "$1")
+  printf '%s' "$rows"
+}
+
+# ── Active skill ──────────────────────────────────────────────────────────────
+# Write scope (governance/roles.yaml) is evaluated against the role of the skill that is running, not
+# the session role. skill-start.sh records the skill and its role; validate-path.sh prefers them. They
+# stay set until the next skill starts or the session starts (session-start.sh), so a gate that waits
+# for the human across turns keeps its role.
+
+# The value of --projects in a skill's arguments, or nothing.
+sk_projects_arg() {
+  printf '%s' "$1" | sed -n 's/.*--projects[= ][[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1
+}
+
+# Print the role for a skill start, or nothing.
+# SKILL.md `role:` is a role, or a family resolved from the --projects project type:
+#   engineer → backend | frontend | mobile     qa → backend-qa | frontend-qa (Frontend and Mobile)
+# A family with no single project in scope resolves to `lead`.
 sk_skill_role() {
-  local root="$1" skill="$2" skill_file agent_name f
+  local root="$1" skill="$2" args="${3:-}" skill_file role type key
   skill_file="${root}/.claude/skills/${skill}/SKILL.md"
   [[ -f "$skill_file" ]] || return 0
-  agent_name=$(sk_fm_field "$skill_file" subagent_type)
-  [[ -n "$agent_name" ]] || return 0
-  for f in "${root}"/.claude/agents/*.md; do
-    [[ -f "$f" ]] || continue
-    if [[ "$(sk_fm_field "$f" name)" == "$agent_name" ]]; then
-      sk_fm_field "$f" role
-      return 0
-    fi
-  done
-  return 0
+  role=$(sk_fm_field "$skill_file" role)
+  case "$role" in
+    engineer|qa)
+      key=$(sk_projects_arg "$args")
+      if [[ -z "$key" && "$(sk_scope_projects "$root" | sed '/^$/d' | wc -l | tr -d ' ')" == "1" ]]; then
+        key=$(sk_scope_projects "$root" | cut -f1)
+      fi
+      type=$(sk_project_type "$root" "$key")
+      case "${role}:${type}" in
+        engineer:Backend)  printf 'backend' ;;
+        engineer:Frontend) printf 'frontend' ;;
+        engineer:Mobile)   printf 'mobile' ;;
+        qa:Backend)        printf 'backend-qa' ;;
+        qa:Frontend|qa:Mobile) printf 'frontend-qa' ;;
+        *)                 printf 'lead' ;;
+      esac ;;
+    *) printf '%s' "$role" ;;
+  esac
+}
+
+# The arguments of a skill start: `.tool_input.args` (Skill tool) or the rest of a typed `/sk.x …` prompt.
+sk_skill_args_from_input() {
+  local input="$1" args=""
+  command -v jq >/dev/null 2>&1 || return 0
+  args=$(printf '%s' "$input" | jq -r '.tool_input.args // empty' 2>/dev/null)
+  if [[ -z "$args" ]]; then
+    args=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null \
+      | sed -n '1s/^[[:space:]]*\/sk\.[A-Za-z0-9_.-]*[[:space:]]*//p')
+  fi
+  printf '%s' "$args"
 }
 
 sk_set_active_skill() {
@@ -305,6 +377,7 @@ sk_clear_active_skill() {
   for f in "${1}/.specify/state/active-skill" "${1}/.specify/state/active-skill-role"; do
     [[ -f "$f" ]] && find "$f" -delete 2>/dev/null
   done
+  [[ -n "${2:-}" && -f "${1}/.specify/state/last-skill" ]] && find "${1}/.specify/state/last-skill" -delete 2>/dev/null
   return 0
 }
 
@@ -338,19 +411,21 @@ sk_is_conditional() {
 # Bookkeeping when a skill starts: active skill + role, the deferred-verdict marker, and the
 # transitions that are known at invocation time (governance/status-model.md).
 sk_on_skill_start() {
-  local root="$1" skill="$2" story new=""
-  sk_set_active_skill "$root" "$skill" "$(sk_skill_role "$root" "$skill")"
+  local root="$1" skill="$2" args="${3:-}" story new=""
+  sk_set_active_skill "$root" "$skill" "$(sk_skill_role "$root" "$skill" "$args")"
   if sk_is_conditional "$skill"; then
     printf '%s' "$skill" > "$(sk_state_dir "$root")/last-skill" 2>/dev/null || true
     return 0
   fi
   case "$skill" in
-    sk.story_sub_specify) new="draft" ;;
+    sk.story) new="draft" ;;
     *) return 0 ;;
   esac
   # A brand-new unit has no story.md yet; the story template already starts at draft.
+  # Re-running sk.story reopens a story only before implementation starts.
   story=$(sk_find_story_file "$root")
   [[ -n "$story" ]] || return 0
+  case "$(sk_fm_field "$story" status.current)" in ""|draft|ready) ;; *) return 0 ;; esac
   sk_transition "$root" "$story" "$new" "$skill" || true
 }
 

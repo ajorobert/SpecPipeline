@@ -65,8 +65,8 @@ case "$cmd" in
     name="${1:-}"; value="${2:-}"
     [[ -n "$name" && -n "$value" ]] || usage
     case "$name" in
-      test-status|verify-status|security-status|uat-status|jira_id|checkpoint_status|branch) ;;
-      *) echo "field ${name} is not a roll-up field (test-status, verify-status, security-status, uat-status, jira_id, checkpoint_status, branch)" >&2; exit 1 ;;
+      test-status|verify-status|security-status|uat-status|jira_id|branch) ;;
+      *) echo "field ${name} is not a roll-up field (test-status, verify-status, security-status, uat-status, jira_id, branch)" >&2; exit 1 ;;
     esac
     story=$(active_story)
     sk_upsert_field "$story" "$name" "$value"

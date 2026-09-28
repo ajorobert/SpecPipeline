@@ -1,9 +1,4 @@
-# api — tech stack
-
-## Versions
-| Component | Version | Verified |
-|---|---|---|
-| .NET | 9.0.1 | 2026-09-21 against `src/backend/global.json` |
+# api — commands and layout
 
 ## Platform
 server

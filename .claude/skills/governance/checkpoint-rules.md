@@ -1,10 +1,9 @@
 Checkpoint Rules
-Read by: sk.story_sub_specify (to classify), sk.impact (to recommend), and every gated skill via
-`.claude/skills/governance/review-gate.md`.
+Read by: sk.story (to classify) and every gated command through `.claude/skills/governance/review-gate.md`.
 
 Source of truth
 `checkpoint_mode` lives in the active story's frontmatter, `specs/intents/{intent}/units/{unit}/01-story/story.md`.
-It is written once by sk.story_sub_specify and changed only by an explicit escalation. session.yaml never
+It is written by sk.story and changed only by an explicit escalation. session.yaml never
 holds it. Valid values: autopilot | confirm | validate. Any other value is invalid; treat it as
 validate and flag it.
 
@@ -38,6 +37,6 @@ Validate:  stop after sk.design, wait for approval
            only then proceed to sk.implement
 
 Enforcement
-- skill-start.sh (on both the typed and the Skill-tool path) blocks sk.implement and sk.ship when `checkpoint_mode` is unset.
+- skill-start.sh blocks sk.implement and sk.ship when `checkpoint_mode` is unset.
 - For confirm | validate it also blocks sk.implement until at least one
   `03-plan/{Project}/plan.md` carries `status: approved`.

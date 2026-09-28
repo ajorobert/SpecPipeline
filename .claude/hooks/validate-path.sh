@@ -51,49 +51,34 @@ if [[ -z "$ROLE" ]]; then
   ROLE_SOURCE="session.yaml"
 fi
 
-if [[ -n "$ROLE" && "$ROLE" != "null" ]]; then
-  case "$ROLE" in
-    backend)  AGENT_FILE="backend-engineer.md"  ;;
-    frontend) AGENT_FILE="frontend-engineer.md" ;;
-    *)        AGENT_FILE="${ROLE}.md"           ;;
-  esac
-  AGENT_PATH="${PROJECT_ROOT}/.claude/agents/${AGENT_FILE}"
-  if [[ -f "$AGENT_PATH" ]]; then
-    DENY_GLOBS=$(awk '
-      { sub(/\r$/, "") }
-      /^---[[:space:]]*$/ { fm++; if (fm == 2) exit; next }
-      fm != 1 { next }
-      /^write_scope:[[:space:]]*$/ { in_ws=1; next }
-      in_ws && /^[a-zA-Z_]/ { in_ws=0 }
-      in_ws && /^[[:space:]]+deny:[[:space:]]*$/ { in_deny=1; next }
-      in_deny && /^[[:space:]]+[a-zA-Z_]/ { in_deny=0 }
-      in_deny && /^[[:space:]]+-[[:space:]]/ {
-        sub(/^[[:space:]]+-[[:space:]]*/, "")
-        gsub(/^["'\'']|["'\'']$/, "")
-        print
-      }
-    ' "$AGENT_PATH")
-    shopt -s extglob 2>/dev/null || true
-    while IFS= read -r GLOB; do
-      [[ -z "$GLOB" ]] && continue
-      # shellcheck disable=SC2053
-      if [[ "$REL" == $GLOB ]]; then
-        echo "Blocked: role \"${ROLE}\" (from ${ROLE_SOURCE}) may not write to \"${REL}\"" >&2
-        echo "  matched deny pattern: ${GLOB}" >&2
-        echo "  see: .claude/agents/${AGENT_FILE} (write_scope.deny)" >&2
-        exit 2
-      fi
-    done <<< "$DENY_GLOBS"
+ROLES_FILE="${PROJECT_ROOT}/.claude/skills/governance/roles.yaml"
+if [[ -n "$ROLE" && "$ROLE" != "null" && -f "$ROLES_FILE" ]]; then
+  role_block() {
+    echo "Blocked: role \"${ROLE}\" (from ${ROLE_SOURCE}) may not write to \"${REL}\"" >&2
+    echo "  $1" >&2
+    echo "  see: .claude/skills/governance/roles.yaml (${ROLE})" >&2
+    exit 2
+  }
+  while IFS= read -r GLOB; do
+    [[ -z "$GLOB" ]] && continue
+    # shellcheck disable=SC2053
+    [[ "$REL" == $GLOB ]] && role_block "matched deny pattern: ${GLOB}"
+  done < <(sk_yaml_list "$ROLES_FILE" "${ROLE}.deny")
+  if [[ "$(sk_yaml_get "$ROLES_FILE" "${ROLE}.code_roots")" == "deny" ]]; then
+    while IFS=$'\t' read -r _ _ CODE_ROOT; do
+      [[ -z "$CODE_ROOT" || "$CODE_ROOT" == "." ]] && continue
+      [[ "$REL" == "$CODE_ROOT" || "$REL" == "$CODE_ROOT"/* ]] && role_block "inside code root ${CODE_ROOT}"
+    done < <(sk_projects "$PROJECT_ROOT")
   fi
 fi
 
 # ── Frozen units ──────────────────────────────────────────────────────────────
 # A shipped unit is read-only (governance/status-model.md → Promote, then freeze). Status moves go
-# through story-status.sh (Bash), not Edit/Write. Only sk.rollback and sk.hotfix may write there.
+# through story-status.sh (Bash), not Edit/Write. Only sk.hotfix may write there.
 FROZEN=$(sk_frozen_unit_of "$PROJECT_ROOT" "$REL")
 if [[ -n "$FROZEN" ]]; then
   case "$(sk_active_skill "$PROJECT_ROOT")" in
-    sk.rollback|sk.hotfix) ;;
+    sk.hotfix) ;;
     *)
       echo "Blocked: ${FROZEN} is shipped and frozen — \"${REL}\" is read-only." >&2
       echo "  Durable knowledge belongs in its home (ADR, domain spec, rule file); new work starts a new unit." >&2

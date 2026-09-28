@@ -432,3 +432,447 @@ approved and let a human run the cleanup.
 **Original path:** .claude/skills/sk.perf
 **Archived to:** .archive/2026-09-24/sk.perf
 **Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.story/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.story/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.story_sub_specify/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.story_sub_specify/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.story_sub_specify/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.story_sub_specify/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144502
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.story_sub_clarify/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.story_sub_clarify/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144503
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.story_sub_clarify/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.story_sub_clarify/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144503
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.story_sub_architect-probe/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.story_sub_architect-probe/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144504
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.story_sub_architect-probe/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.story_sub_architect-probe/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144505
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144614
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_architecture/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_architecture/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144614
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_architecture/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_architecture/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144615
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_datamodel/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_datamodel/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144615
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_datamodel/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_datamodel/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144616
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_contracts/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_contracts/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144616
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_contracts/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_contracts/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144617
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_ui-design/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_ui-design/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144617
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.design_sub_ui-design/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.design_sub_ui-design/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144618
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.plan/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.plan/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144712
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.plan_sub_planproject/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.plan_sub_planproject/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144712
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.plan_sub_planproject/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.plan_sub_planproject/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144713
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.plan_sub_analyze/SKILL.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.plan_sub_analyze/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144713
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.plan_sub_analyze/prompt.md
+**Reason:** session-run-model: sub-skills become steps of their command; prompt.md folded into SKILL.md
+**Original path:** .claude/skills/sk.plan_sub_analyze/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144714
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.implement/prompt.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.implement/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144817
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.implement_sub_implementproject/SKILL.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.implement_sub_implementproject/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144817
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.implement_sub_implementproject/prompt.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.implement_sub_implementproject/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144818
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.implement_sub_scaffolding/SKILL.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.implement_sub_scaffolding/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144818
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.implement_sub_scaffolding/prompt.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.implement_sub_scaffolding/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144819
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.implement_sub_codegen/SKILL.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.implement_sub_codegen/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144819
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.implement_sub_codegen/prompt.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.implement_sub_codegen/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144820
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.migrate/SKILL.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.migrate/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144820
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.migrate/prompt.md
+**Reason:** session-run-model: implement is one command per project; scaffolding+codegen merged into its build step; migrate folded in as a step
+**Original path:** .claude/skills/sk.migrate/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144821
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.test/prompt.md
+**Reason:** session-run-model: test is one command per project; the per-project worker is its step
+**Original path:** .claude/skills/sk.test/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144853
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.test_sub_testproject/SKILL.md
+**Reason:** session-run-model: test is one command per project; the per-project worker is its step
+**Original path:** .claude/skills/sk.test_sub_testproject/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-144854
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.test_sub_testproject/prompt.md
+**Reason:** session-run-model: test is one command per project; the per-project worker is its step
+**Original path:** .claude/skills/sk.test_sub_testproject/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144854
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.review/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.review/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144933
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.uat/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.uat/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-144934
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.security-audit/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.security-audit/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145008
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.verify/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.verify/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145008
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.ship/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.ship/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145101
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.hotfix/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.hotfix/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145102
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.adr/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.adr/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145102
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.session/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.session/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145155
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.investigate/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.investigate/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145155
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.ff/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.ff/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145156
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.init/prompt.md
+**Reason:** session-run-model: procedure folded into SKILL.md
+**Original path:** .claude/skills/sk.init/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145253
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.impact/SKILL.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.impact/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-145254
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.impact/prompt.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.impact/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145254
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.knowledge-base/SKILL.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.knowledge-base/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-145255
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.knowledge-base/prompt.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.knowledge-base/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145255
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.phr/SKILL.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.phr/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-145256
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.phr/prompt.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.phr/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145256
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.rollback/SKILL.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.rollback/SKILL.md
+**Archived to:** .archive/2026-09-28/SKILL.md-145257
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/sk.rollback/prompt.md
+**Reason:** session-run-model: command removed — its job is covered by sk.story/sk.design (impact), design/review/promotion (knowledge), ADRs and promotion (phr), git revert + a new unit (rollback)
+**Original path:** .claude/skills/sk.rollback/prompt.md
+**Archived to:** .archive/2026-09-28/prompt.md-145257
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/README.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/README.md
+**Archived to:** .archive/2026-09-28/README.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/architect.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/architect.md
+**Archived to:** .archive/2026-09-28/architect.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/backend-engineer.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/backend-engineer.md
+**Archived to:** .archive/2026-09-28/backend-engineer.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/backend-qa.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/backend-qa.md
+**Archived to:** .archive/2026-09-28/backend-qa.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/frontend-engineer.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/frontend-engineer.md
+**Archived to:** .archive/2026-09-28/frontend-engineer.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/frontend-qa.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/frontend-qa.md
+**Archived to:** .archive/2026-09-28/frontend-qa.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/lead.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/lead.md
+**Archived to:** .archive/2026-09-28/lead.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/po.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/po.md
+**Archived to:** .archive/2026-09-28/po.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/agents/security.md
+**Reason:** session-run-model: roles are write scopes in governance/roles.yaml; no role runs as an agent
+**Original path:** .claude/agents/security.md
+**Archived to:** .archive/2026-09-28/security.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/artifacts/guide-template.yaml
+**Reason:** session-run-model: artifact or home removed (guide.yaml, PHR, tier-1 KB, constitution → principles.md, four-file security audit → one report)
+**Original path:** templates/artifacts/guide-template.yaml
+**Archived to:** .archive/2026-09-28/guide-template.yaml
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/artifacts/phr-template.md
+**Reason:** session-run-model: artifact or home removed (guide.yaml, PHR, tier-1 KB, constitution → principles.md, four-file security audit → one report)
+**Original path:** templates/artifacts/phr-template.md
+**Archived to:** .archive/2026-09-28/phr-template.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/artifacts/system-knowledge-base-template.md
+**Reason:** session-run-model: artifact or home removed (guide.yaml, PHR, tier-1 KB, constitution → principles.md, four-file security audit → one report)
+**Original path:** templates/artifacts/system-knowledge-base-template.md
+**Archived to:** .archive/2026-09-28/system-knowledge-base-template.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/artifacts/security-audit-template.md
+**Reason:** session-run-model: artifact or home removed (guide.yaml, PHR, tier-1 KB, constitution → principles.md, four-file security audit → one report)
+**Original path:** templates/artifacts/security-audit-template.md
+**Archived to:** .archive/2026-09-28/security-audit-template.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/project/specs/knowledge-base.md
+**Reason:** session-run-model: artifact or home removed (guide.yaml, PHR, tier-1 KB, constitution → principles.md, four-file security audit → one report)
+**Original path:** templates/project/specs/knowledge-base.md
+**Archived to:** .archive/2026-09-28/knowledge-base.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/project/.specify/memory/constitution.md
+**Reason:** session-run-model: artifact or home removed (guide.yaml, PHR, tier-1 KB, constitution → principles.md, four-file security audit → one report)
+**Original path:** templates/project/.specify/memory/constitution.md
+**Archived to:** .archive/2026-09-28/constitution.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/project/history/prompts/.gitkeep
+**Reason:** session-run-model: artifact or home removed (guide.yaml, PHR, tier-1 KB, constitution → principles.md, four-file security audit → one report)
+**Original path:** templates/project/history/prompts/.gitkeep
+**Archived to:** .archive/2026-09-28/.gitkeep
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/governance/framework-paths.md
+**Reason:** session-run-model: context.sh prints templates_dir/scripts_dir; sk.adr and sk.init read the manifest directly
+**Original path:** .claude/skills/governance/framework-paths.md
+**Archived to:** .archive/2026-09-28/framework-paths.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — .claude/skills/governance/project-resolution.md
+**Reason:** session-run-model: --projects resolution is in context.sh / lib-story.sh; tech-stack fields in the template; see governance/profile.md
+**Original path:** .claude/skills/governance/project-resolution.md
+**Archived to:** .archive/2026-09-28/project-resolution.md
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — tests/fixtures/native-host/.specify/memory/constitution.md
+**Reason:** fixture: principles live in .claude/rules/principles.md
+**Original path:** tests/fixtures/native-host/.specify/memory/constitution.md
+**Archived to:** .archive/2026-09-28/constitution.md-145808
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — tests/fixtures/native-host/specs/knowledge-base.md
+**Reason:** fixture: no tier-1 knowledge base home
+**Original path:** tests/fixtures/native-host/specs/knowledge-base.md
+**Archived to:** .archive/2026-09-28/knowledge-base.md-145808
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — scripts/create-phr.sh
+**Reason:** session-run-model: sk.phr removed
+**Original path:** scripts/create-phr.sh
+**Archived to:** .archive/2026-09-28/create-phr.sh
+**Review:** [ ] approved for permanent delete
+
+## 2026-09-28 — templates/reference/frontend-framework-guide.md
+**Reason:** session-run-model: no command reads it; stack guidance belongs in project capability packs
+**Original path:** templates/reference/frontend-framework-guide.md
+**Archived to:** .archive/2026-09-28/frontend-framework-guide.md
+**Review:** [ ] approved for permanent delete

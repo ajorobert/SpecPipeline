@@ -8,6 +8,7 @@ knowledge:
   # Paths no AI loads on its own. A matching file is read only when a human names it in the conversation.
   # Shipped (frozen) units are always excluded except while they are the active unit.
   never_autoload: []            # e.g. ["docs/architecture/**"]
+  principles: .claude/rules/principles.md   # the always-loaded principles file (a rule file with no paths:)
   adr:
     exemplar: null              # an existing ADR whose shape new ADRs copy; null = the framework ADR template
     guard: true                 # run check-adr-index.sh after sk.adr writes and in sk.verify
@@ -21,7 +22,8 @@ contracts:
   codegen: null                 # command that regenerates clients from the specs; null or none = no codegen
 
 rules:
-  # Stack folder under .claude/rules/ → the projects (names or types from projects/index.md) it covers.
+  # Folder under .claude/rules/ → the projects (names or types from projects/index.md) its rules govern.
+  # Used to place a new rule (promotion, sk.adr); rules themselves load by their `paths:`.
   stacks:
     backend: [Backend]
     web: [Frontend]
@@ -29,6 +31,12 @@ rules:
 
 skills:
   max_packs: 8                  # per phase, shared across the projects in scope
+
+review:
+  commands: {}                  # project → its own review skill or command, run by sk.review, e.g. { api: review-api }
+
+plan:
+  estimates: false              # true = sk.plan also writes 03-plan/{Project}/estimation.md
 
 vcs:
   base_branch: dev
@@ -46,5 +54,5 @@ tracker:
   transitions: {}               # optional framework status → tracker transition name, e.g. { in-progress: "Start work" }
 
 install:
-  scaffold_skip: []             # homes /sk.init must never create, e.g. [specs/knowledge-base.md]
+  scaffold_skip: []             # homes /sk.init must never create, e.g. [specs/domain/bounded-contexts.md]
   gemini: false                 # true = also maintain GEMINI.md
