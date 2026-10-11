@@ -1,6 +1,16 @@
 {
   "description": "SpecKit-SSD-SDLC hooks. Plugin-layout mirror of templates/root/settings.speckit.json hooks (the source of truth that setup.sh merges into a project settings.json). Keep the two in sync.",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh\""
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

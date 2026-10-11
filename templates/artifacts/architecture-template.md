@@ -29,7 +29,7 @@ updated: {date}
      - updateOrderStatus → eventual (status fanout to notifications ok)
      REQUIRED: every write path must have an entry.
      Also declare per write path how duplicate delivery and event publication are handled, following the
-     project's constitution and the ADRs routed by specs/adr/adr-index.md. -->
+     project's principles (.claude/rules/principles.md) and the ADRs routed by specs/adr/adr-index.md. -->
 
 ## Failure Modes
 <!-- Per external dependency — what fails, timeout, fallback.
@@ -57,7 +57,7 @@ updated: {date}
 
 ## Error Handling
 <!-- Error propagation strategy: what errors are surfaced to callers vs. handled internally, in the form
-     the project's constitution, routed ADRs and .claude/rules/ prescribe.
+     the project's principles, routed ADRs and .claude/rules/ prescribe.
      Example:
      - Validation errors: surfaced with field-level detail (never swallowed)
      - Upstream timeouts: surfaced as unavailable; upstream retried per the project's retry policy

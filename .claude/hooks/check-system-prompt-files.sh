@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PostToolUse hook — warns when a system-prompt file is modified.
-# These files are loaded at session start (CLAUDE.md itself, and the files it @imports
-# inside the SpecKit managed block). Modifying them mid-session leaves the active system prompt stale.
+# These files are loaded at session start (CLAUDE.md and the always-loaded principles file
+# ). Modifying them mid-session leaves the active system prompt stale.
 #
 # Exit 0 always — this hook is advisory only, never blocking.
 
@@ -18,10 +18,10 @@ if [[ -z "$FILE_PATH" ]]; then
   exit 0
 fi
 
-# Keep in sync with the @import lines of the managed block in templates/root/CLAUDE.md.
+# Files Claude Code loads at session start: CLAUDE.md and the always-loaded principles file (a rule with no paths:).
 SYSTEM_PROMPT_FILES=(
   "CLAUDE.md"
-  "specs/knowledge-base.md"
+  ".claude/rules/principles.md"
 )
 
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"

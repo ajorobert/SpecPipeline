@@ -37,19 +37,24 @@ _sk_profile_raw() {
   ' "$file"
 }
 
-# sk_profile_get <root> <dotted.key> [default] — a scalar; the default when absent, empty or null.
-sk_profile_get() {
+# sk_yaml_get <file> <dotted.key> [default] — a scalar; the default when absent, empty or null.
+sk_yaml_get() {
   local value
-  value=$(_sk_profile_raw "$(sk_profile_file "$1")" "$2")
+  value=$(_sk_profile_raw "$1" "$2")
   value="${value%\"}"; value="${value#\"}"; value="${value%\'}"; value="${value#\'}"
   [[ -z "$value" || "$value" == "null" || "$value" == "~" ]] && value="${3:-}"
   printf '%s' "$value"
 }
 
-# sk_profile_list <root> <dotted.key> — one item per line, from an inline or block list.
-sk_profile_list() {
-  local file raw
-  file=$(sk_profile_file "$1")
+# sk_profile_get <root> <dotted.key> [default]
+sk_profile_get() { sk_yaml_get "$(sk_profile_file "$1")" "$2" "${3:-}"; }
+
+# sk_profile_list <root> <dotted.key>
+sk_profile_list() { sk_yaml_list "$(sk_profile_file "$1")" "$2"; }
+
+# sk_yaml_list <file> <dotted.key> — one item per line, from an inline or block list.
+sk_yaml_list() {
+  local file="$1" raw
   [[ -f "$file" ]] || return 0
   raw=$(_sk_profile_raw "$file" "$2")
   if [[ "$raw" == \[*\] ]]; then

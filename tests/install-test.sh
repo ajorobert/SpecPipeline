@@ -38,7 +38,7 @@ bash .speckit/setup.sh --yes > "$WORK/run1.log" 2>&1
 check 'setup.sh exits 0' test $? -eq 0
 
 CHANGED=$(git status --porcelain --untracked-files=all | sed 's/^...//' | sed 's/^"\(.*\)"$/\1/')
-UNEXPECTED=$(printf '%s\n' "$CHANGED" | grep -vE '^(\.claude/skills/sk\.[^/]+/|\.claude/skills/governance/|\.claude/agents/(architect|backend-engineer|backend-qa|frontend-engineer|frontend-qa|lead|po|security)\.md$|\.claude/hooks/[^/]+\.sh$|\.claude/\.speckit-manifest$|\.claude/settings\.json$|CLAUDE\.md$|\.gitignore$)' | sed '/^$/d')
+UNEXPECTED=$(printf '%s\n' "$CHANGED" | grep -vE '^(\.claude/skills/sk\.[^/]+/|\.claude/skills/governance/|\.claude/agents/sk-reviewer\.md$|\.claude/hooks/[^/]+\.sh$|\.claude/\.speckit-manifest$|\.claude/settings\.json$|CLAUDE\.md$|\.gitignore$)' | sed '/^$/d')
 check '§8.2 git status shows only framework-owned paths, CLAUDE.md, settings, .gitignore' test -z "$UNEXPECTED"
 [[ -n "$UNEXPECTED" ]] && printf '        unexpected: %s\n' $UNEXPECTED
 
@@ -63,7 +63,10 @@ check 'A12 read guard wired' jq -e '[.hooks.PreToolUse[] | select(.matcher == "R
 
 echo "CLAUDE.md managed region (D4)"
 check 'host prose kept below the region' grep -q 'Run `dotnet test` before pushing backend changes.' CLAUDE.md
-check 'imports the system knowledge base' grep -qx '@specs/knowledge-base.md' CLAUDE.md
+check 'region is at most 15 lines' test "$(awk '/SPECKIT-SSD-SDLC MANAGED -->/{on=1} on{n++} /END SPECKIT-SSD-SDLC MANAGED/{exit} END{print n}' CLAUDE.md)" -le 15
+check 'imports no knowledge file' bash -c '! grep -q "^@" CLAUDE.md'
+check 'no role agents installed' bash -c 'ls .claude/agents | grep -vx sk-reviewer.md | grep -q . && exit 1 || exit 0'
+check 'SessionStart wired' jq -e '[.hooks.SessionStart[].hooks[].command] | any(test("session-start.sh"))' .claude/settings.json
 check 'renders never_autoload from the profile' grep -q '`docs/architecture/\*\*`' CLAUDE.md
 check 'states no removed home' bash -c '! grep -nE "skill-routing|specs/domains|history/adr|project-config|system-context|service-registry|domain-model" CLAUDE.md'
 
@@ -72,6 +75,50 @@ git -c user.email=t@t -c user.name=t add -A >/dev/null 2>&1 && git -c user.email
 bash .speckit/setup.sh --yes > "$WORK/run2.log" 2>&1
 check 'second run exits 0' test $? -eq 0
 check 'second run is byte-identical' test -z "$(git status --porcelain --untracked-files=all)"
+
+echo "reinstall — version N+1 drops an agent, a hook, a governance file and a skill, and changes a hook entry"
+# A project hook and a project agent that the framework must never touch.
+jq '.hooks.Stop += [{hooks: [{type: "command", command: "bash scripts/project-stop.sh"}]}]' .claude/settings.json > s.tmp && mv s.tmp .claude/settings.json
+printf -- '---
+name: project-agent
+---
+project owned
+' > .claude/agents/project-agent.md
+cp -R .speckit "$WORK/speckit-n1"
+# Version N = today's framework plus four extra framework items.
+printf '#!/usr/bin/env bash
+exit 0
+' > .speckit/.claude/hooks/old-hook.sh
+printf -- '---
+name: old-agent
+---
+' > .speckit/.claude/agents/old-agent.md
+sed -i 's/^FRAMEWORK_AGENTS=(\(.*\))/FRAMEWORK_AGENTS=(\1 old-agent.md)/' .speckit/setup.sh
+printf 'old
+' > .speckit/.claude/skills/governance/old-note.md
+mkdir -p .speckit/.claude/skills/sk.old && printf -- '---
+name: sk.old
+description: "old"
+---
+' > .speckit/.claude/skills/sk.old/SKILL.md
+jq --arg c 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/old-hook.sh"' '.hooks.Stop[0].hooks += [{type: "command", command: $c}]' .speckit/templates/root/settings.speckit.json > s.tmp && mv s.tmp .speckit/templates/root/settings.speckit.json
+bash .speckit/setup.sh --yes > "$WORK/runN.log" 2>&1
+check 'version N installs its extra items' bash -c 'test -f .claude/hooks/old-hook.sh && test -f .claude/agents/old-agent.md && test -f .claude/skills/governance/old-note.md && test -d .claude/skills/sk.old && grep -q old-hook.sh .claude/settings.json'
+PROJECT_BEFORE=$(cat .claude/agents/project-agent.md .specify/profile.yaml; jq -c '[.hooks.Stop[].hooks[] | select(.command | test("project-stop"))]' .claude/settings.json)
+mv .speckit "$WORK/speckit-n" && cp -R "$WORK/speckit-n1" .speckit
+bash .speckit/setup.sh --yes > "$WORK/runN1.log" 2>&1
+check 'N+1 exits 0' test $? -eq 0
+check 'dropped hook script removed' test ! -e .claude/hooks/old-hook.sh
+check 'dropped agent removed' test ! -e .claude/agents/old-agent.md
+check 'dropped governance file removed' test ! -e .claude/skills/governance/old-note.md
+check 'dropped skill removed' test ! -e .claude/skills/sk.old
+check 'dropped hook entry removed from settings' bash -c '! grep -q old-hook.sh .claude/settings.json'
+check 'settings framework hooks equal N+1' test "$(jq -c '[.hooks[][].hooks[].command | select(test("/.claude/hooks/"))] | sort' .claude/settings.json)" = "$(jq -c '[.hooks[][].hooks[].command] | sort' .speckit/templates/root/settings.speckit.json)"
+PROJECT_AFTER=$(cat .claude/agents/project-agent.md .specify/profile.yaml; jq -c '[.hooks.Stop[].hooks[] | select(.command | test("project-stop"))]' .claude/settings.json)
+check 'project hook, agent and profile untouched' test "$PROJECT_BEFORE" = "$PROJECT_AFTER"
+git -c user.email=t@t -c user.name=t add -A >/dev/null 2>&1 && git -c user.email=t@t -c user.name=t commit -qm "n+1" >/dev/null 2>&1
+bash .speckit/setup.sh --yes > "$WORK/runN1b.log" 2>&1
+check 'N+1 re-run is byte-identical' test -z "$(git status --porcelain --untracked-files=all)"
 
 echo "opt-ins"
 bash .speckit/setup.sh --yes --gemini > "$WORK/run3.log" 2>&1

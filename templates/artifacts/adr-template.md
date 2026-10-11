@@ -6,7 +6,7 @@
 ## Rules
 <!-- What an implementer must do or must not do, as short imperative lines an AI can check code against.
      Keep this section first: it is what gets loaded when the index routes here.
-     Checkable, file-level rules also go to .claude/rules/{stack}/ (this ADR is cited there as provenance). -->
+     Checkable, file-level rules also go to .claude/rules/{area}/ (this ADR is cited there as provenance). -->
 - {MUST / MUST NOT …}
 
 ## Decision

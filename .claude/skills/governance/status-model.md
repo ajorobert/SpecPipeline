@@ -1,101 +1,85 @@
 # Story Status Model
-Framework-owned block. It is the single source of truth for `status.current` in the active story's
-frontmatter, for the `SK_RESULT:` completion signal, and for how a skill's role is resolved at write
-time. The hooks (`skill-start.sh`, `post-response.sh`, `validate-path.sh`) and the status command
-(`story-status.sh`) implement exactly this.
+Framework-owned. The single source of truth for `status.current` in the active story's front-matter, for
+the `SK_RESULT:` completion signal, and for how the running command's role is resolved. The hooks
+(`skill-start.sh`, `post-response.sh`, `session-start.sh`, `validate-path.sh`) and `story-status.sh`
+implement exactly this.
 
 ## The enum
-`draft → ready → in-progress → testing → review → verify → security-review → done → shipped`
-plus two off-path states: `review-rejected` (sk.review found blocking findings) and `rolled-back`.
-No other value is valid. `shipped` also freezes the unit (`governance/promotion.md`).
+`draft → ready → in-progress → testing → review → verify → security-review → done → shipped`, plus
+`review-rejected` (sk.review found blocking findings). No other value is valid. `shipped` freezes the unit
+(`governance/promotion.md`).
 
 ## The one status command
-Every transition goes through `sk_transition` in `.claude/hooks/lib-story.sh`. It validates the value,
-writes `status.current` + `entered_at`, appends to `.specify/state/skill-audit.log`, and queues the
-tracker mirror (`governance/tracker-mirror.md`). Hooks call it directly; a skill calls it through
-
+Every transition goes through `sk_transition` in `.claude/hooks/lib-story.sh`: validate, write
+`status.current` + `entered_at`, append to `.specify/state/skill-audit.log`, queue the tracker mirror
+(`governance/tracker-mirror.md`). Hooks call it directly; a command calls it through
 ```
-bash .claude/hooks/story-status.sh set <status> --by <skill>
-bash .claude/hooks/story-status.sh field <test-status|verify-status|security-status|uat-status|jira_id|checkpoint_status|branch> <value>
+bash .claude/hooks/story-status.sh set <status> --by <command>
+bash .claude/hooks/story-status.sh field <test-status|verify-status|security-status|uat-status|jira_id|branch> <value>
 ```
-
-A skill never edits `status.current` or a roll-up field with Edit/Write.
+A command never edits `status.current` or a roll-up field with Edit/Write.
 
 ## Who writes what
-
 | Transition | Written by | When |
 |---|---|---|
-| → `draft` | skill-start.sh | `sk.story_sub_specify` starts |
-| → `ready` | sk.story (Phase 6) via story-status.sh | the validation gate passes |
-| → `in-progress` | sk.implement via story-status.sh | before the first project worker runs |
-| → `in-progress` | sk.hotfix via story-status.sh | a hotfix starts on a `draft` or `ready` story |
+| → `draft` | skill-start.sh | `sk.story` starts on a story that is new, `draft` or `ready` |
+| → `ready` | sk.story via story-status.sh | its ready gate passes |
+| → `in-progress` | sk.implement / sk.hotfix via story-status.sh | the unit's first implement run starts |
 | → `testing` | post-response.sh | `sk.implement` emits `SK_RESULT: PASS` |
 | → `review` | post-response.sh | `sk.test` emits `SK_RESULT: PASS` |
 | → `verify` / `review-rejected` | post-response.sh | `sk.review` emits PASS / FAIL |
 | → `security-review` | post-response.sh | `sk.security-audit` emits `SK_RESULT: PASS` |
 | → `done` | post-response.sh | `sk.verify` emits `SK_RESULT: PASS` |
 | → `shipped` | post-response.sh | `sk.ship` emits `SK_RESULT: PASS` |
-| → `rolled-back` | sk.rollback via story-status.sh | the rollback completes |
 
-A skill never writes a status the table assigns to a hook, and vice versa. `sk.plan` does not move the
-story — plan approval lives in `03-plan/{Project}/plan.md` front-matter `status:`.
+`sk.plan` never moves the story: plan approval is `status: approved` in `03-plan/{Project}/plan.md`.
 
-## Roll-up fields (independent of `status.current`)
+## Roll-up fields
 | Field | Written by | Values |
 |---|---|---|
-| `test-status` | post-response.sh (from `sk.test`), sk.uat via story-status.sh | `pass` \| `fail` |
-| `verify-status` | post-response.sh (from `sk.verify`) | `PASS` \| `FAIL` |
-| `security-status` | sk.security-audit via story-status.sh | `clear` \| `conditional` \| `blocked` |
-| `checkpoint_mode` | sk.story_sub_specify | `autopilot` \| `confirm` \| `validate` |
-| `jira_id` | sk.story via story-status.sh | the tracker issue key |
-| `checkpoint_status` | sk.ff / gates via story-status.sh | `approved` |
-| `branch` | sk.session start via story-status.sh | the working branch (used by `sk.session restore`) |
+| `test-status` | post-response.sh (from sk.test PASS/FAIL); sk.uat on reject | `pass` \| `fail` |
+| `verify-status` | post-response.sh (from sk.verify) | `PASS` \| `FAIL` |
+| `security-status` | sk.security-audit | `clear` \| `conditional` \| `blocked` |
+| `uat-status` | sk.uat | `pass` \| `fail` |
+| `checkpoint_mode` | sk.story | `autopilot` \| `confirm` \| `validate` |
+| `jira_id` | sk.story | the tracker issue key |
+| `branch` | sk.session | the working branch (used by `sk.session restore`) |
 
 ## The `SK_RESULT:` contract
-Every skill in the conditional set — `sk.implement`, `sk.test`, `sk.review`, `sk.security-audit`,
-`sk.verify`, `sk.ship` — MUST end its output with a line that is exactly `SK_RESULT: PASS` or
-`SK_RESULT: FAIL`.
+`sk.implement`, `sk.test`, `sk.review`, `sk.security-audit`, `sk.verify` and `sk.ship` end their output
+with one line:
+- `SK_RESULT: PASS` — the unit-level condition holds (below). The Stop hook applies the transition.
+- `SK_RESULT: PARTIAL` — per-project commands only: this project is done, other impacted projects are not
+  yet. No transition, no roll-up write.
+- `SK_RESULT: FAIL` — writes the roll-up field (`test-status`, `verify-status`) and moves the status only
+  where the table defines a FAIL state (`review-rejected`).
 
-`skill-start.sh` writes `.specify/state/last-skill` when one of these starts; the Stop hook
-(`post-response.sh`) reads the last assistant message, finds the verdict and applies the transition.
-No `SK_RESULT:` line means no transition, and the Stop hook reports it — omitting it is a defect.
-`FAIL` persists the roll-up field (so `sk.ship` preconditions can see it) but moves the status only
-where the table above defines a FAIL state.
+PASS per command: `sk.implement` — every impacted project has `validation: PASS`; `sk.test` — every impacted
+project's test report is `result: PASS`; `sk.review` — every impacted project's review is `APPROVED`;
+`sk.security-audit` — the audit completed with no open CRITICAL; `sk.verify` — every applicable quality
+gate passed; `sk.ship` — promotion recorded and PR created.
 
-Meaning of PASS per skill:
-- `sk.implement` — every targeted project reached validation, nothing left blocked.
-- `sk.test` — every in-scope project's suite is green.
-- `sk.review` — no BLOCKING findings.
-- `sk.security-audit` — the audit ran to completion with no open CRITICAL finding. The graded verdict
-  lives in `security-status`, not here.
-- `sk.verify` — every applicable quality gate passed.
-- `sk.ship` — promotion recorded and the PR was created.
+`skill-start.sh` writes `.specify/state/last-skill` when one of these starts. The Stop hook reads the last
+assistant message: with an `SK_RESULT` line it applies it and clears the marker; without one — a gate
+waiting for the human — it leaves the marker for the turn that finishes the command. A new session
+clears it (`session-start.sh`).
 
-## How a skill starts (both entry paths)
-A skill starts either as a tool call (`Skill(sk.x)` — how orchestrators run sub-skills) or as a
-user-typed command (`/sk.x …`, which expands without any tool call). `skill-start.sh` is wired to
-both — `PreToolUse(Skill)` and `UserPromptSubmit` — so preconditions and start bookkeeping run on
-every path. Orchestrators therefore always invoke sub-skills with the **Skill tool**, never by reading
-a sub-skill's prompt.md.
+## How a command starts
+As a typed `/sk.x …` (UserPromptSubmit) or as `Skill(sk.x)` from another command (PreToolUse). Both run
+`skill-start.sh`: it evaluates the SKILL.md `preconditions:` and records the start. Commands run other
+commands only with the Skill tool (sk.ff, sk.design → sk.adr, sk.ship → sk.adr).
 
-## Active-skill role
-`write_scope.deny` in `.claude/agents/*.md` is evaluated against the role of the skill that is
-running, never against `session.yaml` `role`. An orchestrator delegates phases to other roles — a
-lead running `sk.ff` must not be denied the architect's `02-design/` output, and a po session that
-types `/sk.design` writes as the architect.
+## Active role
+Write scope (`governance/roles.yaml`) is judged against the running command's role.
+1. `skill-start.sh` resolves the role from SKILL.md `role:`. `engineer` and `qa` resolve from the type of the
+   project `--projects` selects (engineer → backend | frontend | mobile; qa → backend-qa | frontend-qa); with
+   no single project in scope, `lead`. A role `roles.yaml` does not list (`any`) has no deny set.
+2. It writes `.specify/state/active-skill` and `active-skill-role`. They stay until the next command starts
+   or a new session starts, so a gate that waits across turns keeps its role.
+3. `validate-path.sh` uses the active role, else `session.yaml` `role` for work outside any command.
 
-1. `skill-start.sh` reads the starting skill's `subagent_type`, finds the agent whose `name:` matches,
-   and writes the skill to `.specify/state/active-skill` and that agent's `role:` to
-   `.specify/state/active-skill-role`. Each skill start overwrites both.
-2. `validate-path.sh` prefers the active role; it falls back to `session.yaml` `role` for ad-hoc work
-   outside any skill.
-3. `post-response.sh` clears both at the end of every turn, so a crashed skill cannot leave a stale
-   role behind.
-
-A nested skill (for example sk.ship calling `Skill(sk.adr)` during promotion) takes over the active
-role until the turn ends; the parent's remaining writes in that turn are judged by the nested skill's
-role. The deny lists are written so that every such pairing the framework uses is allowed.
-`last-skill` is written only by the conditional skills, so a nested non-conditional skill never
-displaces the parent's SK_RESULT marker.
+A nested command (sk.ship → `Skill(sk.adr)`) takes over the role for the rest of its parent's run; the deny
+sets allow every pairing the framework uses. `last-skill` is written only by the commands above, so a
+nested command never displaces its parent's marker.
 
 All of `.specify/state/` is per-developer runtime state and is gitignored.

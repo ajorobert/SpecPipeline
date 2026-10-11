@@ -1,0 +1,112 @@
+# Roles and their write scope. Framework-owned; read by .claude/hooks/validate-path.sh.
+#
+# A running sk.* skill has one role (governance/status-model.md → Active-skill role). An Edit/Write is
+# blocked when its project-relative path matches one of the role's `deny` globs, or — when the role sets
+# `code_roots: deny` — when it lies inside any Code Root of .specify/memory/projects/index.md.
+# Outside any skill, the role comes from .specify/state/session.yaml `role`. An unknown role has no deny set.
+
+po:
+  code_roots: deny
+  deny:
+    - ".specify/memory/**"
+    - ".claude/rules/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
+    - "specs/intents/**/05-test/**"
+    - "specs/intents/**/06-uat/**"
+    - "specs/intents/**/07-security-audit/**"
+
+architect:
+  deny:
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
+    - "specs/intents/**/05-test/**"
+    - "specs/intents/**/06-uat/**"
+    - "specs/intents/**/07-security-audit/**"
+
+lead:
+  deny:
+    - ".specify/memory/projects/index.md"
+    - "specs/adr/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+
+backend:
+  deny:
+    - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+
+frontend:
+  deny:
+    - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+
+mobile:
+  deny:
+    - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+
+backend-qa:
+  deny:
+    - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
+    - "specs/intents/**/07-security-audit/**"
+
+frontend-qa:
+  deny:
+    - ".specify/memory/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"
+    - "specs/intents/**/07-security-audit/**"
+
+security:
+  code_roots: deny
+  deny:
+    - ".specify/memory/**"
+    - ".claude/rules/**"
+    - "specs/adr/**"
+    - "specs/domain/**"
+    - "specs/openapi/**"
+    - "specs/asyncapi/**"
+    - "specs/intents/**/01-story/**"
+    - "specs/intents/**/02-design/**"
+    - "specs/intents/**/03-plan/**"
+    - "specs/intents/**/04-implementation/**"

@@ -1,12 +1,44 @@
 ---
 name: sk.investigate
-description: "Invoke when: debugging a story, finding root causes, or classifying bugs as implementation bugs vs spec/contract mismatches. Role: backend or frontend (required). Reads: .specify/state/session.yaml, 01-story/, 02-design/contract-changes.md and the canonical specs/openapi|asyncapi operations it lists, 03-plan/{Project}/plan.md, specs/adr/adr-index.md → routed ADRs, specs/domain/{module}.md of the touched contexts. Writes: investigation-report.md (unit root), knowledge-base.md (candidate invariants — promotion moves them to their home at ship)."
-subagent_type: SpecKit Backend Engineer Agent
-inject_files:
-  - specs/adr/adr-index.md
+description: "Investigate a defect in the active unit: reproduce it, find and prove the root cause, classify each finding as an implementation bug or a spec/contract mismatch, and record candidate invariants."
+role: engineer
 ---
 
-Spec-aware root-cause debugging. Role determines agent: backend → SpecKit Backend Engineer Agent, frontend → SpecKit Frontend Engineer Agent.
-Classifies findings: Implementation Bug vs Spec/Contract Mismatch.
+# sk.investigate
+Finds root causes, in one session. Output: `investigation-report.md` at the unit root; candidate
+invariants in the unit's `knowledge-base.md`. It changes no spec, contract or design.
 
-Read and execute the full workflow in `prompt.md` in this directory.
+## Pre-flight
+Run `.claude/skills/governance/preflight.md` with command `investigate` (add `--projects <name>` for the
+suspected project). Report present: read its front-matter only, increment `session_count`; missing: create
+it from `{templates_dir}/artifacts/investigation-report-template.md` with `session_count: 1`.
+
+## Investigate
+Hold in view: the acceptance criteria (expected behaviour), the spec operations contract-changes.md lists
+(expected shapes), the routed ADRs and domain invariants that bear on the failure, and the project's plan.
+Reproduce the failure, read the code on the failing path (for a wide search, an Explore subagent), form a
+hypothesis, and confirm it with evidence — a failing test, a log line, a traced call — before calling it a
+root cause.
+
+Classify every finding:
+- **Implementation bug** — the code deviates from the spec; the fix belongs in {CodeRoot}.
+- **Spec/contract mismatch** — the spec, contract or criteria must change first; flag it to the architect.
+  Nothing in the spec changes without the architect.
+
+## Record
+- Add a session block `## Investigation INV-{NNN} — {date}` directly below the report header, above the
+  earlier ones (never edit those). Findings are numbered within the session (`Finding-001`); refer across
+  sessions as `INV-NNN / Finding-NNN`. Each finding: symptom, root cause, evidence, classification.
+- For each finding, the invariant the bug revealed that the code does not make obvious: append
+  `- [INV-NNN] {rule} — story {story-id} ({date})` under `## Candidate Invariants` in the unit's
+  knowledge-base.md (create the file from `{templates_dir}/artifacts/unit-knowledge-base-template.md`
+  when absent). Skip obvious ones (null checks, input validation) and say so in the report. Promotion at
+  ship moves the surviving ones to their home.
+
+## Completion report
+```
+sk.investigate — INV-{NNN}: {n} findings ({bugs} implementation bugs, {mismatches} spec/contract mismatches)
+Report: {unit}/investigation-report.md
+Next: all bugs → fix, then /sk.test --projects {Project};
+      any mismatch → correct the criteria, or /sk.design --refresh "<change>" for the contract, before code changes
+```

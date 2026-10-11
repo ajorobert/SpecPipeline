@@ -39,7 +39,7 @@ fi
 [[ -f "$SKILL_FILE" ]] || exit 0
 
 start_and_exit() {
-  sk_on_skill_start "$PROJECT_ROOT" "$SKILL_NAME"
+  sk_on_skill_start "$PROJECT_ROOT" "$SKILL_NAME" "$(sk_skill_args_from_input "$INPUT")"
   exit 0
 }
 

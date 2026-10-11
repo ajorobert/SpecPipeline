@@ -1,11 +1,10 @@
 # Review Gate Protocol
-Framework-owned block, referenced by path from every orchestrator gate (`sk.design`, `sk.plan`,
-`sk.implement`, `sk.implement_sub_implementproject`, `sk.test`, `sk.uat`, `sk.security-audit`). The skill supplies
-the gate name, the artifact list and its own "Check for" items. This file supplies the behaviour.
+Framework-owned. Every command gate refers here; the command supplies the gate name, what to show and its
+"Check for" items. A gate runs in the command's own session, with the human.
 
 ## Schedule
 Gates are driven by `checkpoint_mode`, read from the active story's frontmatter
-(`.claude/skills/governance/preflight.md`). The meaning of each mode is defined in
+(`context.sh` prints it). The meaning of each mode is defined in
 `.claude/skills/governance/checkpoint-rules.md`.
 
 | checkpoint_mode | Gate behaviour |

@@ -4,7 +4,7 @@ intent: {INTENT-CODE}
 unit: {INTENT-CODE}-{UNIT-CODE}
 title: {title}
 status:
-  current: draft        # draft | ready | in-progress | testing | review | review-rejected | verify | security-review | done | shipped | rolled-back
+  current: draft        # draft | ready | in-progress | testing | review | review-rejected | verify | security-review | done | shipped
   entered_at: {date}    # ISO 8601 datetime when current state was entered (set by story-status.sh / hooks)
   completed_at: null    # ISO 8601 datetime when story reached 'done'
   blocked_by: null      # task id, story id, or free-text reason if blocked
@@ -12,10 +12,10 @@ owner: null
 story_type: feature     # feature | bug | hotfix
 tags: []                # keywords from the Signals column of .claude/skills/README.md ## Registry (drive pack resolution)
 checkpoint_mode: null   # autopilot | confirm | validate — single source of truth for every gate
-checkpoint_status: null # null | approved
 architecture-ref: null  # relative path to ../02-design/architecture.md
 test-status: null       # null | pass | fail
 security-status: null   # null | clear | conditional | blocked
+uat-status: null        # null | pass | fail  (user-facing units, set by sk.uat)
 verify-status: null     # null | PASS | FAIL  (set by sk.verify via Stop hook)
 jira_id: null           # tracker issue key; every status transition mirrors to it (governance/tracker-mirror.md)
 created: {date}

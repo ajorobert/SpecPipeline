@@ -1,42 +1,39 @@
 # Unit Phase Layout
-Framework-owned block. It is the canonical artifact tree for a unit; every sk.* prompt refers here
-instead of restating paths.
+Framework-owned. The canonical artifact tree of a unit; commands refer here instead of restating paths.
 
 ```
 specs/intents/{intent}/
 ├── intent.md
 └── units/{unit}/
-    ├── unit-brief.md               # sk.story_sub_specify / sk.story_sub_architect-probe — Impacted Projects table
-    ├── knowledge-base.md           # tier-3 KB (sk.knowledge-base, sk.review, sk.investigate)
-    ├── guide.yaml                  # tier-3 routing index (sk.design)
-    ├── planning-brief.md           # sk.plan — cross-project synthesis
+    ├── unit-brief.md               # sk.story — Impacted Projects table
+    ├── knowledge-base.md           # unit notes: design decisions, pitfalls, candidate invariants
     ├── investigation-report.md     # sk.investigate
-    ├── rollback-plan.md            # sk.rollback / sk.migrate --rollback
+    ├── rollback-plan.md            # sk.implement, when a migration is written
     ├── promotion.md                # sk.ship — what moved to its home (governance/promotion.md)
-    ├── 01-story/                   # sk.story (po)
-    │   ├── story.md                # frontmatter: id, status.current, checkpoint_mode, tags[], *-status
+    ├── 01-story/                   # sk.story
+    │   ├── story.md                # front-matter: id, status.current, checkpoint_mode, tags[], *-status
     │   ├── requirement.md
     │   ├── acceptance-criteria.md
     │   └── jira.md                 # only when tracker-seeded
-    ├── 02-design/                  # sk.design (architect)
+    ├── 02-design/                  # sk.design
     │   ├── architecture.md
-    │   ├── impact-analysis.md
+    │   ├── impact-analysis.md      # per project + Sequencing & Dependencies
     │   ├── database-design.md
-    │   ├── contract-changes.md     # change list for specs/openapi|asyncapi + compat class + test plan
-    │   ├── ui-model.md             # frontend units only
+    │   ├── contract-changes.md     # change list for specs/openapi|asyncapi + compatibility + test plan
+    │   ├── ui-model.md             # units with a Frontend/Mobile project
     │   └── projects/{Project}.md   # one per impacted project
-    ├── 03-plan/{Project}/          # sk.plan → sk.plan_sub_planproject
-    │   └── plan.md, tasks.md, checklist.md, jira-subtask.md, estimation.md
-    ├── 04-implementation/{Project}/  # sk.implement → sk.implement_sub_implementproject
-    │   ├── implementation.md, progress.md, validation.md
-    │   └── review-{story-id}.md    # sk.review (drives REFINE mode)
-    ├── 05-test/{Project}/          # sk.test → sk.test_sub_testproject
-    │   └── Backend: unit-test.md, integration-test.md, contract-test.md
-    │       Frontend/Mobile: component-test.md, contract-test.md
-    ├── 06-uat/                     # sk.uat — flat, unit-level
-    │   └── acceptance-result.md, user-flow-test.md, signoff.md
-    └── 07-security-audit/          # sk.security-audit — flat, unit-level
-        └── owasp-report.md, stride-review.md, dependency-scan.md, security-signoff.md
+    ├── 03-plan/{Project}/          # sk.plan
+    │   ├── plan.md, tasks.md
+    │   ├── estimation.md           # plan.estimates: true
+    │   ├── jira-subtask.md         # tracker configured
+    │   └── hotfix-plan.md          # sk.hotfix
+    ├── 04-implementation/{Project}/  # sk.implement, sk.review
+    │   ├── progress.md, delivery.md
+    │   └── review.md
+    ├── 05-test/{Project}/          # sk.test
+    │   └── test-report.md
+    ├── 06-uat/uat-report.md        # sk.uat — unit-level
+    └── 07-security-audit/security-report.md   # sk.security-audit — unit-level
 ```
 
 ## Rules

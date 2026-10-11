@@ -12,13 +12,15 @@
 #   Synced (rsync --delete scoped to each path; the sk.* namespace is framework-reserved):
 #     .claude/skills/sk.*   .claude/skills/governance
 #     .claude/agents/<framework agent files, by name>   .claude/hooks/*.sh
-#   Written:  .claude/.speckit-manifest (version + owned paths)
-#   Merged:   .claude/settings.json (hooks added if absent, deny unioned; allow and defaultMode never touched)
+#   Pruned:   a path the previous install owned (manifest `owned:`) that this version no longer ships
+#   Written:  .claude/.speckit-manifest (version + every owned path)
+#   Merged:   .claude/settings.json (framework hook entries replaced by the current set, deny unioned;
+#             project hooks, allow and defaultMode never touched)
 #   Spliced:  CLAUDE.md (and GEMINI.md when opted in) — only between the SPECKIT-SSD-SDLC MANAGED markers,
 #             rendered from .specify/profile.yaml
 #   Created:  .specify/state/ (per-developer runtime state) and its .gitignore entry
 # It creates no project knowledge files: /sk.init writes .specify/profile.yaml, .specify/memory/projects/**
-# and .specify/memory/constitution.md, and each knowledge home is created by its writer on first use
+# and .claude/rules/principles.md, and each knowledge home is created by its writer on first use
 # (.claude/skills/governance/profile.md). .specify/profile.yaml is read, never written.
 # Everything else under .claude/ (settings.local.json, commands/, rules/, non-sk.* skills and the skills
 # README registry, other agents, …) is project-owned and is never read, written, archived, or listed.
@@ -44,7 +46,7 @@ done
 [ -t 0 ] || ASSUME_YES=true
 
 FRAMEWORK_SKILL_DIRS=(governance)
-FRAMEWORK_AGENTS=(architect.md backend-engineer.md backend-qa.md frontend-engineer.md frontend-qa.md lead.md po.md security.md)
+FRAMEWORK_AGENTS=(sk-reviewer.md)
 MANAGED_START="<!-- SPECKIT-SSD-SDLC MANAGED -->"
 MANAGED_END="<!-- END SPECKIT-SSD-SDLC MANAGED -->"
 
@@ -96,30 +98,51 @@ SRC_SKILLS="$SCRIPT_DIR/.claude/skills"
 DST_SKILLS="$PROJECT_ROOT/.claude/skills"
 mkdir -p "$DST_SKILLS" "$PROJECT_ROOT/.claude/agents" "$PROJECT_ROOT/.claude/hooks"
 
+MANIFEST="$PROJECT_ROOT/.claude/.speckit-manifest"
+# Paths the previous install wrote (explicit list under `owned:`), for pruning what this version dropped.
+PREV_OWNED=""
+[ -f "$MANIFEST" ] && PREV_OWNED="$(awk '/^owned:/ { on = 1; next } on && /^  - / { sub(/^  - /, ""); print; next } on { exit }' "$MANIFEST")"
+
 shopt -s nullglob
+OWNED=()
 for src in "$SRC_SKILLS"/sk.*; do
-  [ -d "$src" ] || continue
+  [ -f "$src/SKILL.md" ] || continue
   sync_dir "$src" "$DST_SKILLS/$(basename "$src")"
+  OWNED+=(".claude/skills/$(basename "$src")")
 done
 # sk.* is the framework namespace: a sk.* directory that the framework does not ship is removed.
 for dst in "$DST_SKILLS"/sk.*; do
   [ -d "$dst" ] || continue
-  if [ ! -d "$SRC_SKILLS/$(basename "$dst")" ]; then
+  if [ ! -f "$SRC_SKILLS/$(basename "$dst")/SKILL.md" ]; then
     remove_tree "$dst"
     echo "  - removed obsolete framework skill $(basename "$dst")"
   fi
 done
 for name in "${FRAMEWORK_SKILL_DIRS[@]}"; do
   sync_dir "$SRC_SKILLS/$name" "$DST_SKILLS/$name"
+  OWNED+=(".claude/skills/$name")
 done
 for agent in "${FRAMEWORK_AGENTS[@]}"; do
   cp "$SCRIPT_DIR/.claude/agents/$agent" "$PROJECT_ROOT/.claude/agents/$agent"
+  OWNED+=(".claude/agents/$agent")
 done
 for hook in "$SCRIPT_DIR/.claude/hooks"/*.sh; do
   cp "$hook" "$PROJECT_ROOT/.claude/hooks/$(basename "$hook")"
   chmod +x "$PROJECT_ROOT/.claude/hooks/$(basename "$hook")"
+  OWNED+=(".claude/hooks/$(basename "$hook")")
 done
 shopt -u nullglob
+# A path the previous install owned that this version no longer ships is removed.
+while IFS= read -r old; do
+  [ -n "$old" ] || continue
+  case "$old" in *\**|.claude/skills/sk.*) continue ;; esac
+  keep=false
+  for p in "${OWNED[@]}"; do [ "$p" = "$old" ] && keep=true && break; done
+  if [ "$keep" = false ] && [ -e "$PROJECT_ROOT/$old" ]; then
+    remove_tree "$PROJECT_ROOT/$old"
+    echo "  - removed obsolete framework file $old"
+  fi
+done <<< "$PREV_OWNED"
 echo "  ✓ skills (sk.*, governance), agents, hooks"
 
 case "$SCRIPT_DIR/" in
@@ -127,7 +150,6 @@ case "$SCRIPT_DIR/" in
   *)                 FRAMEWORK_REL="$SCRIPT_DIR" ;;
 esac
 
-MANIFEST="$PROJECT_ROOT/.claude/.speckit-manifest"
 {
   echo "# SpecKit-SSD-SDLC install manifest — rewritten by setup.sh on every run. Do not edit."
   echo "version: $VERSION"
@@ -135,10 +157,7 @@ MANIFEST="$PROJECT_ROOT/.claude/.speckit-manifest"
   echo "scripts_dir: $FRAMEWORK_REL/scripts"
   echo "templates_dir: $FRAMEWORK_REL/templates"
   echo "owned:"
-  echo "  - .claude/skills/sk.*"
-  for name in "${FRAMEWORK_SKILL_DIRS[@]}"; do echo "  - .claude/skills/$name"; done
-  for agent in "${FRAMEWORK_AGENTS[@]}"; do echo "  - .claude/agents/$agent"; done
-  echo "  - .claude/hooks/*.sh"
+  for p in "${OWNED[@]}"; do echo "  - $p"; done
 } > "$MANIFEST"
 echo "  ✓ .claude/.speckit-manifest (v$VERSION)"
 
@@ -147,10 +166,17 @@ echo "  ✓ .claude/.speckit-manifest (v$VERSION)"
 # ─────────────────────────────────────────────
 SETTINGS="$PROJECT_ROOT/.claude/settings.json"
 SPECKIT_SETTINGS="$TEMPLATES_ROOT/settings.speckit.json"
+# Framework hook entries (a command running one of the scripts this or the previous version owned) are
+# replaced by the current set; project-added hooks, allow and defaultMode are never touched.
+HOOK_NAMES="$(printf '%s\n' "${OWNED[@]}" "$PREV_OWNED" | sed -n 's|^\.claude/hooks/\(.*\.sh\)$|\1|p' | sort -u | jq -R . | jq -s .)"
 # shellcheck disable=SC2016
 MERGE_FILTER='
-  .[0] as $p | .[1] as $f
-  | $p
+  .[0] as $p | .[1] as $f | .[2] as $own
+  | def fw: . as $c | any($own[]; . as $n | $c | contains("/.claude/hooks/" + $n));
+  $p
+  | .hooks = ((.hooks // {})
+      | with_entries(.value |= (map(.hooks |= map(select(.command | fw | not))) | map(select(.hooks | length > 0))))
+      | with_entries(select(.value | length > 0)))
   | .permissions = (($p.permissions // {})
       | .deny = (reduce ($f.permissions.deny // [])[] as $x
                    ((.deny // []); if any(.[]; . == $x) then . else . + [$x] end))
@@ -175,12 +201,12 @@ if [ ! -f "$SETTINGS" ]; then
 elif ! jq -e . "$SETTINGS" >/dev/null 2>&1; then
   echo "  ! .claude/settings.json is not valid JSON — skipped merge. Fix it and re-run." >&2
 else
-  MERGED="$(jq -s "$MERGE_FILTER" "$SETTINGS" "$SPECKIT_SETTINGS")"
+  MERGED="$(printf '%s' "$HOOK_NAMES" | jq -s "$MERGE_FILTER" "$SETTINGS" "$SPECKIT_SETTINGS" -)"
   if [ "$(jq -S . "$SETTINGS")" = "$(printf '%s' "$MERGED" | jq -S .)" ]; then
     echo "  ✓ .claude/settings.json already contains the SpecKit hooks and deny policy"
   else
     printf '%s\n' "$MERGED" > "$SETTINGS"
-    echo "  ✓ .claude/settings.json merged (hooks added if absent, deny unioned; allow and defaultMode untouched)"
+    echo "  ✓ .claude/settings.json merged (framework hooks replaced, deny unioned; project hooks, allow and defaultMode untouched)"
   fi
 fi
 
@@ -191,7 +217,7 @@ if [ ! -f "$STATE_DIR/session.yaml" ]; then
   cat > "$STATE_DIR/session.yaml" << 'EOF'
 # SpecKit-SSD-SDLC session state — per developer, gitignored, managed by /sk.session
 
-role: null              # po|architect|lead|backend|frontend|backend-qa|frontend-qa|security
+role: null              # po|architect|lead|backend|frontend|mobile|backend-qa|frontend-qa|security
 session_id: null        # e.g. po-20260409
 branch: null            # the working branch (recorded, or created on request)
 story_id: null          # story being worked on at session start (sk.session start)

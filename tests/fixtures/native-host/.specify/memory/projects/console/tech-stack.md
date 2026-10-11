@@ -1,9 +1,4 @@
-# console — tech stack
-
-## Versions
-| Component | Version | Verified |
-|---|---|---|
-| React | 19.1.0 | 2026-09-21 against `src/frontend/apps/console/package.json` |
+# console — commands and layout
 
 ## Platform
 browser
